@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mathe 7/8 – So funktioniert's</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Zilla+Slab:wght@500;600;700&display=swap">
+<style>
+/* Layout: ein Heftblatt (Karopapier) mit Überblick oben, darunter aufklappbare Kapitel zum Vertiefen */
+:root {
+  --bg: #f6f8fb;
+  --paper: #ffffff;
+  --fg: #1c2430;
+  --muted: #5a6577;
+  --line: #d9e0ea;
+  --grid: rgba(40, 90, 160, 0.07);
+  --ink: #1f4e8c;          /* Heft-Blau, Akzent */
+  --ink-soft: #e7eef8;
+  --g: #2e8b57;  --g-soft: #e3f3ea;
+  --v: #b7790c;  --v-soft: #fbf0d9;
+  --x: #c0394a;  --x-soft: #f9e3e6;
+  --ref-bg: #fff3c4; --ref-fg: #6b5200;
+  --font-display: "Zilla Slab", "Roboto Slab", Georgia, serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151c; --paper: #171d26; --fg: #e5e9f0; --muted: #a2acbb; --line: #2b3442;
+    --grid: rgba(140, 180, 240, 0.06); --ink: #8fb4ec; --ink-soft: #1f2a3a;
+    --g: #5cc28a; --g-soft: #183126; --v: #e2ad45; --v-soft: #33280f; --x: #ec7482; --x-soft: #3a1c22;
+    --ref-bg: #3d3412; --ref-fg: #f2d97a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151c; --paper: #171d26; --fg: #e5e9f0; --muted: #a2acbb; --line: #2b3442;
+  --grid: rgba(140, 180, 240, 0.06); --ink: #8fb4ec; --ink-soft: #1f2a3a;
+  --g: #5cc28a; --g-soft: #183126; --v: #e2ad45; --v-soft: #33280f; --x: #ec7482; --x-soft: #3a1c22;
+  --ref-bg: #3d3412; --ref-fg: #f2d97a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 20px 20px;
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+.wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+  display: grid;
+  gap: 28px;
+}
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.8rem); font-weight: 700; color: var(--ink); }
+h2 { font-size: 1.45rem; font-weight: 600; }
+h3 { font-size: 1.15rem; font-weight: 600; }
+p { margin: 0; }
+ul, ol { margin: 0; padding-left: 1.25em; display: grid; gap: 6px; }
+a { color: var(--ink); }
+strong { font-weight: 700; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+
+/* Kopf */
+header { display: grid; gap: 12px; }
+.eyebrow { font-size: 0.82rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.lead { font-size: 1.15rem; color: var(--fg); max-width: 62ch; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn {
+  font: inherit; font-size: 0.9rem; cursor: pointer;
+  border: 1px solid var(--line); background: var(--paper); color: var(--fg);
+  border-radius: 999px; padding: 6px 14px;
+}
+.btn[aria-pressed="true"] { background: var(--ref-bg); color: var(--ref-fg); border-color: var(--ref-fg); }
+
+/* Blatt */
+.sheet { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 22px; display: grid; gap: 16px; }
+@media (max-width: 520px) { .sheet { padding: 16px; } }
+
+/* Überblick */
+.key { display: grid; gap: 10px; list-style: none; padding: 0; counter-reset: k; }
+.key li { display: grid; grid-template-columns: 2.1em 1fr; gap: 8px; align-items: start; }
+.key li::before {
+  counter-increment: k; content: counter(k);
+  font-family: var(--font-display); font-weight: 700; color: var(--ink);
+  border: 2px solid var(--ink); border-radius: 50%; width: 1.7em; height: 1.7em;
+  display: grid; place-items: center; font-size: 0.95rem; margin-top: 2px;
+}
+
+/* G V X */
+.gvx { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 680px) { .gvx { grid-template-columns: 1fr; } }
+.lvl { border-radius: 8px; padding: 14px; display: grid; gap: 8px; align-content: start; border-top: 6px solid; }
+.lvl.g { background: var(--g-soft); border-color: var(--g); }
+.lvl.v { background: var(--v-soft); border-color: var(--v); }
+.lvl.x { background: var(--x-soft); border-color: var(--x); }
+.lvl .tag { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; line-height: 1; }
+.g .tag { color: var(--g); } .v .tag { color: var(--v); } .x .tag { color: var(--x); }
+.lvl .weight { font-size: 0.85rem; color: var(--muted); }
+.example { font-style: italic; font-size: 0.95rem; }
+
+/* Skala */
+.scale { display: grid; gap: 6px; }
+.bar { display: flex; height: 34px; border-radius: 6px; overflow: hidden; }
+.bar span { display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 0.9rem; }
+.bar .g { background: var(--g); width: 30%; } .bar .v { background: var(--v); width: 40%; } .bar .x { background: var(--x); width: 30%; }
+.ticks { position: relative; height: 54px; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.tick { position: absolute; top: 0; transform: translateX(-50%); display: grid; justify-items: center; line-height: 1.2; }
+.tick::before { content: ""; width: 2px; height: 10px; background: var(--fg); margin-bottom: 2px; }
+.tick b { font-size: 0.82rem; }
+.tick small { color: var(--muted); }
+.caption { font-size: 0.9rem; color: var(--muted); }
+
+/* Kapitel */
+.chapters { display: grid; gap: 10px; }
+details { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+details[open] { border-color: var(--ink); }
+summary {
+  cursor: pointer; list-style: none; padding: 14px 18px;
+  display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+}
+summary::-webkit-details-marker { display: none; }
+summary h2 { font-size: 1.2rem; }
+summary .sub { font-size: 0.92rem; color: var(--muted); grid-column: 1; }
+summary::after { content: "+"; grid-row: 1 / span 2; grid-column: 2; font-family: var(--font-display); font-size: 1.6rem; color: var(--ink); }
+details[open] summary::after { content: "–"; }
+.body { padding: 0 18px 20px; display: grid; gap: 14px; }
+@media (max-width: 520px) { summary { padding: 12px 14px; } .body { padding: 0 14px 16px; } }
+
+.steps { list-style: none; padding: 0; display: grid; gap: 12px; counter-reset: s; }
+.steps li { display: grid; grid-template-columns: 2.2em 1fr; gap: 10px; }
+.steps li::before {
+  counter-increment: s; content: counter(s);
+  font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; color: var(--paper);
+  background: var(--ink); border-radius: 6px; width: 1.9em; height: 1.9em; display: grid; place-items: center;
+}
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+
+.parents { background: var(--ink-soft); border-radius: 8px; padding: 12px 14px; display: grid; gap: 6px; }
+.parents .who { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; color: var(--ink); }
+
+.tablebox { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.82rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.num { white-space: nowrap; font-weight: 700; }
+
+.groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 680px) { .groups { grid-template-columns: 1fr; } }
+.group { border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 6px; align-content: start; }
+.group h3 { color: var(--ink); }
+.group .goal { font-size: 0.92rem; color: var(--muted); }
+
+.status { display: grid; gap: 8px; list-style: none; padding: 0; }
+.status li { display: grid; grid-template-columns: minmax(9.5em, auto) 1fr; gap: 10px; align-items: start; }
+@media (max-width: 520px) { .status li { grid-template-columns: 1fr; gap: 2px; } }
+.pill { display: inline-block; font-size: 0.85rem; font-weight: 700; border-radius: 999px; padding: 2px 10px; border: 1px solid var(--line); justify-self: start; }
+
+/* Rechner */
+.calc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 680px) { .calc { grid-template-columns: 1fr; } }
+.calc .inputs { display: grid; gap: 12px; }
+.calc label { display: grid; gap: 2px; font-size: 0.95rem; }
+.calc .row { display: grid; grid-template-columns: 1fr 3.4em; gap: 10px; align-items: center; }
+.calc output { font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; }
+.calc input[type="range"] { width: 100%; }
+#calc-g { accent-color: var(--g); } #calc-v { accent-color: var(--v); } #calc-x { accent-color: var(--x); }
+.check { display: flex; gap: 8px; align-items: center; }
+.result { border: 2px solid var(--ink); border-radius: 10px; padding: 16px; display: grid; gap: 10px; }
+.result .pct { font-family: var(--font-display); font-size: 2.2rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1; }
+.result .grades { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.result .grades div { display: grid; gap: 2px; }
+.result .grades small { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.result .grades b { font-size: 1.05rem; }
+.result .how { font-size: 0.88rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.sym { width: 1.05em; height: 1.05em; display: inline-block; vertical-align: -0.15em; margin-right: 0.15em; }
+.tg, .tv, .tx { font-weight: 700; border-radius: 4px; padding: 0 0.28em; }
+.tg { color: var(--g); background: var(--g-soft); }
+.tv { color: var(--v); background: var(--v-soft); }
+.tx { color: var(--x); background: var(--x-soft); }
+.lvl .tg, .lvl .tv, .lvl .tx { background: var(--paper); box-shadow: inset 0 0 0 1.5px currentColor; }
+.faq { display: grid; gap: 14px; }
+.faq div { display: grid; gap: 4px; }
+.faq h3 { font-family: var(--font-body); font-size: 1.02rem; font-weight: 700; }
+
+/* Prüfansicht */
+.ref {
+  display: none; font-size: 0.72rem; font-weight: 700; font-family: var(--font-body);
+  background: var(--ref-bg); color: var(--ref-fg); border-radius: 4px; padding: 0 5px; margin-left: 4px;
+  vertical-align: 0.15em; white-space: nowrap;
+}
+body.pruef .ref { display: inline-block; }
+.pruefhinweis { display: none; background: var(--ref-bg); color: var(--ref-fg); border-radius: 8px; padding: 10px 14px; font-size: 0.92rem; }
+body.pruef .pruefhinweis { display: block; }
+
+footer { font-size: 0.92rem; color: var(--muted); display: grid; gap: 4px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  details[open] .body { animation: open 0.18s ease-out; }
+  @keyframes open { from { opacity: 0.4; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Mathematik · 7. und 8. Schulstufe</div>
+  <h1>Mathe 7/8 – So funktioniert's</h1>
+  <p class="lead">Hier findest du, wie wir in Mathematik lernen und wie die Note entsteht. Oben steht das Wichtigste in Kürze. Darunter kannst du jedes Thema aufklappen, wenn du es genauer wissen willst.</p>
+  <div class="toolbar">
+    <button class="btn" id="btn-alle" type="button">Alle Kapitel aufklappen</button>
+    <button class="btn" id="btn-pruef" type="button" aria-pressed="false">Prüfansicht für Lehrkräfte</button>
+  </div>
+  <p class="pruefhinweis">Prüfansicht: Die gelben Marken verweisen auf den Abschnitt in <code>KONZEPT.md</code>, aus dem die Aussage stammt (LZ = <code>Quellen/LERNZIELE.md</code>, EB = Elternbrief Oktober 2026). Diese Ansicht ist nur zum Prüfen gedacht.</p>
+</header>
+
+<!-- ÜBERBLICK -->
+<section class="sheet" aria-labelledby="ueberblick">
+  <h2 id="ueberblick">Das Wichtigste in Kürze</h2>
+  <ol class="key">
+    <li><span>In Mathe lernen die 7. und 8. Schulstufe gemeinsam. Im Schuljahr gibt es <strong>12 Themen</strong>. Je drei Themen bilden einen Block, der mit einer <strong>großen Kompetenzüberprüfung (GKÜ)</strong> endet, also vier GKÜs im Jahr.<span class="ref">1a · 3a · 5</span></span></li>
+    <li><span>Jedes Thema ist in <strong>Kompetenzen</strong> aufgeteilt, in drei Stufen: <strong><b class="tg">G</b></strong> grundlegend, <strong><b class="tv">V</b></strong> vertieft und <strong><b class="tx">X</b></strong> Experte.<span class="ref">2</span></span></li>
+    <li><span>Eine Kompetenz hast du <strong>ganz (<svg class="sym" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="4.7" y1="15.3" x2="15.3" y2="4.7" stroke="currentColor" stroke-width="2"/><line x1="4.7" y1="4.7" x2="15.3" y2="15.3" stroke="currentColor" stroke-width="2"/></svg>), halb (<svg class="sym" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="4.7" y1="15.3" x2="15.3" y2="4.7" stroke="currentColor" stroke-width="2"/></svg>) oder noch nicht (<svg class="sym" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>) erreicht</strong>. Was noch nicht da ist, kannst du nachholen.<span class="ref">4.1 · 4.2 · NOTIZEN (Symbole)</span></span></li>
+    <li><span>Deine Note ergibt sich aus <strong>allen Kompetenzen, die du im ganzen Schuljahr erreichst</strong>, nicht aus einem Durchschnitt der GKÜ-Noten.<span class="ref">4.2</span></span></li>
+    <li><span>Du kannst Kompetenzen <strong>nachholen</strong>. Schlechter werden kannst du dabei nicht.<span class="ref">4.2</span></span></li>
+    <li><span>Ihr arbeitet in <strong>Lerngruppen</strong>, die zu euch passen. Die Einteilung wird angepasst, wenn es sinnvoll ist, und ihr redet dabei mit.<span class="ref">3b</span></span></li>
+    <li><span><strong>Qualität vor Quantität:</strong> Einiges gut zu können bringt mehr als vieles ein bisschen.<span class="ref">1 · 4.2</span></span></li>
+  </ol>
+
+  <div class="scale" aria-label="Anteil von G, V und X an der Gesamtnote und Notengrenzen">
+    <div class="bar" role="img" aria-label="G zählt 30 Prozent, V 40 Prozent, X 30 Prozent">
+      <span class="g">G 30 %</span><span class="v">V 40 %</span><span class="x">X 30 %</span>
+    </div>
+    <div class="ticks" aria-hidden="true">
+      <div class="tick" style="left:15%"><b>15</b><small>St 4</small></div>
+      <div class="tick" style="left:28%"><b>28</b><small>St 3</small></div>
+      <div class="tick" style="left:42%"><b>42</b><small>St 2 · A 4</small></div>
+      <div class="tick" style="left:63%"><b>63</b><small>St 1 · A 3</small></div>
+      <div class="tick" style="left:80%"><b>80</b><small>A 2</small></div>
+      <div class="tick" style="left:90%"><b>90</b><small>A 1</small></div>
+    </div>
+    <p class="caption">So viel zählen <b class="tg">G</b>, <b class="tv">V</b> und <b class="tx">X</b> zusammen. Die Marken zeigen, ab wie viel Prozent insgesamt (mehr als …) welche Note erreicht ist: St = Standard, A = Standard AHS.<span class="ref">2 · 4.4</span></p>
+  </div>
+</section>
+
+<!-- KAPITEL -->
+<div class="chapters">
+
+<details id="stufen">
+  <summary><h2>G, V und X – was heißt das?</h2><span class="sub">Die drei Stufen jeder Kompetenz</span></summary>
+  <div class="body">
+    <div class="gvx">
+      <div class="lvl g">
+        <span class="tag">G</span><h3>grundlegend</h3>
+        <span class="weight">zählt 30 %</span>
+        <p>Das Minimum, um positiv abzuschließen. Einfache Aufgaben, so wie im Unterricht geübt, nur mit anderen Zahlen. Dazu einfache Verständnisfragen.<span class="ref">2</span></p>
+        <p class="example">Beispiel Terme: „Ich kenne Regeln für das Rechnen mit Termen und kann sie anwenden.“<span class="ref">LZ</span></p>
+      </div>
+      <div class="lvl v">
+        <span class="tag">V</span><h3>vertieft</h3>
+        <span class="weight">zählt 40 %</span>
+        <p>Das Wesentliche aus dem Lehrplan. Aufgaben wie im Unterricht geübt, auch anspruchsvollere: Inhalte verknüpfen, Umkehraufgaben, zusätzlich umwandeln.<span class="ref">2</span></p>
+        <p class="example">Beispiel Terme: „Ich kenne das Distributivgesetz und kann ausmultiplizieren und herausheben.“<span class="ref">LZ</span></p>
+      </div>
+      <div class="lvl x">
+        <span class="tag">X</span><h3>Experte</h3>
+        <span class="weight">zählt 30 %</span>
+        <p>Über das Wesentliche hinaus. Komplexere und auch neuartige Aufgaben, Wissen selbständig anwenden und begründen.<span class="ref">2</span></p>
+        <p class="example">Beispiel Satz des Pythagoras: „Ich kenne Höhensatz und Kathetensatz und kann sie anwenden.“<span class="ref">LZ (Pyth-X2)</span></p>
+      </div>
+    </div>
+    <p><strong>Warum zählt <b class="tv">V</b> am meisten?</strong> <b class="tg">G</b> ist bewusst ein überschaubarer Teil der Mathematik, damit fast alle das Minimum wirklich schaffen können. <b class="tv">V</b> ergänzt alles, was der Lehrplan als wesentlich verlangt. Da bleibt noch einiges, deshalb hat <b class="tv">V</b> das größte Gewicht. <b class="tx">X</b> geht darüber hinaus.<span class="ref">2</span></p>
+  </div>
+</details>
+
+<details id="ablauf">
+  <summary><h2>So läuft ein Thema ab</h2><span class="sub">Vom Mathe Know How bis zur GKÜ</span></summary>
+  <div class="body">
+    <p>Wir haben vier Mathematikstunden pro Woche. Ein Thema dauert meist ein bis zwei Wochen.<span class="ref">3a</span></p>
+    <ol class="steps">
+      <li><div><h3>Das Thema wird vorgestellt</h3><p>Etwa bei der Hälfte der Themen gemeinsam für alle Lerngruppen in der Aula, sonst direkt in den Lerngruppen.<span class="ref">3a (Korrektur Lehrkraft 20.10.)</span></p></div></li>
+      <li><div><h3>Mathe Know How</h3><p>Ein Überblick über alle Kompetenzen des Themas. Ihr erarbeitet ihn in eurer Lerngruppe.<span class="ref">3a</span></p></div></li>
+      <li><div><h3>Pflichtauftrag und Selbstkontrolle</h3><p>Zu (fast) jeder <b class="tg">G</b>- und <b class="tv">V</b>-Kompetenz gibt es ein Übungsblatt. Bestimmte Nummern davon sind Pflicht, der Rest ist Reserve zum Üben. Mit den Lösungen kontrollierst du dich selbst: grünes Häkchen für richtig, rotes X für falsch. Das zählt nicht zur Note. Es zeigt dir, wo du noch üben solltest.<span class="ref">3a · EB</span></p>
+      <p>Für <b class="tx">X</b> gibt es keinen Pflichtauftrag. Damit beschäftigst du dich selbständig und kannst jederzeit nachfragen.<span class="ref">3a</span></p></div></li>
+      <li><div><h3>Lernzielkontrolle (LZK)</h3><p>Am Ende des Themas, wie bei einer Prüfung, zu allen Kompetenzen. Die LZK ist eine <strong>Probe für die GKÜ und zählt nicht zur Note</strong>. Sie wird aber wie eine GKÜ bewertet, damit du siehst, wo du stehst. Danach verbessert ihr in Gruppen, die zu eurem Ergebnis passen.<span class="ref">3a · 4.2</span></p></div></li>
+      <li><div><h3>Nach drei Themen: die GKÜ</h3><p>Zu fast jeder Kompetenz gibt es eine oder mehrere Aufgaben. <b class="tg">G</b>-Aufgaben sind fast gleich wie die geübten, nur mit anderen Zahlen. Bei <b class="tx">X</b> können auch ganz neue Aufgaben kommen.<span class="ref">3a</span></p></div></li>
+    </ol>
+    <div class="parents">
+      <span class="who">Für Eltern</span>
+      <p>Bitte unterschreiben Sie die LZK. So sehen Sie den aktuellen Lernstand Ihres Kindes zu jedem Thema.<span class="ref">3a · EB</span></p>
+      <p>Gearbeitet wird in der Schule: Hausaufgaben im üblichen Sinn gibt es praktisch keine, alles soll im Unterricht erledigt werden können. In EduPage heißen die Aufträge trotzdem „Hausaufgabe“.<span class="ref">10 (Punkt 4) · 3a</span></p>
+    </div>
+  </div>
+</details>
+
+<details id="gruppen">
+  <summary><h2>Die Lerngruppen</h2><span class="sub">Geführt, teilgeführt oder selbständig</span></summary>
+  <div class="body">
+    <p>Nach der Vorstellung des Themas arbeitet ihr in Gruppen, jede in einem eigenen Raum mit einer Lehrperson.<span class="ref">3b</span></p>
+    <div class="groups">
+      <div class="group"><h3>Geführte Gruppe</h3><p>Die <b class="tg">G</b>-Kompetenzen werden gemeinsam und gründlich erarbeitet, mit viel Wiederholung. Auch der <b class="tg">G</b>-Pflichtauftrag wird gemeinsam erledigt.</p><p class="goal">Ziel: die Mindestanforderungen sicher erfüllen.<span class="ref">3b · EB</span></p></div>
+      <div class="group"><h3>Teilgeführte Gruppe</h3><p><b class="tg">G</b> und <b class="tv">V</b> werden gemeinsam erarbeitet, den Pflichtauftrag für <b class="tg">G</b> und <b class="tv">V</b> machst du selbständig, in höherem Tempo.</p><p class="goal">Ziel: die Anforderungen für den Standard AHS erfüllen, als Option für eine weiterführende Schule.<span class="ref">3b · EB</span></p></div>
+      <div class="group"><h3>Selbständige Gruppe</h3><p>Du gestaltest dein Lernen selbst: eigenes Tempo, selbst gewählte Tiefe bis <b class="tg">G</b>, <b class="tv">V</b> oder <b class="tx">X</b>. Hilfe holst du dir, wenn du sie brauchst.</p><p class="goal">Voraussetzung: Du kümmerst dich zuverlässig um dein Lernen, nimmst Rücksicht auf andere und teilst dir die Zeit gut ein.<span class="ref">3b · EB</span></p></div>
+    </div>
+    <ul>
+      <li><strong>Die Gruppen sind nicht nach Schulstufe eingeteilt</strong>, sondern danach, was du gerade brauchst.<span class="ref">3b</span></li>
+      <li><strong>Die Einteilung ist nicht fix.</strong> Wir schauen auf LZK-Ergebnisse und Aufträge und sprechen mit dir, bevor sich etwas ändert. Du kannst auch selbst zu uns kommen.<span class="ref">3b</span></li>
+      <li><strong>Selbständig heißt nicht allein gelassen.</strong> Probier es zuerst selbst und mit deinem Sitznachbarn. Wenn ihr nicht weiterkommt, hilft die Lehrperson.<span class="ref">3b</span></li>
+      <li>Die begleitende Lehrperson wechselt mit jedem Thema.<span class="ref">3b</span></li>
+    </ul>
+  </div>
+</details>
+
+<details id="note">
+  <summary><h2>Wie entsteht die Note?</h2><span class="sub">Kompetenzen, Prozente, Notenschlüssel – mit Rechner</span></summary>
+  <div class="body">
+    <h3>Ganz, halb oder noch nicht erreicht</h3>
+    <ul>
+      <li><svg class="sym" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="4.7" y1="15.3" x2="15.3" y2="4.7" stroke="currentColor" stroke-width="2"/><line x1="4.7" y1="4.7" x2="15.3" y2="15.3" stroke="currentColor" stroke-width="2"/></svg> <strong>Ganz erreicht:</strong> Die Aufgabe ist grundsätzlich vollständig richtig. 90 % sind ein Richtwert. Teilaufgaben können unterschiedlich viel zählen, und manche Fehler wiegen schwer, zum Beispiel eine falsche Einheit (cm statt cm²).<span class="ref">4.1</span></li>
+      <li><svg class="sym" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="4.7" y1="15.3" x2="15.3" y2="4.7" stroke="currentColor" stroke-width="2"/></svg> <strong>Halb erreicht:</strong> mindestens die Hälfte richtig, zum Beispiel 2 von 4 Teilaufgaben.<span class="ref">4.1</span></li>
+      <li><svg class="sym" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/></svg> <strong>Noch nicht erreicht:</strong> weniger als die Hälfte richtig. Du kannst die Kompetenz nachholen.<span class="ref">4.1</span></li>
+    </ul>
+    <p>Wie streng bewertet wird, legen die Lehrpersonen vorher gemeinsam fest. Die Entscheidung trifft die Lehrkraft.<span class="ref">4.1 · 10 (Punkt 6)</span></p>
+
+    <h3>Von den Kompetenzen zur Note</h3>
+    <ol>
+      <li>Für <b class="tg">G</b>, <b class="tv">V</b> und <b class="tx">X</b> wird jeweils berechnet, wie viel Prozent der geprüften Kompetenzen du erreicht hast. Eine halbe Kompetenz zählt halb.<span class="ref">CLAUDE.md · 4.4</span></li>
+      <li>Daraus entsteht der Gesamtprozentsatz: <strong>30 % von <b class="tg">G</b> + 40 % von <b class="tv">V</b> + 30 % von <b class="tx">X</b></strong>.<span class="ref">4.4</span></li>
+      <li>In der 7. Schulstufe wird dieses Ergebnis mit <strong>1,25</strong> multipliziert.<span class="ref">4.5 · 8.2</span></li>
+      <li>Dazu kommt die <strong>Mitarbeit</strong> mit bis zu plus oder minus 5 %.<span class="ref">4.2</span></li>
+      <li>Der Notenschlüssel sagt, welche Note das ist. Es zählt nur das Gesamtergebnis, egal ob die Prozente aus <b class="tg">G</b>, <b class="tv">V</b> oder <b class="tx">X</b> kommen.<span class="ref">4.4 · 8.2</span></li>
+    </ol>
+
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>Gesamt</th><th>Standard AHS</th><th>Standard</th><th>Bedeutung laut Gesetz</th></tr></thead>
+        <tbody>
+          <tr><td class="num">mehr als 90 %</td><td>Sehr gut</td><td>Sehr gut</td><td>weit über das Wesentliche hinaus</td></tr>
+          <tr><td class="num">mehr als 80 %</td><td>Gut</td><td>Sehr gut</td><td>über das Wesentliche hinaus</td></tr>
+          <tr><td class="num">mehr als 63 %</td><td>Befriedigend</td><td>Sehr gut</td><td>das Wesentliche zur Gänze</td></tr>
+          <tr><td class="num">mehr als 42 %</td><td>Genügend</td><td>Gut</td><td>das Wesentliche überwiegend</td></tr>
+          <tr><td class="num">mehr als 28 %</td><td>Nicht genügend</td><td>Befriedigend</td><td>das Wesentliche teilweise</td></tr>
+          <tr><td class="num">mehr als 15 %</td><td>Nicht genügend</td><td>Genügend</td><td>das Wesentliche in Ansätzen</td></tr>
+          <tr><td class="num">bis 15 %</td><td>Nicht genügend</td><td>Nicht genügend</td><td>nicht einmal in Ansätzen</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption">Die Grenzen kommen aus den drei Stufen: 15 % gesamt entspricht der Hälfte von <b class="tg">G</b>, 42 % entspricht 60 % von <b class="tg">G</b> und <b class="tv">V</b> zusammen.<span class="ref">4.4</span></p>
+
+    <h3>Rechne selbst nach (Jahresnote)</h3>
+    <div class="calc">
+      <div class="inputs">
+        <label for="calc-g"><b class="tg">G</b> erreicht <span class="row"><input type="range" id="calc-g" min="0" max="100" step="1" value="80"><output id="out-g">80 %</output></span></label>
+        <label for="calc-v"><b class="tv">V</b> erreicht <span class="row"><input type="range" id="calc-v" min="0" max="100" step="1" value="50"><output id="out-v">50 %</output></span></label>
+        <label for="calc-x"><b class="tx">X</b> erreicht <span class="row"><input type="range" id="calc-x" min="0" max="100" step="1" value="20"><output id="out-x">20 %</output></span></label>
+        <label for="calc-m">Mitarbeit <span class="row"><input type="range" id="calc-m" min="-5" max="5" step="1" value="0"><output id="out-m">±0 %</output></span></label>
+        <label class="check" for="calc-7"><input type="checkbox" id="calc-7"> 7. Schulstufe (× 1,25)</label>
+      </div>
+      <div class="result" aria-live="polite">
+        <span class="pct" id="res-pct">50,0 %</span>
+        <div class="grades">
+          <div><small>Standard AHS</small><b id="res-ahs">Genügend</b></div>
+          <div><small>Standard</small><b id="res-std">Gut</b></div>
+        </div>
+        <p class="how" id="res-how"></p>
+        <p class="how">Nur ein Beispielrechner. Verbindlich ist die Beurteilung durch die Lehrkräfte.</p>
+      </div>
+    </div>
+  </div>
+</details>
+
+<details id="niveau">
+  <summary><h2>Standard AHS und Standard</h2><span class="sub">Zwei Beurteilungsbereiche, ein Unterricht</span></summary>
+  <div class="body">
+    <p>Jedes Kind wird entweder im <strong>Standard AHS</strong> oder im <strong>Standard</strong> beurteilt. Die Bereiche überschneiden sich: Dieselbe Leistung ist im Standard zum Beispiel ein „Gut“, im Standard AHS ein „Genügend“.<span class="ref">4.3</span></p>
+    <ul>
+      <li>Die Einstufung bringen die Kinder schon aus der 6. Schulstufe mit.<span class="ref">4.3</span></li>
+      <li>Spricht die Gesamtbeurteilung über längere Zeit für einen Wechsel, stufen wir um.<span class="ref">4.3</span></li>
+      <li><strong>Abstufung</strong> erfolgt meist rechtzeitig vor dem Semesterende, damit statt eines Nicht genügend im Standard AHS eine positive Note im Standard möglich ist.<span class="ref">4.3</span></li>
+      <li><strong>Aufstufung:</strong> Wer im Standard über mehrere GKÜs gut abschneidet, mit dem sprechen wir darüber. Manche möchten lieber ein „Sehr gut“ im Standard als ein „Befriedigend“ im Standard AHS. Wir beraten, auch im Hinblick auf eine weiterführende Schule.<span class="ref">4.3</span></li>
+    </ul>
+  </div>
+</details>
+
+<details id="nachholen">
+  <summary><h2>Nachholen und Semesterprüfung</h2><span class="sub">Jede Kompetenz zählt, egal wann du sie erreichst</span></summary>
+  <div class="body">
+    <ul>
+      <li><strong>Nachholtermine</strong> gibt es bald nach jeder GKÜ. Du kannst dich für <strong>höchstens 3</strong> Kompetenzen aus dieser GKÜ anmelden, die du noch nicht ganz erreicht hast. Die Teilnahme ist freiwillig.<span class="ref">4.2 · 8.3 (Rechner: Nachholen höchstens 3)</span></li>
+      <li><strong>Semesterprüfung:</strong> Am Ende jedes Semesters kannst du dich für <strong>höchstens 5</strong> selbst gewählte Kompetenzen anmelden, die du noch nicht ganz erreicht hast.<span class="ref">4.2</span></li>
+      <li>Einzelne Kompetenzen werden bei der GKÜ nicht geprüft, zum Beispiel einen Beweis zum Satz des Pythagoras erklären. Dafür meldest du dich selbst an.<span class="ref">4.2</span></li>
+      <li><strong>Du kannst dich nicht verschlechtern.</strong> Hast du eine halbe Kompetenz und schaffst beim Nachholen keine, bleibt die halbe. Trau dich also, es noch einmal zu probieren.<span class="ref">4.2 · EB</span></li>
+    </ul>
+  </div>
+</details>
+
+<details id="mitarbeit">
+  <summary><h2>Mitarbeit</h2><span class="sub">Bis zu plus oder minus 5 %</span></summary>
+  <div class="body">
+    <p>Die Mitarbeit verändert das Gesamtergebnis um höchstens 5 % nach oben oder unten. Dazu zählen:<span class="ref">4.2</span></p>
+    <ul>
+      <li>wie du die Arbeitsaufträge erledigst,</li>
+      <li>ob du dein Arbeitsmaterial dabei hast und deine Mappe in Ordnung ist,</li>
+      <li>wie du dich am Unterricht beteiligst, und zwar nicht nur aktiv, sondern so, dass es inhaltlich weiterhilft.<span class="ref">4.2 · EB</span></li>
+    </ul>
+    <p>Die Lehrpersonen eures Teams machen sich gemeinsam ein Gesamtbild über das Semester. <strong>Gute Mitarbeit lohnt sich:</strong> Liegst du knapp an einer Notengrenze, kann sie den entscheidenden Unterschied machen. Die Grundlage deiner Note bleiben die Kompetenzen, die du erreichst.<span class="ref">4.2</span></p>
+  </div>
+</details>
+
+<details id="edupage">
+  <summary><h2>Rückmeldungen in EduPage</h2><span class="sub">Was „OK“ und „teilweise angefertigt“ bedeuten</span></summary>
+  <div class="body">
+    <p>Der Auftrag steht als „Hausaufgabe“ mit Fälligkeitsdatum in EduPage. Am Fälligkeitstag findet die LZK statt, und der Auftrag wird kontrolliert und rückgemeldet. Mögliche Rückmeldungen:<span class="ref">3a · EB</span></p>
+    <ul class="status">
+      <li><span class="pill">OK</span><span><b class="tg">G</b> und <b class="tv">V</b> sind vollständig erledigt, mit Selbstkontrolle.</span></li>
+      <li><span class="pill">teilweise angefertigt</span><span><b class="tg">G</b> ist vollständig erledigt, mit Selbstkontrolle; <b class="tv">V</b> nicht oder nur teilweise.</span></li>
+      <li><span class="pill">nicht angefertigt</span><span><b class="tg">G</b> ist unvollständig, auch wenn nur eine Nummer oder die Selbstkontrolle fehlt.</span></li>
+      <li><span class="pill">Ausfall</span><span>Das Kind hat gefehlt.</span></li>
+      <li><span class="pill">entschuldigt</span><span>Der Auftrag muss nicht gemacht werden.</span></li>
+    </ul>
+    <p>Erfasst wird nur einmal, am Tag der Abgabe. Später Nachgereichtes wirkt sich nicht mehr positiv auf die Mitarbeit aus.<span class="ref">3a · EB</span></p>
+    <p>Weitere Rückmeldungen:</p>
+    <ul class="status">
+      <li><span class="pill">fehlendes Arbeitsmaterial</span><span>Du hast dein Arbeitsmaterial nicht dabei.</span></li>
+      <li><span class="pill">fehlende Hausaufgabe</span><span>Eine Unterschrift fehlt, zum Beispiel auf der LZK.<span class="ref">3a · EB</span></span></li>
+    </ul>
+    <div class="parents">
+      <span class="who">Für Eltern</span>
+      <p>„Teilweise angefertigt“ kann je nach Ziel völlig ausreichend sein, vor allem in der geführten Gruppe. Ihr Kind tut damit nicht zu wenig.<span class="ref">3b · EB</span></p>
+    </div>
+  </div>
+</details>
+
+<details id="siebte">
+  <summary><h2>Für die 7. Schulstufe</h2><span class="sub">Bonus und Zweijahreszyklus</span></summary>
+  <div class="body">
+    <p>Die Kompetenzen beschreiben, was man am Ende der 8. Schulstufe können soll. In der 7. Schulstufe wird daher mit reduzierten Anforderungen beurteilt: Das Gesamtergebnis wird mit <strong>1,25</strong> multipliziert. Aus 40 % werden so 50 %, aus 72 % werden 90 %.<span class="ref">1 · 4.5</span></p>
+    <p>Die Themen wechseln in einem Zweijahreszyklus. <strong>8 der 12 Themen kommen jedes Jahr</strong>, also in der 8. Schulstufe noch einmal. Die übrigen wechseln zwischen Jahr I und Jahr II.<span class="ref">4.5 · 5</span></p>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>Block</th><th>Jedes Jahr</th><th>Jahr I (z. B. 2026/27)</th><th>Jahr II (z. B. 2027/28)</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1. GKÜ</td><td>Rationale Zahlen, Potenzen und Wurzeln, Satz des Pythagoras</td><td>–</td><td>–</td></tr>
+          <tr><td class="num">2. GKÜ</td><td>Terme, Prozentrechnung</td><td>Dreiecke</td><td>Kreis und Kreisteile</td></tr>
+          <tr><td class="num">3. GKÜ</td><td>Gleichungen</td><td>Vierecke, Proportionalitäten</td><td>Prisma und Pyramide, Symmetrie und Ähnlichkeit</td></tr>
+          <tr><td class="num">4. GKÜ</td><td>Funktionen, Statistik</td><td>Wahrscheinlichkeiten</td><td>Drehzylinder, Drehkegel und Kugel</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption">Jedes Jahr ist in sich aufbauend. Egal in welchem Jahr du in die 7. Schulstufe kommst, du kannst ohne Lücken mitmachen.<span class="ref">5</span></p>
+  </div>
+</details>
+
+<details id="schritt">
+  <summary><h2>Was ist mein nächster Schritt?</h2><span class="sub">Drei Lernwege zur Orientierung</span></summary>
+  <div class="body">
+    <p>Du musst dich nicht für einen Lernweg entscheiden. Die drei Wege helfen dir zu sehen, was für dich als Nächstes dran ist.<span class="ref">3</span></p>
+    <div class="gvx">
+      <div class="lvl g"><h3>Lernweg 1</h3><p><strong>Mathe fällt mir schwer.</strong> Ich will die Mindestanforderungen schaffen.</p><p>Ich bereite mich vor allem auf die <b class="tg">G</b>-Kompetenzen vor und mache die <b class="tg">G</b>-Teile von Mathe Know How und Pflichtauftrag gewissenhaft.</p><p class="weight">Ziel: mehr als die Hälfte von <b class="tg">G</b></p><span class="ref">3</span></div>
+      <div class="lvl v"><h3>Lernweg 2</h3><p><strong>Mit <b class="tg">G</b> komme ich gut zurecht.</strong> Ich möchte im Standard AHS beurteilt werden.</p><p>Wenn <b class="tg">G</b> sitzt, bereite ich möglichst viele <b class="tv">V</b>-Kompetenzen vor und mache auch die <b class="tv">V</b>-Teile.</p><p class="weight">Ziel: mehr als 60 % von <b class="tg">G</b> und <b class="tv">V</b></p><span class="ref">3</span></div>
+      <div class="lvl x"><h3>Lernweg 3</h3><p><strong>Ich will eine (sehr) gute Note im Standard AHS.</strong></p><p>Ich arbeite weitgehend selbständig. Wenn <b class="tg">G</b> und <b class="tv">V</b> sitzen, bereite ich mich auch auf <b class="tx">X</b> vor.</p><p class="weight">Ziel: mehr als 80 % von allem</p><span class="ref">3</span></div>
+    </div>
+    <p>Wo du gerade stehst, zeigen dir deine LZK- und GKÜ-Ergebnisse. Jede halbe Kompetenz mehr zählt für das ganze Jahr.<span class="ref">3a · 10 (Punkt 7)</span></p>
+  </div>
+</details>
+
+<details id="fragen">
+  <summary><h2>Häufige Fragen</h2><span class="sub">Kurz beantwortet</span></summary>
+  <div class="body faq">
+    <div><h3>Zählt die LZK zur Note?</h3><p>Nein. Sie ist eine Probe für die GKÜ und zeigt den aktuellen Lernstand.<span class="ref">3a</span></p></div>
+    <div><h3>Kann man mit <b class="tg">G</b> allein positiv sein?</h3><p>Ja. Im Standard reicht für ein „Genügend“ mehr als 15 % gesamt, das entspricht mehr als der Hälfte von <b class="tg">G</b>. Im Standard AHS braucht es für ein „Genügend“ mehr als 42 %.<span class="ref">4.4 · 8.2</span></p></div>
+    <div><h3>Was passiert, wenn ich beim Nachholen schlechter bin?</h3><p>Nichts. Es zählt immer das bessere Ergebnis.<span class="ref">4.2</span></p></div>
+    <div><h3>Mein Kind bekommt oft „teilweise angefertigt“. Ist das schlecht?</h3><p>Nicht unbedingt. <b class="tg">G</b> ist dann vollständig erledigt. Je nach Ziel, vor allem in der geführten Gruppe, ist das ausreichend.<span class="ref">3b · EB</span></p></div>
+    <div><h3>Wird die Note aus den GKÜ-Noten gemittelt?</h3><p>Nein. Alle Kompetenzen des Schuljahres werden zusammengezählt, egal ob bei der GKÜ, beim Nachholen oder bei der Semesterprüfung erreicht.<span class="ref">4.2</span></p></div>
+    <div><h3>Wer entscheidet, in welcher Gruppe ich bin?</h3><p>Die Lehrpersonen gemeinsam mit dir. Es gibt keine feste Regel, sondern wir schauen, was für dich am besten passt.<span class="ref">3b</span></p></div>
+  </div>
+</details>
+
+</div>
+
+<footer>
+  <p>Fragen? Schreiben Sie uns gerne über EduPage.</p>
+  <p>Mathe-Team 7/8 · Stand: Oktober 2026</p>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  // Prüfansicht
+  var btnP = document.getElementById('btn-pruef');
+  function setPruef(on) {
+    document.body.classList.toggle('pruef', on);
+    btnP.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  btnP.addEventListener('click', function () { setPruef(!document.body.classList.contains('pruef')); });
+  if (location.hash === '#pruef') setPruef(true);
+
+  // Alle Kapitel auf/zu
+  var btnA = document.getElementById('btn-alle');
+  var all = Array.prototype.slice.call(document.querySelectorAll('.chapters details'));
+  function syncBtn() {
+    var allOpen = all.every(function (d) { return d.open; });
+    btnA.textContent = allOpen ? 'Alle Kapitel zuklappen' : 'Alle Kapitel aufklappen';
+  }
+  btnA.addEventListener('click', function () {
+    var allOpen = all.every(function (d) { return d.open; });
+    all.forEach(function (d) { d.open = !allOpen; });
+    syncBtn();
+  });
+  all.forEach(function (d) { d.addEventListener('toggle', syncBtn); });
+  if (location.hash && location.hash !== '#pruef') {
+    var t = document.getElementById(location.hash.slice(1));
+    if (t && t.tagName === 'DETAILS') t.open = true;
+  }
+
+  // Rechner (gleiche Regeln wie die App: Gewichtung, Bonus aufs Gesamtergebnis, dann Mitarbeit)
+  var ids = ['g', 'v', 'x', 'm'];
+  var el = {};
+  ids.forEach(function (k) { el[k] = document.getElementById('calc-' + k); el['o' + k] = document.getElementById('out-' + k); });
+  var seven = document.getElementById('calc-7');
+  var fmt = function (n) { return n.toFixed(1).replace('.', ','); };
+  function grades(p) {
+    if (p > 90) return ['Sehr gut', 'Sehr gut'];
+    if (p > 80) return ['Gut', 'Sehr gut'];
+    if (p > 63) return ['Befriedigend', 'Sehr gut'];
+    if (p > 42) return ['Genügend', 'Gut'];
+    if (p > 28) return ['Nicht genügend', 'Befriedigend'];
+    if (p > 15) return ['Nicht genügend', 'Genügend'];
+    return ['Nicht genügend', 'Nicht genügend'];
+  }
+  function update() {
+    var g = +el.g.value, v = +el.v.value, x = +el.x.value, m = +el.m.value;
+    el.og.textContent = g + ' %'; el.ov.textContent = v + ' %'; el.ox.textContent = x + ' %';
+    el.om.textContent = (m > 0 ? '+' : m < 0 ? '−' : '±') + Math.abs(m) + ' %';
+    var base = 0.3 * g + 0.4 * v + 0.3 * x;
+    var withBonus = seven.checked ? base * 1.25 : base;
+    var total = withBonus + m;
+    var gr = grades(total);
+    document.getElementById('res-pct').textContent = fmt(total) + ' %';
+    document.getElementById('res-ahs').textContent = gr[0];
+    document.getElementById('res-std').textContent = gr[1];
+    var how = '0,3 · ' + g + ' + 0,4 · ' + v + ' + 0,3 · ' + x + ' = ' + fmt(base) + ' %';
+    if (seven.checked) how += '; × 1,25 = ' + fmt(withBonus) + ' %';
+    if (m !== 0) how += '; Mitarbeit ' + (m > 0 ? '+' : '−') + Math.abs(m) + ' = ' + fmt(total) + ' %';
+    document.getElementById('res-how').textContent = how;
+  }
+  ids.forEach(function (k) { el[k].addEventListener('input', update); });
+  seven.addEventListener('change', update);
+  update();
+})();
+</script>
+
+</body>
+</html>
