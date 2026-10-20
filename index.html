@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mathe 7/8 – So funktioniert's</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Zilla+Slab:wght@500;600;700&display=swap">
 <style>
 /* Layout: ein Heftblatt (Karopapier) mit Überblick oben, darunter aufklappbare Kapitel zum Vertiefen */
 :root {
@@ -23,8 +20,9 @@
   --v: #b7790c;  --v-soft: #fbf0d9;
   --x: #c0394a;  --x-soft: #f9e3e6;
   --ref-bg: #fff3c4; --ref-fg: #6b5200;
-  --font-display: "Zilla Slab", "Roboto Slab", Georgia, serif;
-  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  /* Nur Schriften, die auf dem Gerät schon vorhanden sind (keine Verbindung zu Google Fonts) */
+  --font-display: "Roboto Slab", Rockwell, Georgia, serif;
+  --font-body: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -226,9 +224,8 @@ footer { font-size: 0.92rem; color: var(--muted); display: grid; gap: 4px; }
   <p class="lead">Hier findest du, wie wir in Mathematik lernen und wie die Note entsteht. Oben steht das Wichtigste in Kürze. Darunter kannst du jedes Thema aufklappen, wenn du es genauer wissen willst.</p>
   <div class="toolbar">
     <button class="btn" id="btn-alle" type="button">Alle Kapitel aufklappen</button>
-    <button class="btn" id="btn-pruef" type="button" aria-pressed="false">Prüfansicht für Lehrkräfte</button>
   </div>
-  <p class="pruefhinweis">Prüfansicht: Die gelben Marken verweisen auf den Abschnitt in <code>KONZEPT.md</code>, aus dem die Aussage stammt (LZ = <code>Quellen/LERNZIELE.md</code>, EB = Elternbrief Oktober 2026). Diese Ansicht ist nur zum Prüfen gedacht.</p>
+  <p class="pruefhinweis">Prüfansicht (nur über die Adresse mit <code>#pruef</code> erreichbar): Die gelben Marken verweisen auf den Abschnitt in <code>KONZEPT.md</code>, aus dem die Aussage stammt (LZ = <code>Quellen/LERNZIELE.md</code>, EB = Elternbrief Oktober 2026). Diese Ansicht ist nur zum Prüfen gedacht.</p>
 </header>
 
 <!-- ÜBERBLICK -->
@@ -504,14 +501,8 @@ footer { font-size: 0.92rem; color: var(--muted); display: grid; gap: 4px; }
 
 <script>
 (function () {
-  // Prüfansicht
-  var btnP = document.getElementById('btn-pruef');
-  function setPruef(on) {
-    document.body.classList.toggle('pruef', on);
-    btnP.setAttribute('aria-pressed', on ? 'true' : 'false');
-  }
-  btnP.addEventListener('click', function () { setPruef(!document.body.classList.contains('pruef')); });
-  if (location.hash === '#pruef') setPruef(true);
+  // Prüfansicht: nur über die Adresse …/index.html#pruef (kein Knopf auf der öffentlichen Seite)
+  if (location.hash === '#pruef') document.body.classList.add('pruef');
 
   // Alle Kapitel auf/zu
   var btnA = document.getElementById('btn-alle');
