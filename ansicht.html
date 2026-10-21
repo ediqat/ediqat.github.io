@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Mathematik · Mein Lernstand</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body { background: #f8fafc; color: #1e293b; padding: 20px; max-width: 980px; margin: 0 auto; line-height: 1.5; }
+.karte { background: #fff; border: 1px solid #cbd5e1; border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
+h1 { font-size: 1.5rem; color: #0f172a; }
+h2 { font-size: 1.1rem; color: #0f172a; margin-bottom: 8px; }
+.leise { color: #64748b; font-size: 0.85rem; }
+.note { color: #2563eb; }
+#stand-zeile { margin-top: 10px; font-size: 1.02rem; }
+.modus { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.modus button { padding: 8px 16px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; opacity: 0.45; }
+.modus button.aktiv { background: #2563eb; border-color: #2563eb; color: #fff; opacity: 1; }
+#modus-info { margin-top: 6px; }
+.auswahl { background: #f0f6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
+.auswahl h3 { font-size: 0.95rem; }
+#auswahl-liste { list-style: none; font-size: 0.88rem; margin-top: 4px; display: grid; gap: 3px; }
+.erg { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; margin-top: 10px; }
+#erg-pct { font-size: 1.4rem; font-weight: 800; }
+#erg-note { font-size: 1.05rem; font-weight: 800; color: #2563eb; margin-left: 6px; }
+#erg-next { opacity: 0.5; }
+.bar { width: 200px; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+#erg-bar { height: 100%; width: 0; background: #2563eb; transition: width 0.5s ease; }
+#erg-next-txt { font-size: 0.88rem; font-weight: 600; margin-top: 4px; }
+.kopieren { margin-top: 12px; border-top: 1px solid #bfdbfe; padding-top: 10px; }
+#btn-kopieren { padding: 8px 16px; border: 1px solid #2563eb; border-radius: 8px; background: #2563eb; color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+#btn-kopieren:disabled { opacity: 0.4; cursor: not-allowed; }
+#kopiert { margin-left: 8px; font-weight: 600; color: #16a34a; }
+#anm-text { width: 100%; min-height: 120px; margin-top: 8px; font-family: Consolas, monospace; font-size: 0.8rem; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; }
+h3.gk { font-size: 1rem; margin: 16px 0 4px; color: #0f172a; }
+details { border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 8px; background: #fcfdfe; }
+summary { padding: 8px 12px; font-weight: 600; cursor: pointer; }
+.comp { display: grid; grid-template-columns: 100px 34px 34px 1fr; gap: 8px; align-items: center; padding: 6px 12px; border-top: 1px solid #eef2f6; font-size: 0.88rem; }
+.comp.blass { color: #64748b; }
+.kreuz { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: #475569; cursor: pointer; }
+.kreuz input { width: 17px; height: 17px; }
+.sym { text-align: center; font-size: 0.8rem; color: #000; }
+.sym svg, .rating-sym { width: 1.2em; height: 1.2em; vertical-align: -0.25em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.tag { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 1px 6px; border-radius: 5px; text-align: center; }
+.tag-G { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.tag-V { background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; }
+.tag-X { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+@media (max-width: 600px) { .comp { grid-template-columns: 90px 30px 34px 1fr; padding: 6px 8px; } }
+@media print {
+  body { background: #fff; padding: 0; }
+  .modus, #modus-info, .kreuz input:not(:checked), .kopieren { display: none !important; }
+  .karte { border: none; padding: 0 0 10px; }
+  details > summary { list-style: none; }
+}
+</style>
+</head>
+<body>
+<div class="karte">
+  <h1>Mathematik · Mein Lernstand</h1>
+  <div id="kopf-name" style="font-weight:700;font-size:1.1rem;margin-top:4px"></div>
+  <div id="kopf-info" class="leise"></div>
+  <div id="stand-zeile"></div>
+</div>
+<div class="karte" id="rechner">
+  <h2>Was wäre, wenn ich Kompetenzen nachhole?</h2>
+  <div class="modus"><button type="button" id="btn-nachholen"></button><button type="button" id="btn-semester"></button></div>
+  <div id="modus-info" class="leise"></div>
+  <div class="auswahl">
+    <h3 id="auswahl-titel"></h3>
+    <ul id="auswahl-liste"></ul>
+    <div class="erg">
+      <div><span id="erg-pct"></span><span id="erg-note"></span></div>
+      <div id="erg-next"><div class="bar"><div id="erg-bar"></div></div><div id="erg-next-txt"></div></div>
+    </div>
+    <div class="kopieren">
+      <button type="button" id="btn-kopieren">📋 Auswahl kopieren</button><span id="kopiert"></span>
+      <div class="leise" style="margin-top:6px">Zum Anmelden: Auswahl kopieren, in EduPage eine Nachricht an deine Lehrkraft schreiben und den Text einfügen (Strg + V).</div>
+      <div id="kopier-bereich" style="display:none"><textarea id="anm-text" readonly></textarea></div>
+    </div>
+  </div>
+</div>
+<div class="karte" id="kompetenzen">
+  <h2>Meine Kompetenzen</h2>
+  <div class="leise">offen = noch nicht geprüft · <svg class="rating-sym" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8"/></svg> keine · <svg class="rating-sym" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8"/><line x1="4.3" y1="15.7" x2="15.7" y2="4.3"/></svg> halbe · <svg class="rating-sym" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8"/><line x1="4.3" y1="15.7" x2="15.7" y2="4.3"/><line x1="4.3" y1="4.3" x2="15.7" y2="15.7"/></svg> ganze Kompetenz</div>
+  <div id="liste"></div>
+</div>
+<script>
+const NOTENGRENZEN = {"AHS":[[90,"Sehr gut (1)"],[80,"Gut (2)"],[63,"Befriedigend (3)"],[42,"Genügend (4)"],[null,"Nicht genügend (5)"]],"STD":[[63,"Sehr gut (1)"],[42,"Gut (2)"],[28,"Befriedigend (3)"],[15,"Genügend (4)"],[null,"Nicht genügend (5)"]]};
+const RECHNER_LIMIT = {"nachholen":3,"semester":5};
+function exakt(x) { return Math.round(x * 1e6) / 1e6; }
+
+function stufenQuote(score, assessed) {
+            return assessed ? exakt((score / assessed) * 100) : 0;
+        }
+
+function gesamtProzent(gRate, vRate, xRate, factor, mitarbeit) {
+            const grundwert = exakt(0.3 * gRate + 0.4 * vRate + 0.3 * xRate);
+            const mitBonus = exakt(grundwert * factor);
+            return { grundwert, mitBonus, overallPct: exakt(Math.max(0, mitBonus + mitarbeit)) };
+        }
+
+function formatNum(x) { return x.toFixed(1).replace('.', ','); }
+
+function formatPct(x) { return `${formatNum(x)} %`; }
+
+function rechneMitPlus(stand, plus = { G: 0, V: 0, X: 0 }) {
+            const q = {};
+            ['G', 'V', 'X'].forEach(t => {
+                const { score, assessed } = stand.gesamt[t];
+                q[t] = stufenQuote(Math.min(assessed, score + (plus[t] || 0)), assessed);
+            });
+            const { overallPct } = gesamtProzent(q.G, q.V, q.X, stand.factor, stand.mitarbeit);
+            return { gRate: q.G, vRate: q.V, xRate: q.X, overallPct };
+        }
+
+function naechsteNote(res, level) {
+            const grenzen = NOTENGRENZEN[level];
+            if (!grenzen) return { note: 'Niveau fehlt', naechste: null };
+            const i = grenzen.findIndex(([g]) => g === null || res.overallPct > g);
+            const note = grenzen[i][1];
+            if (i === 0) return { note, naechste: null };
+            const oben = grenzen[i - 1][0];
+            const unten = grenzen[i][0] ?? 0;
+            return { note, naechste: grenzen[i - 1][1], fehlt: exakt(oben - res.overallPct), anteil: (res.overallPct - unten) / (oben - unten) };
+        }
+
+function standAusKompetenzen(gkues, factor, mitarbeit, level) {
+            const leer = () => ({ G: { score: 0, assessed: 0 }, V: { score: 0, assessed: 0 }, X: { score: 0, assessed: 0 } });
+            const gesamt = leer();
+            let letzteGkue = null;
+            gkues.forEach(gk => {
+                const s = leer();
+                gk.topics.forEach(t => t.comps.forEach(c => {
+                    if (c.val < 0) return;
+                    s[c.tier].score += c.val; s[c.tier].assessed++;
+                    gesamt[c.tier].score += c.val; gesamt[c.tier].assessed++;
+                }));
+                if (s.G.assessed + s.V.assessed + s.X.assessed) letzteGkue = { name: gk.name, ...s };
+            });
+            return { factor, mitarbeit, level, gesamt, letzteGkue };
+        }
+
+function anmeldePruefziffer(s) {
+            let h = 0x811c9dc5;
+            for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+            return (h % 1679616).toString(36).toUpperCase().padStart(4, '0');
+        }
+
+function anmeldeCode(inhalt) {
+            const bytes = new TextEncoder().encode(JSON.stringify(inhalt));
+            let bin = '';
+            bytes.forEach(b => { bin += String.fromCharCode(b); });
+            const b64 = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            return `[KR1:${b64}:${anmeldePruefziffer(b64)}]`;
+        }
+
+function schuelerSeiteStart(D) {
+            const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+            const $ = id => document.getElementById(id);
+            const sym = v => D.symbole[v < 0 ? '-1' : String(v)];
+            const stand = standAusKompetenzen(D.gkues, D.factor, D.mitarbeit, D.level);
+            const alle = [];
+            D.gkues.forEach(gk => gk.topics.forEach(t => t.comps.forEach(c => alle.push({ ...c, gk: gk.name, thema: t.name }))));
+            let modus = 'nachholen';
+            const auswahl = new Set();
+            const nachholbar = c => c.val >= 0 && c.val < 1 &&
+                (modus === 'semester' || (!!stand.letzteGkue && c.gk === stand.letzteGkue.name));
+
+            $('kopf-name').textContent = D.name;
+            $('kopf-info').textContent = [D.klasse, `Jahr ${D.jahr}`, D.levelName || 'Niveau fehlt',
+                D.bonus ? 'mit Bonus 7. Schulstufe' : '', `Stand: ${D.datum}`].filter(Boolean).join(' · ');
+            const g = stand.gesamt;
+            const geprueft = g.G.assessed + g.V.assessed + g.X.assessed;
+            if (geprueft) {
+                const r = rechneMitPlus(stand);
+                $('stand-zeile').innerHTML = `Aktuelle Note: <b class="note">${esc(naechsteNote(r, D.level).note)}</b> · <b>${formatPct(r.overallPct)}</b>` +
+                    `<span class="leise"> · G ${formatPct(r.gRate)} · V ${formatPct(r.vRate)} · X ${formatPct(r.xRate)} · ${esc(D.mitarbeitText)}</span>`;
+            } else {
+                $('stand-zeile').textContent = 'Noch keine Kompetenz geprüft.';
+                $('rechner').style.display = 'none';
+            }
+
+            function zeichne() {
+                const limit = RECHNER_LIMIT[modus];
+                const gkName = stand.letzteGkue ? stand.letzteGkue.name : '';
+                const nTxt = `Nachholen${gkName ? ' ' + gkName : ''} (höchstens 3)`;
+                $('btn-nachholen').textContent = (modus === 'nachholen' ? '✓ ' : '') + nTxt;
+                $('btn-semester').textContent = (modus === 'semester' ? '✓ ' : '') + 'Semesterprüfung (höchstens 5)';
+                $('btn-nachholen').classList.toggle('aktiv', modus === 'nachholen');
+                $('btn-semester').classList.toggle('aktiv', modus === 'semester');
+                $('modus-info').textContent = modus === 'nachholen'
+                    ? `Unten bei „Meine Kompetenzen“ bis zu 3 Kompetenzen${gkName ? ' der ' + gkName : ''} ankreuzen.`
+                    : 'Unten bei „Meine Kompetenzen“ bis zu 5 Kompetenzen aus allen bisherigen GKÜs ankreuzen.';
+
+                // Kompetenzliste
+                let html = '', i = 0;
+                D.gkues.forEach(gk => {
+                    html += `<h3 class="gk">${esc(gk.name)}</h3>`;
+                    gk.topics.forEach(t => {
+                        html += `<details open><summary>${esc(t.name)}</summary>`;
+                        t.comps.forEach(c => {
+                            const k = alle[i];
+                            const ok = nachholbar(k);
+                            const voll = auswahl.size >= limit && !auswahl.has(i);
+                            html += `<div class="comp${ok ? '' : ' blass'}">` +
+                                `<label class="kreuz">${ok ? `<input type="checkbox" data-i="${i}"${auswahl.has(i) ? ' checked' : ''}${voll ? ' disabled' : ''}> nachholen` : ''}</label>` +
+                                `<span class="sym">${sym(c.val)}</span><span class="tag tag-${c.tier}">${c.tier}${c.nr}</span>` +
+                                `<span class="txt">${esc(c.text)}</span></div>`;
+                            i++;
+                        });
+                        html += '</details>';
+                    });
+                });
+                $('liste').innerHTML = html;
+
+                // Meine Auswahl und Rechner
+                const plus = { G: 0, V: 0, X: 0 };
+                auswahl.forEach(j => { plus[alle[j].tier] += 1 - alle[j].val; });
+                $('auswahl-titel').textContent = `Meine Auswahl · ${modus === 'nachholen' ? nTxt.replace(' (höchstens 3)', '') : 'Semesterprüfung'} (${auswahl.size} von ${limit})`;
+                $('auswahl-liste').innerHTML = auswahl.size
+                    ? [...auswahl].sort((a, b) => a - b).map(j => {
+                        const k = alle[j];
+                        return `<li><span class="tag tag-${k.tier}">${k.tier}${k.nr}</span> ${esc(k.thema)} <span class="leise">(${esc(k.gk)})</span> – ${esc(k.text)}</li>`;
+                    }).join('')
+                    : '<li class="leise">Noch nichts angekreuzt.</li>';
+                const r = rechneMitPlus(stand, plus);
+                const nn = naechsteNote(r, D.level);
+                $('erg-pct').textContent = formatPct(r.overallPct);
+                $('erg-note').textContent = nn.note;
+                $('erg-next').style.visibility = nn.naechste ? 'visible' : 'hidden';
+                if (nn.naechste) {
+                    const fehlt = nn.fehlt > 0 ? `es fehlen noch ${formatPct(Math.max(0.1, nn.fehlt))}` : 'es fehlt nur noch ein kleines Stück';
+                    $('erg-next-txt').textContent = `${nn.naechste} · ${fehlt}`;
+                    $('erg-bar').style.width = `${Math.max(4, Math.min(100, nn.anteil * 100))}%`;
+                }
+                $('btn-kopieren').disabled = !auswahl.size;
+                $('kopier-bereich').style.display = 'none';
+                $('kopiert').textContent = '';
+            }
+
+            // Text für die EduPage-Nachricht: lesbar, Kompetenzen in fester Reihenfolge, am Ende der Code
+            function anmeldeText() {
+                const heute = new Date();
+                const z = n => String(n).padStart(2, '0');
+                const datum = `${z(heute.getDate())}.${z(heute.getMonth() + 1)}.${heute.getFullYear()}`;
+                const gewaehlt = [...auswahl].sort((a, b) => a - b).map(j => alle[j]);
+                const gkIdx = modus === 'nachholen' && stand.letzteGkue
+                    ? D.gkues.find(gk => gk.name === stand.letzteGkue.name).idx : null;
+                const art = modus === 'nachholen' ? `Nachholen ${stand.letzteGkue ? stand.letzteGkue.name : ''}` : 'Semesterprüfung';
+                // Link-Ansicht: nur das Kürzel (z), Schülerdatei: Klasse und Name
+                const wer = D.kuerzel ? { z: D.kuerzel } : { k: D.klasse, n: D.name };
+                const code = anmeldeCode({ ...wer, a: modus, g: gkIdx, c: gewaehlt.map(k => k.key), d: datum, f: D.format });
+                return ['Nachhol-Anmeldung Mathematik', [D.name, D.klasse, art, datum].filter(Boolean).join(' · '),
+                    ...gewaehlt.map((k, n) => `${n + 1}. ${k.tier}${k.nr} ${k.thema} – ${k.text}`), `Code: ${code}`].join('\n');
+            }
+
+            $('btn-kopieren').onclick = async () => {
+                const text = anmeldeText();
+                $('anm-text').value = text;
+                $('kopier-bereich').style.display = 'block';
+                let ok = false;
+                try { await navigator.clipboard.writeText(text); ok = true; } catch (err) {
+                    $('anm-text').select();
+                    try { ok = document.execCommand('copy'); } catch (err2) { ok = false; }
+                }
+                $('kopiert').textContent = ok ? '✓ kopiert' : 'Bitte den Text unten markieren und kopieren (Strg + C).';
+            };
+            $('btn-nachholen').onclick = () => { modus = 'nachholen'; auswahl.clear(); zeichne(); };
+            $('btn-semester').onclick = () => { modus = 'semester'; auswahl.clear(); zeichne(); };
+            $('liste').addEventListener('change', e => {
+                const i = Number(e.target.dataset.i);
+                if (e.target.checked) auswahl.add(i); else auswahl.delete(i);
+                zeichne();
+            });
+            zeichne();
+        }
+
+function ausB64url(s) {
+            const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/'));
+            return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0))));
+        }
+
+function levelName(level) {
+            return level === 'AHS' ? 'Standard AHS' : level === 'STD' ? 'Standard' : '';
+        }
+
+function mitarbeitTextVon(m) {
+            if (m === '' || m === null || m === undefined) return 'Mitarbeit noch offen';
+            return `Mitarbeit ${Number(m) > 0 ? '+' : ''}${String(m).replace('-', '−')} %`;
+        }
+
+function kompetenzListePruefziffer(gkues) {
+            return anmeldePruefziffer(gkues.map(gk => gk.idx + ':' + gk.topics.map(t => t.comps.map(c => c.key).join(',')).join(';')).join('|'));
+        }
+
+function datenAusLink(hash, vorlage) {
+            const beschaedigt = { fehler: 'Dieser Link ist unvollständig oder beschädigt. Bitte den ganzen Link aus der Nachricht öffnen.' };
+            const m = /^#?([A-Za-z0-9_-]+)\.([0-9A-Z]{4})$/.exec(String(hash || '').replace(/\s+/g, ''));
+            if (!m || anmeldePruefziffer(m[1]) !== m[2]) return beschaedigt;
+            let x;
+            try { x = ausB64url(m[1]); } catch (err) { return beschaedigt; }
+            if (!x || x.v !== 1 || !vorlage.jahre[x.j]) return beschaedigt;
+            const vorher = vorlage.jahre[x.j];
+            if (x.f !== vorlage.format || x.p !== kompetenzListePruefziffer(vorher))
+                return { fehler: 'Dieser Link passt nicht zur aktuellen Fassung der Seite. Bitte bei deiner Lehrkraft einen neuen Link holen.' };
+            const anzahl = vorher.reduce((n, gk) => n + gk.topics.reduce((k, t) => k + t.comps.length, 0), 0);
+            const gueltig = /^[A-Za-z0-9]{1,16}$/.test(x.z) && /^\d{2}\.\d{2}\.\d{4}$/.test(x.d) && ['AHS', 'STD'].includes(x.l) &&
+                (x.m === null || (Number.isInteger(x.m) && Math.abs(x.m) <= 5)) &&
+                typeof x.w === 'string' && /^[-0h1]*$/.test(x.w) && x.w.length === anzahl;
+            if (!gueltig) return beschaedigt;
+            const wert = { '-': -1, '0': 0, 'h': 0.5, '1': 1 };
+            let i = 0;
+            const gkues = vorher.map(gk => ({ ...gk, topics: gk.topics.map(t => ({ ...t, comps: t.comps.map(c => ({ ...c, val: wert[x.w[i++]] })) })) }));
+            return {
+                name: x.z, kuerzel: x.z, klasse: '', datum: x.d, level: x.l, levelName: levelName(x.l), format: x.f, jahr: x.j,
+                bonus: !!x.b, factor: x.b ? 1.25 : 1, mitarbeit: x.m === null ? 0 : x.m, mitarbeitText: mitarbeitTextVon(x.m),
+                symbole: vorlage.symbole, gkues,
+            };
+        }
+
+const VORLAGE = {"format":3,"symbole":{"0":"\u003csvg class=\"rating-sym\" viewBox=\"0 0 20 20\" aria-hidden=\"true\">\u003ccircle cx=\"10\" cy=\"10\" r=\"8\"/>\u003c/svg>","1":"\u003csvg class=\"rating-sym\" viewBox=\"0 0 20 20\" aria-hidden=\"true\">\u003ccircle cx=\"10\" cy=\"10\" r=\"8\"/>\u003cline x1=\"4.3\" y1=\"15.7\" x2=\"15.7\" y2=\"4.3\"/>\u003cline x1=\"4.3\" y1=\"4.3\" x2=\"15.7\" y2=\"15.7\"/>\u003c/svg>","-1":"offen","0.5":"\u003csvg class=\"rating-sym\" viewBox=\"0 0 20 20\" aria-hidden=\"true\">\u003ccircle cx=\"10\" cy=\"10\" r=\"8\"/>\u003cline x1=\"4.3\" y1=\"15.7\" x2=\"15.7\" y2=\"4.3\"/>\u003c/svg>"},"jahre":{"I":[{"name":"1. GKÜ","idx":0,"topics":[{"name":"Rationale Zahlen","comps":[{"key":"RaZa-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Rationale Zahlen und kann sie erklären.","val":-1},{"key":"RaZa-G2","tier":"G","nr":2,"text":"Ich kenne Regeln für das Rechnen mit Ganzen Zahlen und kann sie anwenden.","val":-1},{"key":"RaZa-G3","tier":"G","nr":3,"text":"Ich kann Rationale Zahlen für Darstellungen im Koordinatensystem verwenden.","val":-1},{"key":"RaZa-V1","tier":"V","nr":1,"text":"Ich kenne Regeln für das Rechnen mit Rationalen Zahlen und kann sie anwenden.","val":-1},{"key":"RaZa-V2","tier":"V","nr":2,"text":"Ich kenne die Vorrangregeln beim Rechnen mit Rationalen Zahlen und kann sie anwenden.","val":-1},{"key":"RaZa-V3","tier":"V","nr":3,"text":"Ich kann Rationale Zahlen zur Lösung von Problemen in Sachsituationen verwenden.","val":-1}]},{"name":"Potenzen und Wurzeln","comps":[{"key":"PoWu-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Potenzen und Wurzeln und kann sie erklären.","val":-1},{"key":"PoWu-G2","tier":"G","nr":2,"text":"Ich kann die Quadratzahlen der Zahlen von 1 bis 15 auswendig.","val":-1},{"key":"PoWu-G3","tier":"G","nr":3,"text":"Ich kann Quadrieren, Kubieren, Quadratwurzelziehen und Kubikwurzelziehen.","val":-1},{"key":"PoWu-V1","tier":"V","nr":1,"text":"Ich kann Potenzen und Wurzeln berechnen.","val":-1},{"key":"PoWu-V2","tier":"V","nr":2,"text":"Ich kenne die Gleitkommadarstellung und kann sie verwenden.","val":-1},{"key":"PoWu-X1","tier":"X","nr":1,"text":"Ich kann partiell Wurzelziehen.","val":-1},{"key":"PoWu-X2","tier":"X","nr":2,"text":"Ich kenne Regeln für das Rechnen mit Potenzen und Wurzeln und kann sie anwenden.","val":-1}]},{"name":"Satz des Pythagoras","comps":[{"key":"Pyth-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Satz des Pythagoras und kann sie erklären.","val":-1},{"key":"Pyth-G2","tier":"G","nr":2,"text":"Ich kann den Satz des Pythagoras in rechtwinkeligen Dreiecken anwenden.","val":-1},{"key":"Pyth-V1","tier":"V","nr":1,"text":"Ich kenne eine Begründung für den Satz des Pythagoras und kann sie darstellen.","val":-1},{"key":"Pyth-X1","tier":"X","nr":1,"text":"Ich kenne einen Beweis für den Satz des Pythagoras und kann ihn erklären.","val":-1},{"key":"Pyth-X2","tier":"X","nr":2,"text":"Ich kenne Höhensatz und Kathetensatz und kann sie anwenden.","val":-1}]}]},{"name":"2. GKÜ","idx":1,"topics":[{"name":"Terme","comps":[{"key":"Term-G1","tier":"G","nr":1,"text":"Ich kenne wichtige algebraische Begriffe und kann sie erklären.","val":-1},{"key":"Term-G2","tier":"G","nr":2,"text":"Ich kenne Regeln der mathematischen Symbolsprache und kann allgemeine Sachverhalte mit Variablen beschreiben.","val":-1},{"key":"Term-G3","tier":"G","nr":3,"text":"Ich kenne Regeln für das Rechnen mit Termen und kann sie anwenden.","val":-1},{"key":"Term-V1","tier":"V","nr":1,"text":"Ich kenne das Distributivgesetz und kann ausmultiplizieren und herausheben.","val":-1},{"key":"Term-V2","tier":"V","nr":2,"text":"Ich kenne die Vorrangregeln beim Rechnen mit Termen und kann sie anwenden.","val":-1},{"key":"Term-X1","tier":"X","nr":1,"text":"Ich kenne die binomischen Formeln und kann sie anwenden.","val":-1},{"key":"Term-X2","tier":"X","nr":2,"text":"Ich kenne Regeln für das Rechnen mit Bruchtermen und kann sie anwenden.","val":-1}]},{"name":"Dreiecke","comps":[{"key":"Drei-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Dreiecke und kann sie erklären.","val":-1},{"key":"Drei-G2","tier":"G","nr":2,"text":"Ich kann Umfang und Flächeninhalt von Dreiecken berechnen.","val":-1},{"key":"Drei-V1","tier":"V","nr":1,"text":"Ich kann Dreiecke konstruieren.","val":-1},{"key":"Drei-V2","tier":"V","nr":2,"text":"Ich kann Längen und Winkel im Dreieck berechnen.","val":-1},{"key":"Drei-X1","tier":"X","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend merkwürdige Punkte im Dreieck und kann sie konstruieren.","val":-1},{"key":"Drei-X2","tier":"X","nr":2,"text":"Ich kann Formeln für Berechnungen im Dreieck herleiten und begründen.","val":-1}]},{"name":"Prozentrechnung","comps":[{"key":"Proz-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Prozentrechnung und kann sie erklären.","val":-1},{"key":"Proz-G2","tier":"G","nr":2,"text":"Ich kann geeignete Prozentangaben als Brüche oder Dezimalzahlen darstellen und umgekehrt.","val":-1},{"key":"Proz-G3","tier":"G","nr":3,"text":"Ich kann Prozentrechnungen lösen.","val":-1},{"key":"Proz-G4","tier":"G","nr":4,"text":"Ich kann Prozentsätze in Form eines Prozentstreifens darstellen.","val":-1},{"key":"Proz-V1","tier":"V","nr":1,"text":"Ich kann den Änderungsfaktor für Rechnungen mit erhöhtem oder vermindertem Grundwert bestimmen und ihn für Berechnungen nutzen.","val":-1},{"key":"Proz-V2","tier":"V","nr":2,"text":"Ich kann Prozentsätze in Form eines Kreisdiagramms darstellen.","val":-1},{"key":"Proz-X1","tier":"X","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Promillerechnung, kann erklären wie sie funktioniert und entsprechende Aufgaben lösen.","val":-1},{"key":"Proz-X2","tier":"X","nr":2,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Zinsrechnung, kann erklären wie sie funktioniert und entsprechende Aufgaben lösen.","val":-1}]}]},{"name":"3. GKÜ","idx":2,"topics":[{"name":"Gleichungen","comps":[{"key":"Glei-G1","tier":"G","nr":1,"text":"Ich kann einfache Gleichungen und Formeln aufstellen.","val":-1},{"key":"Glei-G2","tier":"G","nr":2,"text":"Ich kenne das Prinzip der Äquivalenzumformungen, kann sie durch Rechenregeln begründen und anwenden.","val":-1},{"key":"Glei-V1","tier":"V","nr":1,"text":"Ich kann Gleichungen und Formeln für Problemstellungen in Sachsituationen und in der Geometrie aufstellen.","val":-1},{"key":"Glei-V2","tier":"V","nr":2,"text":"Ich kann lineare Gleichungen mit einer Unbekannten lösen.","val":-1},{"key":"Glei-X1","tier":"X","nr":1,"text":"Ich kann Bruchgleichungen lösen.","val":-1},{"key":"Glei-X2","tier":"X","nr":2,"text":"Ich kann Ungleichungen lösen.","val":-1}]},{"name":"Vierecke","comps":[{"key":"Vier-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Vierecke und kann sie erklären.","val":-1},{"key":"Vier-G2","tier":"G","nr":2,"text":"Ich kann Umfang und Flächeninhalt von Vierecken berechnen.","val":-1},{"key":"Vier-V1","tier":"V","nr":1,"text":"Ich kann Vierecke konstruieren.","val":-1},{"key":"Vier-V2","tier":"V","nr":2,"text":"Ich kann Längen und Winkel im Viereck berechnen.","val":-1},{"key":"Vier-X1","tier":"X","nr":1,"text":"Ich kann Formeln für Berechnungen im Viereck herleiten und begründen.","val":-1}]},{"name":"Proportionalitäten","comps":[{"key":"Prop-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Proportionen und kann sie erklären.","val":-1},{"key":"Prop-G2","tier":"G","nr":2,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Proportionalitäten und kann sie erklären.","val":-1},{"key":"Prop-V1","tier":"V","nr":1,"text":"Ich kann Verhältnisgleichungen lösen.","val":-1},{"key":"Prop-V2","tier":"V","nr":2,"text":"Ich kann direkte und indirekte Proportionalitäten graphisch darstellen und lösen.","val":-1},{"key":"Prop-X1","tier":"X","nr":1,"text":"Ich kenne die Strahlensätze und kann sie anwenden.","val":-1}]}]},{"name":"4. GKÜ","idx":3,"topics":[{"name":"Funktionen","comps":[{"key":"Funk-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend funktionale Abhängigkeiten und kann sie erklären.","val":-1},{"key":"Funk-G2","tier":"G","nr":2,"text":"Ich kann für lineare Funktionen Wertetabellen und Graphen erstellen.","val":-1},{"key":"Funk-V1","tier":"V","nr":1,"text":"Ich kann für lineare Funktionen Funktionsgleichungen ermitteln.","val":-1},{"key":"Funk-V2","tier":"V","nr":2,"text":"Ich kann lineare Funktionen zur Lösung von Problemen in Sachsituationen verwenden.","val":-1},{"key":"Funk-X1","tier":"X","nr":1,"text":"Ich kann Punkte und Nullstellen linearer Funktionen ermitteln.","val":-1},{"key":"Funk-X2","tier":"X","nr":2,"text":"Ich kenne Namen und Eigenschaften weiterer Funktionen und kann für sie Wertetabellen und Graphen erstellen.","val":-1},{"key":"Funk-X3","tier":"X","nr":3,"text":"Ich kenne Verfahren zum Lösen linearer Gleichungssysteme und kann sie anwenden.","val":-1}]},{"name":"Statistik","comps":[{"key":"Stat-G1","tier":"G","nr":1,"text":"Ich kenne wichtige statistische Begriffe und Eigenschaften und kann sie erklären.","val":-1},{"key":"Stat-G2","tier":"G","nr":2,"text":"Ich kann Daten sammeln und darstellen.","val":-1},{"key":"Stat-G3","tier":"G","nr":3,"text":"Ich kann absolute, relative und prozentuelle Häufigkeiten ermitteln.","val":-1},{"key":"Stat-V1","tier":"V","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend statistische Kennzahlen und kann sie verwenden, um Datenmengen zu untersuchen.","val":-1},{"key":"Stat-V2","tier":"V","nr":2,"text":"Ich kenne verschiedene Diagrammtypen, kann sie in geeigneter Weise einsetzen sowie relevante Informationen ablesen und deren Aussagekraft kritisch betrachten.","val":-1},{"key":"Stat-X1","tier":"X","nr":1,"text":"Ich kenne wichtige Eigenschaften von Kastenschaubildern (Boxplots) und Streudiagrammen und kann mit ihnen arbeiten.","val":-1}]},{"name":"Wahrscheinlichkeiten","comps":[{"key":"Wahr-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Wahrscheinlichkeiten und kann sie erklären.","val":-1},{"key":"Wahr-G2","tier":"G","nr":2,"text":"Ich kenne die Laplace-Regel und kann sie zur Berechnung von Wahrscheinlichkeiten in einstufigen Zufallsexperimenten einsetzen.","val":-1},{"key":"Wahr-V1","tier":"V","nr":1,"text":"Ich kann Wahrscheinlichkeiten in zweistufigen Zufallsexperimenten ermitteln, darstellen und interpretieren.","val":-1},{"key":"Wahr-X1","tier":"X","nr":1,"text":"Ich kann mit Wahrscheinlichkeiten auch in komplexen Situationen umgehen.","val":-1}]}]}],"II":[{"name":"1. GKÜ","idx":0,"topics":[{"name":"Rationale Zahlen","comps":[{"key":"RaZa-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Rationale Zahlen und kann sie erklären.","val":-1},{"key":"RaZa-G2","tier":"G","nr":2,"text":"Ich kenne Regeln für das Rechnen mit Ganzen Zahlen und kann sie anwenden.","val":-1},{"key":"RaZa-G3","tier":"G","nr":3,"text":"Ich kann Rationale Zahlen für Darstellungen im Koordinatensystem verwenden.","val":-1},{"key":"RaZa-V1","tier":"V","nr":1,"text":"Ich kenne Regeln für das Rechnen mit Rationalen Zahlen und kann sie anwenden.","val":-1},{"key":"RaZa-V2","tier":"V","nr":2,"text":"Ich kenne die Vorrangregeln beim Rechnen mit Rationalen Zahlen und kann sie anwenden.","val":-1},{"key":"RaZa-V3","tier":"V","nr":3,"text":"Ich kann Rationale Zahlen zur Lösung von Problemen in Sachsituationen verwenden.","val":-1}]},{"name":"Potenzen und Wurzeln","comps":[{"key":"PoWu-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Potenzen und Wurzeln und kann sie erklären.","val":-1},{"key":"PoWu-G2","tier":"G","nr":2,"text":"Ich kann die Quadratzahlen der Zahlen von 1 bis 15 auswendig.","val":-1},{"key":"PoWu-G3","tier":"G","nr":3,"text":"Ich kann Quadrieren, Kubieren, Quadratwurzelziehen und Kubikwurzelziehen.","val":-1},{"key":"PoWu-V1","tier":"V","nr":1,"text":"Ich kann Potenzen und Wurzeln berechnen.","val":-1},{"key":"PoWu-V2","tier":"V","nr":2,"text":"Ich kenne die Gleitkommadarstellung und kann sie verwenden.","val":-1},{"key":"PoWu-X1","tier":"X","nr":1,"text":"Ich kann partiell Wurzelziehen.","val":-1},{"key":"PoWu-X2","tier":"X","nr":2,"text":"Ich kenne Regeln für das Rechnen mit Potenzen und Wurzeln und kann sie anwenden.","val":-1}]},{"name":"Satz des Pythagoras","comps":[{"key":"Pyth-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Satz des Pythagoras und kann sie erklären.","val":-1},{"key":"Pyth-G2","tier":"G","nr":2,"text":"Ich kann den Satz des Pythagoras in rechtwinkeligen Dreiecken anwenden.","val":-1},{"key":"Pyth-V1","tier":"V","nr":1,"text":"Ich kenne eine Begründung für den Satz des Pythagoras und kann sie darstellen.","val":-1},{"key":"Pyth-X1","tier":"X","nr":1,"text":"Ich kenne einen Beweis für den Satz des Pythagoras und kann ihn erklären.","val":-1},{"key":"Pyth-X2","tier":"X","nr":2,"text":"Ich kenne Höhensatz und Kathetensatz und kann sie anwenden.","val":-1}]}]},{"name":"2. GKÜ","idx":1,"topics":[{"name":"Terme","comps":[{"key":"Term-G1","tier":"G","nr":1,"text":"Ich kenne wichtige algebraische Begriffe und kann sie erklären.","val":-1},{"key":"Term-G2","tier":"G","nr":2,"text":"Ich kenne Regeln der mathematischen Symbolsprache und kann allgemeine Sachverhalte mit Variablen beschreiben.","val":-1},{"key":"Term-G3","tier":"G","nr":3,"text":"Ich kenne Regeln für das Rechnen mit Termen und kann sie anwenden.","val":-1},{"key":"Term-V1","tier":"V","nr":1,"text":"Ich kenne das Distributivgesetz und kann ausmultiplizieren und herausheben.","val":-1},{"key":"Term-V2","tier":"V","nr":2,"text":"Ich kenne die Vorrangregeln beim Rechnen mit Termen und kann sie anwenden.","val":-1},{"key":"Term-X1","tier":"X","nr":1,"text":"Ich kenne die binomischen Formeln und kann sie anwenden.","val":-1},{"key":"Term-X2","tier":"X","nr":2,"text":"Ich kenne Regeln für das Rechnen mit Bruchtermen und kann sie anwenden.","val":-1}]},{"name":"Kreis und Kreisteile","comps":[{"key":"Krei-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Kreise und kann sie erklären.","val":-1},{"key":"Krei-G2","tier":"G","nr":2,"text":"Ich kann Umfang und Flächeninhalt von Kreisen berechnen.","val":-1},{"key":"Krei-V1","tier":"V","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Kreisteile und kann sie erklären.","val":-1},{"key":"Krei-V2","tier":"V","nr":2,"text":"Ich kann Längen und Flächeninhalte von Kreisteilen berechnen.","val":-1},{"key":"Krei-X1","tier":"X","nr":1,"text":"Ich kann Formeln für Berechnungen von Kreisteilen herleiten und begründen.","val":-1}]},{"name":"Prozentrechnung","comps":[{"key":"Proz-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Prozentrechnung und kann sie erklären.","val":-1},{"key":"Proz-G2","tier":"G","nr":2,"text":"Ich kann geeignete Prozentangaben als Brüche oder Dezimalzahlen darstellen und umgekehrt.","val":-1},{"key":"Proz-G3","tier":"G","nr":3,"text":"Ich kann Prozentrechnungen lösen.","val":-1},{"key":"Proz-G4","tier":"G","nr":4,"text":"Ich kann Prozentsätze in Form eines Prozentstreifens darstellen.","val":-1},{"key":"Proz-V1","tier":"V","nr":1,"text":"Ich kann den Änderungsfaktor für Rechnungen mit erhöhtem oder vermindertem Grundwert bestimmen und ihn für Berechnungen nutzen.","val":-1},{"key":"Proz-V2","tier":"V","nr":2,"text":"Ich kann Prozentsätze in Form eines Kreisdiagramms darstellen.","val":-1},{"key":"Proz-X1","tier":"X","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Promillerechnung, kann erklären wie sie funktioniert und entsprechende Aufgaben lösen.","val":-1},{"key":"Proz-X2","tier":"X","nr":2,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Zinsrechnung, kann erklären wie sie funktioniert und entsprechende Aufgaben lösen.","val":-1}]}]},{"name":"3. GKÜ","idx":2,"topics":[{"name":"Gleichungen","comps":[{"key":"Glei-G1","tier":"G","nr":1,"text":"Ich kann einfache Gleichungen und Formeln aufstellen.","val":-1},{"key":"Glei-G2","tier":"G","nr":2,"text":"Ich kenne das Prinzip der Äquivalenzumformungen, kann sie durch Rechenregeln begründen und anwenden.","val":-1},{"key":"Glei-V1","tier":"V","nr":1,"text":"Ich kann Gleichungen und Formeln für Problemstellungen in Sachsituationen und in der Geometrie aufstellen.","val":-1},{"key":"Glei-V2","tier":"V","nr":2,"text":"Ich kann lineare Gleichungen mit einer Unbekannten lösen.","val":-1},{"key":"Glei-X1","tier":"X","nr":1,"text":"Ich kann Bruchgleichungen lösen.","val":-1},{"key":"Glei-X2","tier":"X","nr":2,"text":"Ich kann Ungleichungen lösen.","val":-1}]},{"name":"Prisma und Pyramide","comps":[{"key":"PrPy-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Prisma und Pyramide und kann sie erklären.","val":-1},{"key":"PrPy-G2","tier":"G","nr":2,"text":"Ich kann Netze von Prismen und Pyramiden zeichnen.","val":-1},{"key":"PrPy-G3","tier":"G","nr":3,"text":"Ich kann Oberflächen und Volumina von Prismen und Pyramiden berechnen.","val":-1},{"key":"PrPy-V1","tier":"V","nr":1,"text":"Ich kann Schrägbilder von Prismen und Pyramiden zeichnen.","val":-1},{"key":"PrPy-V2","tier":"V","nr":2,"text":"Ich kann Längen in Prismen und Pyramiden berechnen.","val":-1},{"key":"PrPy-V3","tier":"V","nr":3,"text":"Ich kann Massen von Prismen und Pyramiden berechnen.","val":-1},{"key":"PrPy-X1","tier":"X","nr":1,"text":"Ich kann Berechnungen für allgemeine Formen von Prismen und Pyramiden durchführen.","val":-1}]},{"name":"Symmetrie und Ähnlichkeit","comps":[{"key":"SymA-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Symmetrie und Ähnlichkeit und kann sie erklären.","val":-1},{"key":"SymA-G2","tier":"G","nr":2,"text":"Ich kann Symmetrieachsen finden und symmetrische Figuren herstellen.","val":-1},{"key":"SymA-V1","tier":"V","nr":1,"text":"Ich kann Strecken- und Winkelsymmetralen konstruieren.","val":-1},{"key":"SymA-V2","tier":"V","nr":2,"text":"Ich kann Strecken teilen und Figuren vergrößern und verkleinern.","val":-1},{"key":"SymA-X1","tier":"X","nr":1,"text":"Ich kenne das Verfahren der zentrischen Streckung und kann es anwenden.","val":-1}]}]},{"name":"4. GKÜ","idx":3,"topics":[{"name":"Funktionen","comps":[{"key":"Funk-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend funktionale Abhängigkeiten und kann sie erklären.","val":-1},{"key":"Funk-G2","tier":"G","nr":2,"text":"Ich kann für lineare Funktionen Wertetabellen und Graphen erstellen.","val":-1},{"key":"Funk-V1","tier":"V","nr":1,"text":"Ich kann für lineare Funktionen Funktionsgleichungen ermitteln.","val":-1},{"key":"Funk-V2","tier":"V","nr":2,"text":"Ich kann lineare Funktionen zur Lösung von Problemen in Sachsituationen verwenden.","val":-1},{"key":"Funk-X1","tier":"X","nr":1,"text":"Ich kann Punkte und Nullstellen linearer Funktionen ermitteln.","val":-1},{"key":"Funk-X2","tier":"X","nr":2,"text":"Ich kenne Namen und Eigenschaften weiterer Funktionen und kann für sie Wertetabellen und Graphen erstellen.","val":-1},{"key":"Funk-X3","tier":"X","nr":3,"text":"Ich kenne Verfahren zum Lösen linearer Gleichungssysteme und kann sie anwenden.","val":-1}]},{"name":"Statistik","comps":[{"key":"Stat-G1","tier":"G","nr":1,"text":"Ich kenne wichtige statistische Begriffe und Eigenschaften und kann sie erklären.","val":-1},{"key":"Stat-G2","tier":"G","nr":2,"text":"Ich kann Daten sammeln und darstellen.","val":-1},{"key":"Stat-G3","tier":"G","nr":3,"text":"Ich kann absolute, relative und prozentuelle Häufigkeiten ermitteln.","val":-1},{"key":"Stat-V1","tier":"V","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend statistische Kennzahlen und kann sie verwenden, um Datenmengen zu untersuchen.","val":-1},{"key":"Stat-V2","tier":"V","nr":2,"text":"Ich kenne verschiedene Diagrammtypen, kann sie in geeigneter Weise einsetzen sowie relevante Informationen ablesen und deren Aussagekraft kritisch betrachten.","val":-1},{"key":"Stat-X1","tier":"X","nr":1,"text":"Ich kenne wichtige Eigenschaften von Kastenschaubildern (Boxplots) und Streudiagrammen und kann mit ihnen arbeiten.","val":-1}]},{"name":"Drehzylinder, Drehkegel und Kugel","comps":[{"key":"DDK-G1","tier":"G","nr":1,"text":"Ich kenne wichtige Begriffe und Eigenschaften betreffend Drehzylinder, Drehkegel und Kugel und kann sie erklären.","val":-1},{"key":"DDK-G2","tier":"G","nr":2,"text":"Ich kann Oberflächen und Volumina von Drehzylindern, Drehkegeln und Kugeln berechnen.","val":-1},{"key":"DDK-V1","tier":"V","nr":1,"text":"Ich kann Längen in Drehzylindern, Drehkegeln und Kugeln berechnen.","val":-1},{"key":"DDK-X1","tier":"X","nr":1,"text":"Ich kann Formeln für Berechnungen im Drehzylinder, Drehkegel und der Kugel herleiten und begründen.","val":-1}]}]}]}};
+const LINK_D = datenAusLink(location.hash, VORLAGE);
+if (LINK_D.fehler) {
+  document.getElementById('stand-zeile').textContent = LINK_D.fehler;
+  document.getElementById('rechner').style.display = 'none';
+  document.getElementById('kompetenzen').style.display = 'none';
+} else {
+  schuelerSeiteStart(LINK_D);
+}
+window.addEventListener('hashchange', () => location.reload());
+</script>
+</body>
+</html>
