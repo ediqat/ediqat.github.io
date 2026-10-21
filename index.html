@@ -177,7 +177,8 @@ td.num { white-space: nowrap; font-weight: 700; }
 .calc output { font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; }
 .calc input[type="range"] { width: 100%; }
 #calc-g { accent-color: var(--g); } #calc-v { accent-color: var(--v); } #calc-x { accent-color: var(--x); }
-.check { display: flex; gap: 8px; align-items: center; }
+.check, .calc label.check { display: flex; gap: 8px; align-items: center; justify-content: flex-start; }
+.check input { margin: 0; width: 18px; height: 18px; flex: none; }
 .result { border: 2px solid var(--ink); border-radius: 10px; padding: 16px; display: grid; gap: 10px; }
 .result .pct { font-family: var(--font-display); font-size: 2.2rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1; }
 .result .grades { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -365,9 +366,9 @@ footer { font-size: 0.92rem; color: var(--muted); display: grid; gap: 4px; }
     <h3>Rechne selbst nach (Jahresnote)</h3>
     <div class="calc">
       <div class="inputs">
-        <label for="calc-g"><b class="tg">G</b> erreicht <span class="row"><input type="range" id="calc-g" min="0" max="100" step="1" value="80"><output id="out-g">80 %</output></span></label>
-        <label for="calc-v"><b class="tv">V</b> erreicht <span class="row"><input type="range" id="calc-v" min="0" max="100" step="1" value="50"><output id="out-v">50 %</output></span></label>
-        <label for="calc-x"><b class="tx">X</b> erreicht <span class="row"><input type="range" id="calc-x" min="0" max="100" step="1" value="20"><output id="out-x">20 %</output></span></label>
+        <label for="calc-g"><span><b class="tg">G</b> erreicht</span><span class="row"><input type="range" id="calc-g" min="0" max="100" step="1" value="80"><output id="out-g">80 %</output></span></label>
+        <label for="calc-v"><span><b class="tv">V</b> erreicht</span><span class="row"><input type="range" id="calc-v" min="0" max="100" step="1" value="50"><output id="out-v">50 %</output></span></label>
+        <label for="calc-x"><span><b class="tx">X</b> erreicht</span><span class="row"><input type="range" id="calc-x" min="0" max="100" step="1" value="20"><output id="out-x">20 %</output></span></label>
         <label for="calc-m">Mitarbeit <span class="row"><input type="range" id="calc-m" min="-5" max="5" step="1" value="0"><output id="out-m">±0 %</output></span></label>
         <label class="check" for="calc-7"><input type="checkbox" id="calc-7"> 7. Schulstufe (× 1,25)</label>
       </div>
