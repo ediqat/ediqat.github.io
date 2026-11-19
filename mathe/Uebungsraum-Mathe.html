@@ -663,8 +663,10 @@ UR.formAnmelden('zahlen', {
     const l=Array.isArray(raw)?raw:[raw]; let k=0;
     const erg=t.felder.map(f=>{
       const roh=l[k++], e=f.einheiten?(l[k++]||''):null, v=UR.leseZahl(roh);
-      const zahlOk=v!==null&&!Number.isNaN(v)&&[f.ans,...(f.auch||[])].some(a=>Math.abs(v-a)<=(f.tol||0)+1e-9);
-      return {roh:zahlText(roh), v, e, zahlOk, einheitOk:!f.einheiten||e===f.einheitAns};
+      const passt=w=>w!==null&&!Number.isNaN(w)&&[f.ans,...(f.auch||[])].some(a=>Math.abs(w-a)<=(f.tol||0)+1e-9*Math.max(1,Math.abs(a)));
+      // andere Einheit derselben Art: zählt, wenn richtig umgerechnet (Umrechnung liefert das Fach: UR.umrechner)
+      const um=f.einheiten&&e&&e!==f.einheitAns&&UR.umrechner ? UR.umrechner(v,e,f.einheitAns) : null, umOk=um!==null&&um!==undefined&&passt(um);
+      return {roh:zahlText(roh), v, e, zahlOk:passt(v)||umOk, einheitOk:!f.einheiten||e===f.einheitAns||umOk};
     });
     t.ergebnis=erg;
     t.hinweis = t.hinweisNach ? t.hinweisNach(erg) : (erg.every(x=>x.zahlOk)&&erg.some(x=>!x.einheitOk) ? T.einheitFalsch : '');
@@ -1351,7 +1353,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-19.3","datum":"19.11.2026","pruefsumme":"03f5143d1e97d8cf"};
+UR.version = {"nummer":"2026-11-19.14","datum":"19.11.2026","pruefsumme":"39ceabcfd9aa3ba7"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -2132,6 +2134,32 @@ function zeichne(P,o={}){
   const abstand=(p,a,b)=>{ const d=minus(b,a), t=Math.max(0,Math.min(1,((p[0]-a[0])*d[0]+(p[1]-a[1])*d[1])/(d[0]*d[0]+d[1]*d[1]))); return dist(p,plus(a,mal(d,t))); };
   const platz=(m,r)=>{ const p=plus(m,mal(r,40)); return Math.min(abstand(p,Q.A,Q.B),abstand(p,Q.B,Q.C),abstand(p,Q.C,Q.A)); };
   let svg='';
+  // Platzsuche für Beschriftungen: Linien und schon gesetzte Texte meiden, das Bild wächst bei Bedarf
+  const linien=[[Q.A,Q.B],[Q.B,Q.C],[Q.C,Q.A]], kasten=[], spaeter=[];
+  for(const v of o.verlaengern||[]) linien.push([S(v[0]),S(v[1])]);
+  for(const s of o.strecken||[]) linien.push([S(s.von),S(s.bis)]);
+  for(const s of o.strahlen||[]) linien.push([S(s.von),S(s.bis)]);
+  for(const b of o.boegen||[]){ const pk=bogenPunkte(b).map(S); for(let i=0;i<4;i++) linien.push([pk[i],pk[i+1],1]); }
+  const belegt=(p,r)=>kasten.push({x:p[0]-r,y:p[1]-r,w:2*r,h:2*r});
+  const zb=(c,fs)=>fs*(c===' '?.28:/[0-9]/.test(c)?.57:/[,.]/.test(c)?.28:/[=≈]/.test(c)?.6:c==='°'?.4:c==='?'?.55:.62);
+  const breite=(html,fs)=>{ let w=0; String(html).replace(/<sub>(.*?)<\/sub>|<[^>]+>|([^<]+)/g,(m,s,t)=>{ for(const c of s||'') w+=zb(c,fs*.7); for(const c of t||'') w+=zb(c,fs); return ''; }); return w; };
+  const aussen=(p,n,w,h,d)=>plus(p,mal(n,d+Math.abs(n[0])*w/2+Math.abs(n[1])*h/2));
+  const drehV=(v,g)=>{ const c=Math.cos(rad(g)), s=Math.sin(rad(g)); return [v[0]*c-v[1]*s, v[0]*s+v[1]*c]; };
+  const kreuzt=(a,b,c,d)=>{ const o=(p,q,r)=>(q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0]); return o(a,b,c)*o(a,b,d)<0&&o(c,d,a)*o(c,d,b)<0; };
+  const trifft=(k,weich=true)=>{ const x0=k.x-2, y0=k.y-2, x1=k.x+k.w+2, y1=k.y+k.h+2, drin=p=>p[0]>x0&&p[0]<x1&&p[1]>y0&&p[1]<y1,
+      r=[[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
+    return linien.some(([a,b,w])=>(weich||!w)&&(drin(a)||drin(b)||r.some((c,i)=>kreuzt(a,b,c,r[(i+1)%4])))) || kasten.some(o=>o.x<x1&&x0<o.x+o.w&&o.y<y1&&y0<o.y+o.h); };
+  const setze=(html,cls,kand,extra='')=>{
+    const fs=/klein/.test(cls)?14:17, w=breite(html,fs), tief=/<sub>/.test(html)?4:0, h=fs*.74+tief, ks=kand(w,h).map(c=>({x:c[0]-w/2, y:c[1]-h/2, w, h, c, nf:!!c[2]}));
+    // Reihenfolge: frei, dann nur einen Zirkelbogen berührend; Notplätze (nf, z. B. innen) erst danach
+    let k=ks.find(k=>!k.nf&&!trifft(k))||ks.find(k=>!k.nf&&!trifft(k,false))||ks.find(k=>k.nf&&!trifft(k,false));
+    // zu lang für den Platz: „h = 5 cm“ zweizeilig („h =“ über „5 cm“)
+    if(!k&&/ = /.test(html)){ const [z1,z2]=[html.split(' = ')[0]+' =', html.split(' = ').slice(1).join(' = ')], w2=Math.max(breite(z1,fs),breite(z2,fs)), h2=2*h+5;
+      const k2=kand(w2,h2).map(c=>({x:c[0]-w2/2, y:c[1]-h2/2, w:w2, h:h2, c})).find(k=>!trifft(k));
+      if(k2){ kasten.push(k2); const x=rund(k2.c[0],1);
+        return `<text class="${cls}"${extra} x="${x}" y="${rund(k2.y+h,1)}">${z1}<tspan x="${x}" y="${rund(k2.y+2*h+5,1)}">${z2}</tspan></text>`; } }
+    k=k||ks.find(k=>!kasten.some(o=>o.x<k.x+k.w&&k.x<o.x+o.w&&o.y<k.y+k.h&&k.y<o.y+o.h))||ks[0]; kasten.push(k);
+    return `<text class="${cls}"${extra} x="${rund(k.c[0],1)}" y="${rund(k.c[1]+h/2-tief,1)}">${html}</text>`; };
   // gleich große Winkel (Farbe 2), rechter Winkel als Quadrat
   for(const e of 'ABC'){
     const [u,w]=gegen[e].map(n=>einheitV(minus(Q[n],Q[e]))), kurz=Math.min(dist(Q[e],Q[gegen[e][0]]),dist(Q[e],Q[gegen[e][1]]));
@@ -2146,7 +2174,7 @@ function zeichne(P,o={}){
   svg+=`<polygon class="dr" data-ecken="${pt(Q.A)} ${pt(Q.B)} ${pt(Q.C)}" points="${pt(Q.A)} ${pt(Q.B)} ${pt(Q.C)}"${o.nurSeiten?' style="stroke:none"':''}/>`;
   for(const s of o.nurSeiten||[]){ const [p,q]=gegen[s.toUpperCase()].map(n=>Q[n]); svg+=`<line class="dr-seite" x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}"/>`; }
   // Konstruktion: Zirkelbögen und Winkelschenkel, Nummern zum Antippen
-  const nummer = (p,nr,wg) => `<circle class="dr-nr" cx="${rund(p[0],1)}" cy="${rund(p[1],1)}" r="11"/><text class="dr-nrt" x="${rund(p[0],1)}" y="${rund(p[1]+5,1)}">${nr}</text>${
+  const nummer = (p,nr,wg) => (belegt(p,11), '') + `<circle class="dr-nr" cx="${rund(p[0],1)}" cy="${rund(p[1],1)}" r="11"/><text class="dr-nrt" x="${rund(p[0],1)}" y="${rund(p[1]+5,1)}">${nr}</text>${
     wg?`<circle class="tipp" data-wg="${wg}" data-wert="${nr}" cx="${rund(p[0],1)}" cy="${rund(p[1],1)}" r="20"/>`:''}`;
   for(const b of o.boegen||[]){
     const pk=bogenPunkte(b).map(S), m=S(b.mitte), R=rund(dist(m,pk[2]),2), a=pk[0], e=pk[4], kr=(a[0]-m[0])*(e[1]-m[1])-(a[1]-m[1])*(e[0]-m[0]);
@@ -2175,32 +2203,50 @@ function zeichne(P,o={}){
     svg+=`<line class="dr-${s.art||'hoehe'}" data-strecke="${s.nr||''}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`;
     if(s.fussRecht){ const u=einheitV(minus(a,b)), w=[-u[1],u[0]], q=9; svg+=`<path class="dr-recht" d="M${pt(plus(b,mal(u,q)))} L${pt(plus(plus(b,mal(u,q)),mal(w,q)))} L${pt(plus(b,mal(w,q)))}"/>`; }
     const m=plus(a,mal(minus(b,a),s.nr?[.42,.62,.82][i%3]:.7)), n=einheitV([-(b[1]-a[1]), b[0]-a[0]]), tp=plus(m,mal(n,13));
-    if(s.nr) svg+=`<circle class="dr-nr" cx="${rund(tp[0],1)}" cy="${rund(tp[1],1)}" r="10"/><text class="dr-nrt" x="${rund(tp[0],1)}" y="${rund(tp[1]+5,1)}">${s.nr}</text>`;
-    else if(s.text){
-      // auf die Seite mit mehr Platz, aber nicht über den Rand hinaus (Breite grob aus der Zeichenzahl geschätzt)
-      const breit=s.text.replace(/<[^>]+>/g,'').length*8, passt=r=>{ const x=m[0]+r[0]*8; return r[0]>.3 ? x+breit<W : r[0]<-.3 ? x-breit>0 : true; };
-      let nn=platz(m,n)>=platz(m,mal(n,-1))?n:mal(n,-1); if(!passt(nn)&&passt(mal(nn,-1))) nn=mal(nn,-1);
-      const q=plus(m,mal(nn,8)), anker=nn[0]>.3?'start':nn[0]<-.3?'end':'middle'; svg+=`<text class="dr-t klein" style="text-anchor:${anker}" x="${rund(q[0],1)}" y="${rund(q[1]+5+(anker==='middle'?nn[1]*10:0),1)}">${s.text}</text>`; }
+    if(s.nr){ svg+=`<circle class="dr-nr" cx="${rund(tp[0],1)}" cy="${rund(tp[1],1)}" r="10"/><text class="dr-nrt" x="${rund(tp[0],1)}" y="${rund(tp[1]+5,1)}">${s.nr}</text>`; belegt(tp,10); }
+    else if(s.text) spaeter.push(()=>{
+      // neben die Höhe, auf die Seite mit mehr Platz zuerst
+      const r=platz(m,n)>=platz(m,mal(n,-1))?[n,mal(n,-1)]:[mal(n,-1),n];
+      svg+=setze(s.text,'dr-t klein',(w,h)=>[.5,.4,.6,.3,.7,.75,.8,.85,.2].flatMap(f=>r.flatMap(nn=>[4,9].map(d=>aussen(plus(a,mal(minus(b,a),f)),nn,w,h,d))))); });
     if(s.wg) svg+=`<line class="tipp" data-wg="${s.wg}" data-wert="${s.wert}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`;
   }
-  for(const p of o.punkte||[]){ const q=S(p.p); svg+=`<circle class="dr-punkt" cx="${q[0]}" cy="${q[1]}" r="4.5"/>${p.text?`<text class="dr-t" x="${q[0]+12}" y="${q[1]-8}">${p.text}</text>`:''}`; }
-  // Beschriftung: Ecken außen, Seiten außen an der Mitte, Winkel innen
+  for(const p of o.punkte||[]){ const q=S(p.p); svg+=`<circle class="dr-punkt" cx="${q[0]}" cy="${q[1]}" r="4.5"/>`; belegt(q,5);
+    if(p.text) spaeter.push(()=>{ svg+=setze(p.text,'dr-t',(w,h)=>[[1,-1],[1,1],[-1,-1],[-1,1],[0,-1],[0,1],[1,0],[-1,0]].map(r=>aussen(q,einheitV(r),w,h,6))); }); }
+  for(const f of spaeter) f();
+  // Beschriftung: Ecken außen, Seiten außen neben der Mitte, Winkel innen; Seiten immer mit Namen („b = 5 cm“)
   for(const e of 'ABC'){
-    const v=einheitV(minus(Q[e],mitte)), [p,q]=gegen[e].map(n=>Q[n]), sm=mal(plus(p,q),.5), sv=einheitV(minus(sm,mitte));
-    if(ecken&&(!o.eckenNur||o.eckenNur.includes(e))){ const t=plus(Q[e],mal(v,17)); svg+=`<text class="dr-t ecke" data-ecke="${e}" x="${rund(t[0],1)}" y="${rund(t[1]+6,1)}">${o.frageEcke===e?'?':e}</text>`; }
-    const st=(o.seitenText||{})[KL[e]], name=sNamen?KL[e]:'';
-    // lange Texte nicht über die Seite schreiben: links bzw. rechts der Seite bündig ausrichten
-    if(st||name){ const br=String(st).length*7.5, an=st&&sv[0]>.3&&sm[0]+15+br<W?'start':st&&sv[0]<-.3&&sm[0]-15-br>0?'end':'middle', t=plus(sm,mal(sv,an!=='middle'?15:st?16:14));
-      svg+=`<text class="dr-t${st?' klein':''}"${an!=='middle'?` style="text-anchor:${an}"`:''} x="${rund(t[0],1)}" y="${rund(t[1]+5+(an==='middle'?0:sv[1]*6),1)}">${st?(name?name+' = ':'')+st:name}</text>`; }
-    const wt=(o.winkelText||{})[e];
-    if(wNamen||wt){ const t=plus(Q[e],mal(v,-34)); svg+=`<text class="dr-t klein" x="${rund(t[0],1)}" y="${rund(t[1]+5,1)}">${wt||GR[e]}</text>`; }
+    if(!ecken||(o.eckenNur&&!o.eckenNur.includes(e))) continue;
+    const [u,w]=gegen[e].map(n=>einheitV(minus(Q[n],Q[e]))), aus=einheitV(mal(plus(u,w),-1));
+    svg+=setze(o.frageEcke===e?'?':e,'dr-t ecke',(bw,bh)=>[0,25,-25,50,-50,80,-80,115,-115].flatMap(g=>[3,8,14].map(d=>aussen(Q[e],drehV(aus,g),bw,bh,d))),` data-ecke="${e}"`);
+  }
+  for(const e of 'ABC'){
+    const [p,q]=gegen[e].map(n=>Q[n]), sm=mal(plus(p,q),.5);
+    let n=einheitV([-(q[1]-p[1]), q[0]-p[0]]); if((sm[0]-mitte[0])*n[0]+(sm[1]-mitte[1])*n[1]<0) n=mal(n,-1);
+    const st=(o.seitenText||{})[KL[e]];
+    if(!st&&!sNamen) continue;
+    const txt=st?(/[=≈]/.test(st)||o.ohneNamen?st:`${KL[e]} = ${st}`):KL[e], an=f=>plus(p,mal(minus(q,p),f));
+    svg+=setze(txt,st?'dr-t klein':'dr-t',(bw,bh)=>[...[.5,.4,.6,.3,.7].flatMap(f=>[4,9,16].map(d=>aussen(an(f),n,bw,bh,d))), [...aussen(sm,mal(n,-1),bw,bh,6),1]]);
+  }
+  for(const e of 'ABC'){
+    const wt=(o.winkelText||{})[e]; if(!wNamen&&!wt) continue;
+    const [u,w]=gegen[e].map(n=>einheitV(minus(Q[n],Q[e]))), bi=einheitV(plus(u,w)), s2=Math.sin(rad(WI[e])/2);
+    // innen auf der Winkelhalbierenden, aber nah an der eigenen Ecke (höchstens 45 % der kürzeren anliegenden Seite);
+    // passt das nicht (spitzer Winkel, kleine Skizze), knapp außen neben die Ecke; innen weiter weg nur als Notplatz
+    const kurz=Math.min(dist(Q[e],Q[gegen[e][0]]),dist(Q[e],Q[gegen[e][1]]));
+    svg+=setze(wt||GR[e],'dr-t klein',(bw,bh)=>{ const r0=Math.max(22,Math.hypot(bw,bh)/2/Math.max(s2,.05)+3), rmax=.45*kurz, innen=[];
+      for(let r=r0;r<=rmax;r+=4) innen.push(plus(Q[e],mal(bi,r)));
+      const aus=[90,-90,60,-60,120,-120,150,-150].flatMap(g=>[4,10].map(d=>aussen(Q[e],drehV(mal(bi,-1),g),bw,bh,d)));
+      return [...innen, ...aus, ...[0,8,16,26,40].map(x=>[...plus(Q[e],mal(bi,r0+x)),1])]; });
   }
   // antippbare Seiten und Winkel (Frage q0 …)
   if(o.tippSeiten) for(const e of 'ABC'){ const [p,q]=gegen[e].map(n=>Q[n]); svg+=`<line class="tipp" data-wg="${o.tippSeiten}" data-wert="${KL[e]}" x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}"/>`; }
   if(o.tippWinkel) for(const e of 'ABC'){ const v=einheitV(minus(mitte,Q[e])), t=plus(Q[e],mal(v,22)); svg+=`<circle class="tipp" data-wg="${o.tippWinkel}" data-wert="${e}" cx="${rund(t[0],1)}" cy="${rund(t[1],1)}" r="19"/>`; }
   // Tiefstellung (h<sub>a</sub>) gibt es in SVG nicht: als tspan
   svg=svg.replace(/<sub>(.*?)<\/sub>/g,'<tspan class="tief" dy="4">$1</tspan><tspan dy="-4"> </tspan>');
-  return `<svg class="dreieck" viewBox="0 0 ${W} ${rund(H,1)}" role="img" aria-label="Dreieck">${svg}</svg>`;
+  // Bildausschnitt so groß, dass alle Beschriftungen hineinpassen
+  const vx0=Math.min(0,...kasten.map(k=>k.x-4)), vy0=Math.min(0,...kasten.map(k=>k.y-4)),
+    vx1=Math.max(W,...kasten.map(k=>k.x+k.w+4)), vy1=Math.max(H,...kasten.map(k=>k.y+k.h+4));
+  return `<svg class="dreieck" viewBox="${rund(vx0,1)} ${rund(vy0,1)} ${rund(vx1-vx0,1)} ${rund(vy1-vy0,1)}" role="img" aria-label="Dreieck"${o.ohneNamen?' data-namen="aus"':''}>${svg}</svg>`;
 }
 
 /* ---------- Koordinatensystem mit Dreieck (Kästchen 0 bis max) ---------- */
@@ -2235,12 +2281,17 @@ const gleicheZahlen = (a,b) => a.length===b.length && [...a].sort((x,y)=>x-y).ev
 const LAENGE = ['mm','cm','dm','m','km'], FLAECHE = LAENGE.map(e=>e+'²'), EINHEITEN = [...LAENGE, ...FLAECHE];
 const FAKTOR = {mm:1, cm:10, dm:100, m:1000, km:1000000};       // in mm
 const umrechnen = (x,von,nach) => rund(x*FAKTOR[von]/FAKTOR[nach]);
+// Umrechnung für die Bewertung (auch im Kern, Form 'zahlen'): Wert von einer Einheit in eine andere derselben Art, sonst null.
+// Richtig umgerechnete Ergebnisse zählen (4,18 cm statt 41,8 mm, Lehrkraft 19.11.2026).
+const inEinheit = (v,von,nach) => { const zer=e=>String(e).endsWith('²')?[e.slice(0,-1),2]:[e,1], [x,p]=zer(von), [y,q]=zer(nach);
+  return v===null||Number.isNaN(v)||p!==q||!FAKTOR[x]||!FAKTOR[y] ? null : v*Math.pow(FAKTOR[x]/FAKTOR[y],p); };
+UR.umrechner = inEinheit;
 function einheitHinweis(e, soll){
   if(!e) return 'Wähle auch die Einheit.';
   const istF=e.endsWith('²'), sollF=soll.endsWith('²');
   if(sollF&&!istF) return `Eine Fläche hat eine Einheit hoch 2, hier ${soll}.`;
   if(!sollF&&istF) return `Eine Länge hat keine Einheit hoch 2, hier ${soll}.`;
-  return `Die Maße sind in ${soll.replace('²','')}, also ist das Ergebnis in ${soll}.`;
+  return `Die Zahl passt zu ${soll}. Wähle ${soll} oder rechne die Zahl in deine Einheit um.`;
 }
 
 /* ---------- Antwortform 'schritte': Schritt 1 (Rechnung, Zahl oder Auswahl), Schritt 2 Ergebnis mit Einheit ----------
@@ -2271,7 +2322,8 @@ function s1Ok(t,roh){
   const s=t.s1;
   if(s.art==='wahl') return roh===s.ans;
   if(s.art==='zahl'){ const v=UR.leseZahl(roh); return v!==null&&!Number.isNaN(v)&&Math.abs(v-s.wert)<=(s.tol||0)+1e-9; }
-  const r=liesRechnung(roh); return !!r&&Math.abs(r.wert-s.wert)<1e-9&&s.zahlen.some(z=>gleicheZahlen(z,r.zahlen));
+  // zahlen: erlaubte Zahlensätze (z. B. alle in mm oder alle in cm), wertJe: Ergebnis je Satz (sonst wert)
+  const r=liesRechnung(roh); return !!r&&s.zahlen.some((z,i)=>gleicheZahlen(z,r.zahlen)&&Math.abs(r.wert-((s.wertJe||[])[i]??s.wert))<1e-9);
 }
 UR.formAnmelden('schritte', {
   gefuehrt: true,
@@ -2293,7 +2345,9 @@ UR.formAnmelden('schritte', {
     const erg = felder2(t).map(f=>{
       if(f.wahl){ const w=l.shift()||''; return {ok:w===f.ans, zahlOk:true, einheitOk:true, text:(f.wahl.find(o=>o[0]===w)||[,w||'?'])[1]}; }
       const roh=l.shift(), v=UR.leseZahl(roh), e=f.einheit?f.einheitAns:(l.shift()||'');
-      const zahlOk = v!==null&&!Number.isNaN(v)&&[f.ans,...(f.auch||[])].some(a=>Math.abs(v-a)<=(f.tol||0)+1e-9), einheitOk = e===f.einheitAns;
+      const passt = w => w!==null&&!Number.isNaN(w)&&[f.ans,...(f.auch||[])].some(a=>Math.abs(w-a)<=(f.tol||0)+1e-9*Math.max(1,Math.abs(a)));
+      const um = !f.einheit&&e&&e!==f.einheitAns ? inEinheit(v,e,f.einheitAns) : null, umOk = um!==null&&passt(um);
+      const zahlOk = passt(v)||umOk, einheitOk = e===f.einheitAns||umOk;
       return {f, v, e, zahlOk, einheitOk, ok:zahlOk&&einheitOk, text:`${String(roh??'').trim()||'?'}${e?' '+e:''}`};
     });
     const x=erg[0], typisch = x.f&&!x.zahlOk&&x.v!==null ? (t.s2.fehler||[]).find(([w])=>Math.abs(x.v-w)<1e-9) : null, ohneE=erg.find(y=>y.f&&y.zahlOk&&!y.einheitOk);
@@ -3961,10 +4015,42 @@ function heronListe(){
   return HERON;
 }
 
+/* ---------- Umfang mit gemischten Einheiten (Lehrkraft 19.11.2026) ----------
+   Seiten in der kleineren Einheit k (10 bis 300, höchstens eine Nachkommastelle), eine oder zwei davon in der nächstgrößeren
+   Einheit g angegeben (nie alle). Gerechnet wird in einer Einheit: alle in k oder alle in g; beide Rechnungen zählen,
+   das Ergebnis zählt in jeder Einheit, wenn es richtig umgerechnet ist. Typischer Fehler: ohne Umrechnen addiert. */
+const PAARE = [['mm','cm'],['cm','dm'],['dm','m']];
+function umfangGemischt(gs){
+  const [k,g]=pick(PAARE);
+  return versuche(()=>{
+    const z=()=>pick([rnd(10,300), zehntel(10,300)]), a=z(), c=z(), b=gs?a:z(); if(!gut(a,b,c)) return null;
+    const inG = gs ? pick([['a','b'],['c']]) : mischen(['a','b','c']).slice(0,pick([1,2])), L={a,b,c};
+    const A = Object.fromEntries(['a','b','c'].map(x=>[x, inG.includes(x) ? {v:rund(L[x]/10), e:g} : {v:L[x], e:k}]));
+    const sum=rund(a+b+c), sumG=rund(sum/10), G=x=>D(rund(x/10));
+    const rk = gs?`2 · ${D(a)} + ${D(c)}`:`${D(a)} + ${D(b)} + ${D(c)}`;
+    const roh = gs?`2 · ${D(A.a.v)} + ${D(A.c.v)}`:`${D(A.a.v)} + ${D(A.b.v)} + ${D(A.c.v)}`, rohW=rund(gs?2*A.a.v+A.c.v:A.a.v+A.b.v+A.c.v);
+    const q = gs?`a = b = ${D(A.a.v)} ${A.a.e}, c = ${D(A.c.v)} ${A.c.e}`:['a','b','c'].map(x=>`${x} = ${D(A[x].v)} ${A[x].e}`).join(', ');
+    const zahlen = gs?[[2,a,c],[a,a,c],[2,rund(a/10),rund(c/10)],[rund(a/10),rund(a/10),rund(c/10)]]:[[a,b,c],[rund(a/10),rund(b/10),rund(c/10)]];
+    const um=`Rechne zuerst alle Längen in dieselbe Einheit um: 1 ${g} = 10 ${k}.`;
+    return aufg({kind:'schritte', q, text:true, lead:'',
+      bild:zeichne(ausSeiten(a,b,c),{farben:gs, seitenNamen:true, seitenText:Object.fromEntries(['a','b','c'].map(x=>[x,`${D(A[x].v)} ${A[x].e}`]))}),
+      daten:{a,b,c,k,g}, pruef:gs?'umfang_gs':'umfang', gemischt:true,
+      s1:{label:'Schritt 1: Rechne alle Längen in dieselbe Einheit um und setze ein (Rechnung)', kurz:'Rechnung', art:'rechnung', wert:sum, zahlen,
+        wertJe:gs?[sum,sum,sumG,sumG]:[sum,sumG], ans:rk, ansText:`u = ${rk} (alles in ${k})`},
+      s2:schritteBasis({label:'Schritt 2: Ergebnis mit Einheit', ans:sum, einheitAns:k, ansText:`u = ${D(sum)} ${k} = ${D(sumG)} ${g}`, fehler:[[rohW,um]]}),
+      pre:{ans:rk, optionen:vorschlaege(rk, roh, gs?`${D(a)} + ${D(c)}`:`${D(a)} + ${D(b)}`)},
+      schritt:'Umrechnen und einsetzen', alleinText:'Ab der nächsten Aufgabe schreibst du die Rechnung selbst.',
+      why:`Zuerst alle Seiten in dieselbe Einheit umrechnen (1 ${g} = 10 ${k}), dann ${gs?'u = 2 · a + c':'addieren'}. Das Ergebnis darf in ${k} oder in ${g} stehen.`,
+      steps:`u = ${rk} = ${D(sum)} ${k} = ${D(sumG)} ${g}${gs?'':` (oder alles in ${g}: ${G(a)} + ${G(b)} + ${G(c)} = ${D(sumG)} ${g})`}`});
+  });
+}
+
 /* ---------- Aufgabentypen ---------- */
 const typen = {
   // G2-A01 Umfang aus drei Seiten (Einsetzen, dann Ergebnis mit Einheit)
   umfang(ctx){
+    // ab dem Einstieg manchmal gemischte Einheiten (Lehrkraft 19.11.2026): eine oder zwei Seiten in der nächstgrößeren Einheit
+    if(!(ctx&&ctx.einstieg)&&Math.random()<.4) return umfangGemischt(false);
     const u=pick(['cm','mm','dm','m','km']), d=ctx&&ctx.einstieg?0:pick([0,1,1,2]);
     return versuche(()=>{
       const a=mitStellen(1,30,d), b=mitStellen(1,30,d), c=mitStellen(1,30,d); if(!gut(a,b,c)) return null;
@@ -3981,6 +4067,7 @@ const typen = {
   },
   // G2-A02 Umfang im gleichschenkeligen Dreieck (a = b)
   umfang_gleichschenkelig(ctx){
+    if(!(ctx&&ctx.einstieg)&&Math.random()<.4) return umfangGemischt(true);
     const u=pick(['cm','mm','dm','m']);
     return versuche(()=>{
       const a=zehntel(1,20), c=zehntel(1,20); if(c>=2*a||Math.abs(c-a)<.15*a||!gut(a,a,c)) return null;
@@ -4129,11 +4216,14 @@ const typen = {
   // G2-N04 (Plus) Hausgiebel: Rechteck und Dreieck
   giebel(){
     const w=zehntel(4,12), hr=zehntel(3,8), hd=zehntel(1,4), R=rund(w*hr), Dr=rund(w*hd/2), G=rund(R+Dr);
-    const K=24/Math.max(w,hr+hd), W=w*K, svg=`<svg class="dreieck" viewBox="-60 -10 ${rund(W+130,1)} ${rund((hr+hd)*K+50,1)}" role="img" aria-label="Hauswand mit Giebel">
-      <path class="dr" d="M0,${rund(hd*K,1)} L${rund(W/2,1)},0 L${rund(W,1)},${rund(hd*K,1)} Z"/><rect class="dr" x="0" y="${rund(hd*K,1)}" width="${rund(W,1)}" height="${rund(hr*K,1)}"/>
-      <line class="dr-hoehe" x1="${rund(W/2,1)}" y1="0" x2="${rund(W/2,1)}" y2="${rund(hd*K,1)}"/>
-      <text class="dr-t klein" x="${rund(W/2,1)}" y="${rund((hr+hd)*K+22,1)}">${D(w)} m</text><text class="dr-t klein" x="${rund(W+34,1)}" y="${rund((hd+hr/2)*K,1)}">${D(hr)} m</text>
-      <text class="dr-t klein" x="${rund(W/2+34,1)}" y="${rund(hd*K/2+5,1)}">${D(hd)} m</text></svg>`;
+    // Maßstab: das Haus etwa 220 Pixel groß; Maße unten, rechts neben der Wand und neben der Giebelhöhe (innen oder rechts außen)
+    const K=Math.min(220/w, 200/(hr+hd)), W=w*K, Hd=hd*K, Hg=(hr+hd)*K, innen=Hd>=30;
+    const svg=`<svg class="dreieck" viewBox="-12 -12 ${rund(W+92,1)} ${rund(Hg+46,1)}" role="img" aria-label="Hauswand mit Giebel">
+      <path class="dr" d="M0,${rund(Hd,1)} L${rund(W/2,1)},0 L${rund(W,1)},${rund(Hd,1)} Z"/><rect class="dr" x="0" y="${rund(Hd,1)}" width="${rund(W,1)}" height="${rund(hr*K,1)}"/>
+      <line class="dr-hoehe" x1="${rund(W/2,1)}" y1="0" x2="${rund(W/2,1)}" y2="${rund(Hd,1)}"/>
+      <text class="dr-t klein" x="${rund(W/2,1)}" y="${rund(Hg+20,1)}">${D(w)} m</text>
+      <text class="dr-t klein" style="text-anchor:start" x="${rund(W+6,1)}" y="${rund(Hd+hr*K/2+5,1)}">${D(hr)} m</text>
+      <text class="dr-t klein" style="text-anchor:start" x="${rund(innen?W/2+5:W+6,1)}" y="${rund(innen?Hd*.68+5:Math.max(Hd/2+5,10),1)}">${D(hd)} m</text></svg>`;
     return aufg({kind:'zahlen', q:`Hauswand ${D(w)} m breit und ${D(hr)} m hoch, darüber ein Giebeldreieck mit ${D(hd)} m Höhe. Wie groß ist die Wandfläche?`, text:true,
       bild:svg.replace(/\s+/g,' '), daten:{w,hr,hd}, pruef:'giebel',
       felder:[{label:'Rechteck', ans:R, einheit:'m²', ansText:`${D(R)} m²`}, {label:'Dreieck', ans:Dr, tol:.0051, einheit:'m²', ansText:`${D(Dr)} m²`},
@@ -4342,7 +4432,7 @@ const typen = {
     const ids=opts.map((_,i)=>'k'+i), ans=ids[opts.findIndex(x=>x.ok)];
     return aufg({kind:'fragen', q:`Gegeben: ${angabe(d)}. Welche Skizze passt?`, text:true,
       lead:leicht?merk('Die Seite a liegt der Ecke A gegenüber, der Winkel α liegt bei A.'):'', pruef:'skizze', d,
-      gruppen:[{frage:'Tippe die passende Skizze an.', optionen:opts.map((o,i)=>[ids[i], `<span class="nr">Skizze ${i+1}</span>${skizze(d,{phi, seitenText:o.s, winkelText:o.w, extra:{breite:280, hoeheMax:150, pad:26}})}`]), ans, klasse:'skizzen'}],
+      gruppen:[{frage:'Tippe die passende Skizze an.', optionen:opts.map((o,i)=>[ids[i], `<span class="nr">Skizze ${i+1}</span>${skizze(d,{phi, seitenText:o.s, winkelText:o.w, extra:{breite:280, hoeheMax:150, pad:26, ohneNamen:true}})}`]), ans, klasse:'skizzen'}],
       why:`In der richtigen Skizze stehen alle Werte an der richtigen Stelle: Die Seite a liegt der Ecke A gegenüber (b gegenüber B, c gegenüber C), der Winkel α liegt bei A, β bei B, γ bei C.`,
       loesungBild:skizze(d,{farbig:true})});
   },
