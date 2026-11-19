@@ -1311,7 +1311,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-19.1","datum":"19.11.2026","pruefsumme":"098620b1eb156dae"};
+UR.version = {"nummer":"2026-11-19.2","datum":"19.11.2026","pruefsumme":"40b42fd403bceb9a"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -1961,11 +1961,11 @@ function bruchAnzeige(text){
     return inhalt+y.slice(e+1); }).join('');
   return html(s);
 }
-// nach jeder Ansicht: Text mit / in gestapelte Brüche verwandeln (nicht in Eingabefeldern)
+// nach jeder Ansicht: Text mit / in gestapelte Brüche verwandeln (nicht in Eingabefeldern und Links, z. B. Webadressen)
 UR.bindungen.push(app=>{
   if(!app.querySelectorAll||typeof NodeFilter==='undefined') return;   // Testumgebung ohne DOM
   const w=document.createTreeWalker(app, NodeFilter.SHOW_TEXT), knoten=[]; let n;
-  while((n=w.nextNode())) if(n.nodeValue.includes('/')&&!n.parentNode.closest('input, textarea, svg, .bruch')) knoten.push(n);
+  while((n=w.nextNode())) if(n.nodeValue.includes('/')&&!n.parentNode.closest('input, textarea, svg, a, .bruch')) knoten.push(n);
   for(const k of knoten){ const sp=document.createElement('span'); sp.innerHTML=bruchAnzeige(k.nodeValue); k.replaceWith(...sp.childNodes); }
 });
 // Eingabe: Zähler über dem Bruchstrich, Nenner darunter; das versteckte Feld enthält den Bruch als Text für die Bewertung
