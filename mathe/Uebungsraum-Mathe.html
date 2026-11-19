@@ -158,6 +158,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--v);outline-offs
 button.link{font:inherit;background:none;border:0;padding:0;color:var(--ink);text-decoration:underline;cursor:pointer}
 .neuefassung{background:var(--v-soft);border:2px solid var(--v);border-radius:14px;padding:12px 16px}
 .neuefassung a{color:var(--ink);font-weight:700}
+.sicherklein{font:inherit;font-size:.85rem;font-weight:700;border-radius:99px;padding:5px 12px;min-height:36px;cursor:pointer;white-space:nowrap}
+.sicherklein.ok{background:var(--g-soft);color:var(--g);border:1px solid var(--g)}
+.sicherklein.offen{background:var(--paper);color:var(--ink);border:2px solid var(--ink)}
 </style>
 <style>
 /* Mathe/fach.css */
@@ -312,6 +315,10 @@ UR.TEXTE = {
   sicherDownload: datei => `„${datei}“ wurde heruntergeladen. Leg die Datei an einen festen Ort.`,
   sicherNichtErlaubt: 'Nicht gesichert: Der Browser hat das Speichern nicht erlaubt.',
   sicherFehler: 'Sichern hat nicht geklappt. Wähle die Datei neu („andere Datei wählen“).',
+  kleinOk: '✓ gesichert',
+  kleinOffen: 'Sichern',
+  kleinOkTitel: 'Dein Fortschritt ist in deiner Datei gesichert.',
+  kleinOffenTitel: 'Fortschritt in deine Datei sichern',
   ladenOk: n => `Fortschritt geladen: ${n} ${n===1?'Kompetenz':'Kompetenzen'} aus der Datei, mit dem bisherigen zusammengeführt.`,
   ladenDatei: datei => `Gesichert wird ab jetzt in „${datei}“.`,
   ladenFalsch: fach => `Das ist keine Fortschritt-Datei für den ${fach}-Übungsraum.`,
@@ -741,6 +748,8 @@ function render(){
 /* Übersicht: Reiter je Gruppe (Mathe: GKÜ), darunter die Themen als Kacheln; ein Thema zeigt seine Kompetenzen */
 const gruppen = () => [...new Set(UR.fach.themen.map(th=>th.gruppe))];
 const themaVon = id => UR.fach.themen.find(th=>th.kompetenzen.some(k=>k.id===id));
+// kleiner Sichern-Knopf oben rechts (kern/sicherung.js): Themen-, Kompetenz- und Ergebnisseite, nicht während Aufgaben
+const sk = () => UR.sicherKnopfHTML ? UR.sicherKnopfHTML() : '';
 const themaTitel = th => `${th.nummer?th.nummer+' ':''}${esc(th.name)}`;
 const REITER_KEY = () => 'uebungsraeume-reiter-'+UR.fach.kuerzel;
 let reiterWahl = null;   // gewählter Reiter, zusätzlich in localStorage (wenn erlaubt)
@@ -776,7 +785,7 @@ function renderThema(){
     <div class="meter" aria-label="${T.fortschrittAria(p)}"><i style="width:${p}%"></i></div>
     <div class="small muted">${c.checks.length?T.geschafftProzent(p):T.mitEingangStarten}</div></div>${sym}</button>`;
   }).join('');
-  return `<div class="top"><button class="back" data-go="hub">${T.zurUebersicht}</button><span class="small muted">${esc(th.gruppe||'')}${th.jahr?' · '+T.jahr(th.jahr):''}</span></div>
+  return `<div class="top"><button class="back" data-go="hub">${T.zurUebersicht}</button><span class="row"><span class="small muted">${esc(th.gruppe||'')}${th.jahr?' · '+T.jahr(th.jahr):''}</span>${sk()}</span></div>
     <section class="sheet topic"><h2>${themaTitel(th)}</h2>${items}</section>`;
 }
 
@@ -804,7 +813,7 @@ function renderComp(){
   const extra = c.checks.length && !(lf&&lf.rating==='ganz') && (c.path||[]).some(s=>!isExtra(k.id,s)&&!(c.stations[s]&&c.stations[s].done))
     ? `<div class="row"><button class="big alt" data-go="explain">${T.erklaerung}</button><button class="big alt" data-start="abschluss">${T.abschlussTrotzdem}</button></div>`
     : c.checks.length?`<div class="row"><button class="big alt" data-go="explain">${T.erklaerung}</button><button class="big alt" data-start="eingang">${T.eingangWiederholen}</button></div>`:'';
-  return `<div class="top"><button class="back" data-go="hub">← ${esc(themaVon(k.id).name)}</button>${lvlChip(k.lvl)}</div>
+  return `<div class="top"><button class="back" data-go="hub">← ${esc(themaVon(k.id).name)}</button><span class="row">${lvlChip(k.lvl)}${sk()}</span></div>
     <section class="sheet"><h2>${esc(k.text)}</h2>
       <div class="meter"><i style="width:${p}%"></i></div>
       <div class="progress"><span>${T.fortschritt}</span><span><b>${p} %</b></span></div>
@@ -873,7 +882,8 @@ function renderResult(){
     actions= r==='ganz'?`<button class="big" data-go="hub">${T.zurUebersichtKnopf}</button>`:`<button class="big" data-go="comp">${T.weiterUeben}</button>`;
   }
   const review=view.answers.map(a=>`<div><span>${esc(a.t.q.length>60?a.t.q.slice(0,58)+'…':a.t.q)}</span><span>${a.ok?`<b style="color:var(--ok)">${T.richtig}</b>`:`<b style="color:var(--bad)">${esc(a.shown)}</b> → ${esc(correctText(a.t))}`}</span></div>`).join('');
-  return `<section class="sheet pop">${head}<div class="row">${actions}</div></section>
+  return `<div class="top"><span class="small muted">${view.kind==='eingang'?T.eingang:T.abschluss}</span>${sk()}</div>
+    <section class="sheet pop">${head}<div class="row">${actions}</div></section>
     <section class="sheet"><h3>${T.deineAntworten}</h3><div class="review">${review}</div></section>`;
 }
 
@@ -977,6 +987,8 @@ UR.intern = {go, startCheck, submitCheck, startStation, submitStation, newTask, 
      Die gewählte Datei merkt sich der Browser (IndexedDB). Solange die Erlaubnis gilt, wird nach jeder Änderung
      von selbst mitgesichert; nach einem Neustart des Browsers genügt ein Klick auf „Fortschritt sichern“.
    - Andere Browser (Firefox): Download mit festem Dateinamen.
+   - Kleiner Knopf oben rechts auf Themen-, Kompetenz- und Ergebnisseite („✓ gesichert“ / „Sichern“), dazu in
+     Chrome/Edge eine Rückfrage beim Schließen, wenn Neues noch nicht in der Datei ist (19.11.2026).
    - Laden führt zusammen: je Kompetenz bleibt alles, was schon da ist, dazu kommt alles aus der Datei.
    - Neue Fassung: Ist das Gerät online, wird die kleine Versionsdatei der Webseite abgefragt. Offline passiert nichts.
    Die Datei enthält keine Namen, nur den Fortschritt (wie im Browser). */
@@ -994,7 +1006,15 @@ let neueFassung = null;   // {nummer, datum}, wenn auf der Webseite eine neuere 
 
 function lieMeta(){try{return JSON.parse(localStorage.getItem(META_KEY()))||{}}catch(e){return {}}}
 function schreibMeta(m){try{localStorage.setItem(META_KEY(),JSON.stringify(m))}catch(e){}}
-function neuZeichnen(){ if(UR.intern && UR.intern.view().name==='hub') UR.intern.render(); }
+// Übersicht ganz neu zeichnen; anderswo nur den kleinen Knopf austauschen (keine Eingaben verlieren)
+function neuZeichnen(){
+  if(!UR.intern) return;
+  if(UR.intern.view().name==='hub') return UR.intern.render();
+  const k=typeof document!=='undefined'&&document.getElementById&&document.getElementById('sichernKlein');
+  if(k){ k.outerHTML=UR.sicherKnopfHTML(); knopfBinden(document); }
+}
+// seit der letzten Sicherung in die Datei hat sich etwas geändert
+const ungesichert = () => { const m=lieMeta(); return Object.keys(UR.store).length>0 && (m.geaendert||0)>(m.zuletzt||0); };
 const zeit = d => { const x=new Date(d), z=n=>String(n).padStart(2,'0');
   return `${z(x.getDate())}.${z(x.getMonth()+1)}.${x.getFullYear()}, ${z(x.getHours())}:${z(x.getMinutes())}`; };
 
@@ -1023,6 +1043,7 @@ const inhalt = () => JSON.stringify({app:'uebungsraeume', fach:UR.fach.kuerzel, 
 async function schreiben(){
   const w=await handle.createWritable(); await w.write(inhalt()); await w.close();
   const m=lieMeta(); m.zuletzt=Date.now(); m.datei=handle.name; schreibMeta(m);
+  neuZeichnen();
 }
 
 /* Knopf „Fortschritt sichern“ */
@@ -1056,10 +1077,22 @@ let wartet = null;
 function mitsichern(){
   if(!FSA||!handle||!erlaubt) return;
   clearTimeout(wartet);
-  wartet=setTimeout(()=>{ schreiben().catch(()=>{erlaubt=false;neuZeichnen()}); },1500);
+  wartet=setTimeout(()=>{ wartet=null; schreiben().catch(()=>{erlaubt=false;neuZeichnen()}); },400);
 }
 const speichernAlt = UR.save;
-UR.save = function(){ speichernAlt(); mitsichern(); };
+UR.save = function(){
+  speichernAlt();
+  const m=lieMeta(); m.geaendert=Date.now(); schreibMeta(m);
+  if(FSA&&handle&&erlaubt) mitsichern(); else neuZeichnen();
+};
+
+/* Rückfrage beim Schließen (nur Chrome/Edge, Wunsch der Lehrkraft 19.11.2026): nur wenn etwas Neues noch nicht in der
+   Datei ist und gerade nicht von selbst gesichert werden kann. Text und Knöpfe legt der Browser fest. Firefox sichert
+   nie von selbst (jedes Sichern ist ein Download), dort käme die Frage bei jedem Schließen, deshalb nicht. */
+if(FSA) window.addEventListener('beforeunload', e=>{
+  if(handle&&erlaubt){ if(wartet){ clearTimeout(wartet); wartet=null; schreiben().catch(()=>{}); } return; }
+  if(ungesichert()){ e.preventDefault(); e.returnValue=''; }
+});
 
 /* ---------- Laden und zusammenführen ---------- */
 // Je Kompetenz: Checks aus beiden (doppelte nur einmal), Stationen: geschafft bleibt geschafft, Zähler das Höhere,
@@ -1134,7 +1167,14 @@ UR.versionHTML = function(){
     <div class="small">${T.neueFassungText}</div></div>` : '';
   return {oben:neu, unten:`<p class="small muted">${T.fassung(v.datum, v.nummer)}</p>`};
 };
+/* kleiner Knopf oben rechts auf Themen-, Kompetenz- und Ergebnisseite: zeigt den Stand, ein Tipp sichert */
+UR.sicherKnopfHTML = function(){
+  const ok = FSA ? !!(handle && erlaubt && !ungesichert()) : !ungesichert() && !!lieMeta().zuletzt;
+  return `<button class="sicherklein ${ok?'ok':'offen'}" id="sichernKlein" title="${UR.esc(ok?T.kleinOkTitel:T.kleinOffenTitel)}">${ok?T.kleinOk:T.kleinOffen}</button>`;
+};
+function knopfBinden(el){ const k=el.querySelector&&el.querySelector('#sichernKlein'); if(k) k.onclick=()=>sichern(false); }
 UR.bindungen.push(app=>{
+  knopfBinden(app);
   const s=app.querySelector&&app.querySelector('#sichernKnopf'); if(s) s.onclick=()=>sichern(false);
   const l=app.querySelector&&app.querySelector('#ladenKnopf'); if(l) l.onclick=laden;
   const a=app.querySelector&&app.querySelector('#andereDatei'); if(a) a.onclick=()=>sichern(true);
@@ -1311,7 +1351,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-19.2","datum":"19.11.2026","pruefsumme":"40b42fd403bceb9a"};
+UR.version = {"nummer":"2026-11-19.3","datum":"19.11.2026","pruefsumme":"03f5143d1e97d8cf"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
