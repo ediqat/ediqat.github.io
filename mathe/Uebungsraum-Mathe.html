@@ -161,6 +161,9 @@ button.link{font:inherit;background:none;border:0;padding:0;color:var(--ink);tex
 .sicherklein{font:inherit;font-size:.85rem;font-weight:700;border-radius:99px;padding:5px 12px;min-height:36px;cursor:pointer;white-space:nowrap}
 .sicherklein.ok{background:var(--g-soft);color:var(--g);border:1px solid var(--g)}
 .sicherklein.offen{background:var(--paper);color:var(--ink);border:2px solid var(--ink)}
+/* Zahlfelder untereinander bündig, auch wenn nur manche eine Einheit haben: gleich viel Platz links und rechts */
+.answer.mitE::before{content:"";min-width:2.6em}
+.answer.mitE .einheit{min-width:2.6em;text-align:left}
 </style>
 <style>
 /* Mathe/fach.css */
@@ -695,8 +698,9 @@ UR.bindungen.push(app=>{ if(!app.querySelector) return;   // Testumgebung ohne D
 //   f.feldHTML(id) → HTML mit genau einem Element [data-feld] (z. B. Bruchfeld), f.lesen(roh) → Zahl, null (leer) oder NaN,
 //   f.formOk(roh) → false, wenn der Wert stimmt, die Form aber nicht (z. B. nicht gekürzt; Feld zählt dann als falsch).
 const zahlText = s => String(s??'').trim();
-UR.zahlFeldHTML = (f,i) => `<label class="lbl" for="z${i}">${f.label}</label>
-      <div class="answer">${f.feldHTML?f.feldHTML('z'+i):`<input id="z${i}" class="zahl" data-feld inputmode="decimal" placeholder="?">`}${f.einheit?`<span class="einheit">${f.einheit}</span>`:''}</div>${
+// platz: Felder untereinander stehen bündig, auch wenn nur manche eine Einheit haben (Platz für die Einheit links und rechts)
+UR.zahlFeldHTML = (f,i,platz) => `<label class="lbl" for="z${i}">${f.label}</label>
+      <div class="answer${platz?' mitE':''}">${f.feldHTML?f.feldHTML('z'+i):`<input id="z${i}" class="zahl" data-feld inputmode="decimal" placeholder="?">`}${f.einheit?`<span class="einheit">${f.einheit}</span>`:platz?'<span class="einheit" aria-hidden="true"></span>':''}</div>${
       f.einheiten?`${UR.wahlFeld('e'+i)}${UR.wahlGruppe('e'+i,f.einheiten.map(e=>[e,e]),{klasse:'einheiten'})}`:''}`;
 // liest die Felder aus der Liste l (verbraucht sie von vorn) und bewertet jedes Feld
 UR.zahlFelderBewerten = (felder,l) => felder.map(f=>{
@@ -708,7 +712,8 @@ UR.zahlFelderBewerten = (felder,l) => felder.map(f=>{
   return {roh:zahlText(roh), v, e, wertOk, formOk, zahlOk:wertOk&&formOk, einheitOk:!f.einheiten||e===f.einheitAns||umOk};
 });
 UR.formAnmelden('zahlen', {
-  html: t => `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off">${t.felder.map(UR.zahlFeldHTML).join('')}${okKnopf}</form>`,
+  html: t => { const platz=t.felder.some(f=>f.einheit);
+    return `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off">${t.felder.map((f,i)=>UR.zahlFeldHTML(f,i,platz)).join('')}${okKnopf}</form>`; },
   bewerten(t,pre,raw){
     const erg=UR.zahlFelderBewerten(t.felder, Array.isArray(raw)?[...raw]:[raw]);
     t.ergebnis=erg;
@@ -1434,7 +1439,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-20.19","datum":"20.11.2026","pruefsumme":"1ae0cd647b6262b2"};
+UR.version = {"nummer":"2026-11-20.22","datum":"20.11.2026","pruefsumme":"288425367dfe4a9d"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -2664,9 +2669,9 @@ const okKnopf = `<div class="answer"><button class="big" type="submit">${T.ok}</
 UR.formAnmelden('zweischritt', {
   gefuehrt: true,
   html(t,st){
-    const kopf=UR.aufgabeKopf(t), n1=t.s1.felder.length;
-    const s2 = t.s2.felder.map((f,i)=>UR.zahlFeldHTML(f,n1+i)).join('');
-    if(st.self) return `${kopf}<form class="selfform" id="multiForm" autocomplete="off"><p class="lbl">${t.s1.label}</p>${t.s1.felder.map(UR.zahlFeldHTML).join('')}
+    const kopf=UR.aufgabeKopf(t), n1=t.s1.felder.length, platz=[...t.s1.felder,...t.s2.felder].some(f=>f.einheit);
+    const s2 = t.s2.felder.map((f,i)=>UR.zahlFeldHTML(f,n1+i,platz)).join('');
+    if(st.self) return `${kopf}<form class="selfform" id="multiForm" autocomplete="off"><p class="lbl">${t.s1.label}</p>${t.s1.felder.map((f,i)=>UR.zahlFeldHTML(f,i,platz)).join('')}
       <p class="lbl">${t.s2.label}</p>${s2}${okKnopf}</form>`;
     if(!st.stage) return `${kopf}<p class="muted">${t.s1.label}</p><div class="choices drei">${t.pre.optionen.map(([v,l])=>`<button data-pre="${esc(v)}">${l}</button>`).join('')}</div>`;
     const s = st.coach && !st.preOk ? t.pre.ans : st.pre, txt=(t.pre.optionen.find(o=>o[0]===s)||[s,esc(s)])[1];
@@ -2686,9 +2691,15 @@ UR.formAnmelden('zweischritt', {
   },
   loesung: t => `${t.s1.ansText} | ${t.s2.ansText}`,
   papier: t => { const Pp=UR.papier, lin=f=>Pp.linie(f.label, f.einheit||'');
-    return {aufgabe:Pp.mitBild(`${Pp.angabe(t)}${t.s1.felder.map(lin).join('')}${t.s2.felder.map(lin).join('')}`, t.bild),
+    const s1 = t.s1.wahl ? `<div class="pz-frage">${t.s1.label}</div>${Pp.ankreuzen(t.s1.wahl)}` : t.s1.felder.map(lin).join('');
+    return {aufgabe:Pp.mitBild(`${Pp.angabe(t)}${s1}${t.s2.felder.map(lin).join('')}`, t.bild),
       loesung:`${t.s1.ansText}<br>${t.s2.ansText}`, lead:t.lead||undefined, aufwand:2}; }
 });
+// Schritt 1 als Auswahl (t.s1.wahl = [[Wert, HTML]], t.s1.ans): allein antippen, mit Hilfe dieselben Knöpfe
+const wahlSchritt1 = t => { if(!t.s1.wahl) return t;
+  t.s1.felder=[{label:t.s1.label, ans:0, ansText:t.s1.ansText, wahl:true, feldHTML:()=>`${UR.wahlFeld('s1')}${UR.wahlGruppe('s1', t.s1.wahl, {klasse:'drei'})}`,
+    lesen:v=>v===t.s1.ans?0:v?1:null}];
+  t.s1.felder[0].label=''; t.pre={ans:t.s1.ans, optionen:t.s1.wahl}; return t; };
 const ohneTags = h => String(h).replace(/<[^>]+>/g,'').replace(/&shy;|­/g,'').trim();
 
 /* ---------- Antippen zum Hervorheben (Erklärungen): [data-leucht] zeigt seine Rolle ---------- */
@@ -5766,7 +5777,7 @@ const SAETZE = [
   {s:(g,p,w)=>`In einem Korb liegen ${g} Äpfel. ${w} davon sind rot, das sind ${p}.`},
   {s:(g,p,w)=>`${w} von ${g} Losen gewinnen. Das sind ${p}.`},
   {s:(g,p,w)=>`Beim Lauf starten ${g} Läufer*innen. ${p} davon, das sind ${w}, kommen ins Ziel.`},
-  {einheit:'g', s:(g,p,w)=>`Ein Saft enthält ${p} Zucker. In ${g} Saft sind das ${w} Zucker.`},
+  {einheit:'g', s:(g,p,w)=>`Eine Studentenfutter-Mischung enthält ${p} Nüsse. In ${g} Mischung sind das ${w} Nüsse.`},
   {einheit:'km', s:(g,p,w)=>`${w} der ${g} langen Strecke sind schon geschafft, das sind ${p}.`},
   {euro:true, s:(g,p,w)=>`Ein Hemd kostet ${g}. Es wird um ${p} billiger, das sind ${w} weniger.`},
   {s:(g,p,w)=>`${p} der ${g} Mitglieder, also ${w} Mitglieder, kommen zum Fest.`},
@@ -5874,9 +5885,11 @@ const typen = {
   fairer_vergleich(){
     return versuche(()=>{
       const n=rnd(2,3), namen=pick([['3a','3b','3c'],['Klasse A','Klasse B','Klasse C'],['Schule X','Schule Y','Schule Z']]);
-      const gr=[...Array(n)].map((_,i)=>{ const g=pick([16,18,20,24,25,30,40,50,150,200,250]), w=rnd(1,g-1); return {name:namen[i], g, w, p:w*100/g}; });
-      if(gr.some(x=>!Number.isInteger(x.p*2))) return null;
-      const ps=gr.map(x=>x.p).sort((a,b)=>b-a); if(ps[0]-ps[1]<3) return null;
+      // Anteile 20 % bis 90 %, verschieden große Gruppen; die beiden größten liegen knapp beieinander (2 bis 8
+      // Prozentpunkte), damit man wirklich rechnen muss (Rückmeldung der Lehrkraft 20.11.2026)
+      const gr=[...Array(n)].map((_,i)=>{ const g=pick([16,18,20,24,25,30,32,40,50,60,80,120,150,200,250]), w=rnd(Math.ceil(g*.2),Math.floor(g*.9)); return {name:namen[i], g, w, p:w*100/g}; });
+      if(gr.some(x=>!Number.isInteger(x.p*2))||new Set(gr.map(x=>x.g)).size<n) return null;
+      const ps=gr.map(x=>x.p).sort((a,b)=>b-a); if(ps[0]-ps[1]<2||ps[0]-ps[1]>8) return null;
       const best=gr.find(x=>x.p===ps[0]);
       return aufg({kind:'fragen', text:true, q:`Welche Gruppe hat den größten relativen Anteil? ${gr.map(x=>`${x.name}: ${x.w} von ${x.g}`).join(' · ')}`,
         gruppen:[{optionen:gr.map(x=>[x.name,x.name]), ans:best.name}],
@@ -5962,9 +5975,11 @@ const typen = {
   // G2-A01 Anteil im Bild ablesen
   anteil_bild(){
     return versuche(()=>{
-      const art=pick(['hundert','rechteck','quadrat','kreis']);
-      const n = art==='hundert'?100 : art==='quadrat'?4 : art==='kreis'?pick([2,4,5,8,10,20]) : pick([2,5,8,10,20]);
+      // nicht zu oft Hälften und Viertel: Quadrat seltener, mehr Teile (Durchsicht 20.11.2026)
+      const art=pick(['hundert','hundert','rechteck','rechteck','kreis','kreis','quadrat']);
+      const n = art==='hundert'?100 : art==='quadrat'?4 : art==='kreis'?pick([4,5,8,10,20]) : pick([5,8,10,20]);
       const k=rnd(1,n-1), r=kuerzen(k,n);
+      if(r[1]===2&&Math.random()<.7) return null;
       if(Math.round(k*1000/n)!==k*1000/n) return null;                                   // höchstens eine Nachkommastelle in %
       const felder=benannt([{label:'Prozent', ans:k*100/n, ansText:P(k*100/n), einheit:'%'}, feldBruch(r), {label:'Dezimalzahl', ans:k/n, ansText:Z(rund(k/n))}]);
       const bild=figur(art, n, gefaerbt(n,k,art==='rechteck'||art==='quadrat'));
@@ -6012,7 +6027,8 @@ const typen = {
   // G2-A05 Bruch erweitern, dann Prozent
   bruch_proz(){
     return versuche(()=>{
-      const n=pick([2,4,5,10,20,25,50]), z=rnd(1,2*n-1); if(z===n) return null;
+      // der gegebene Bruch ist gekürzt; etwa jede fünfte Aufgabe liegt über 1 (bis 200 %)
+      const n=pick([2,4,5,10,20,25,50]), z=Math.random()<.2?rnd(n+1,2*n-1):rnd(1,n-1); if(ggT(z,n)!==1) return null;
       const f=100/n, e=z*f, falsch=[z+100-n, z*n].filter(x=>x!==e&&x>0);
       if(new Set(falsch).size<2) return null;
       const opt=mischen([e,...falsch].map(x=>[String(x),br(x,100)]));
@@ -6059,7 +6075,7 @@ const typen = {
     return versuche(()=>{
       const POOL=[[1,2],[1,4],[3,4],[1,5],[2,5],[3,5],[4,5],[1,10],[3,10],[7,10],[9,10],[1,20],[3,20],[9,20],[11,20],[13,20],[17,20]];
       const a=pick(POOL), b=pick(POOL), pa=a[0]*100/a[1], pb=b[0]*100/b[1];
-      if(Math.abs(pa-pb)<5) return null;
+      if(Math.abs(pa-pb)<5||Math.abs(pa-pb)>20) return null;   // nicht zu weit auseinander
       const [fa,fb]=mischen(['p','b','d']), zeig=(r,f)=>({p:prozentText(...r), b:br(...r), d:dezimal(...r)}[f]);
       const opt=[['a',zeig(a,fa)],['b',zeig(b,fb)]];
       return aufg({kind:'fragen', q:'Welche Zahl ist größer?', gruppen:[{optionen:opt, ans:pa>pb?'a':'b'}], werte:[a,b],
