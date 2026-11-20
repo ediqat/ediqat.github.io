@@ -285,6 +285,27 @@ circle.tipp.sel{fill:var(--v);fill-opacity:.45}
 .herleitung{margin:6px 0;padding-left:1.6em;text-align:left;line-height:2.1}
 .herleitung.ohne{list-style:none;padding-left:0}
 .dr-bild-klein svg.dreieck{max-width:240px}
+/* Prozentrechnung (Mathe/bausteine/prozent.js): G, p, W immer in denselben Farben; Anteil-Figur, Raster zum Antippen,
+   Komma verschieben, Taste „Periodenpunkt“ */
+.pg{color:var(--c1);font-weight:800} .pp{color:var(--cop);font-weight:800} .pw{color:var(--c2);font-weight:800}
+svg.anteil{width:100%;max-width:260px;height:auto;display:block;margin:0 auto}
+.ateil{fill:var(--paper);stroke:var(--text);stroke-width:1.5;stroke-linejoin:round}
+.ateil.an{fill:var(--ink);fill-opacity:.55}
+svg.raster{width:100%;max-width:360px;height:auto;display:block;margin:0 auto;touch-action:manipulation}
+.bem-zelle{fill:var(--paper);stroke:var(--text);stroke-width:1.2;cursor:pointer}
+.bem-zelle.an{fill:var(--cop);fill-opacity:.7}
+svg.kommabild{width:100%;max-width:260px;height:auto;display:block;margin:0 auto}
+.kb-z{fill:var(--text);font-size:26px;font-weight:700;text-anchor:middle;font-family:var(--f-body)}
+.kb-alt{fill:var(--muted);font-size:30px;font-weight:700;text-anchor:middle;opacity:.55}
+.kb-neu{fill:var(--cop);font-size:34px;font-weight:800;text-anchor:middle}
+.kb-pf{fill:none;stroke:var(--cop);stroke-width:2.2}
+.kb-sp{fill:var(--cop)}
+.taste.per{font-size:.9rem;min-width:auto;line-height:1.1}
+.leucht{font:inherit;font-weight:800;border:2px dashed currentColor;border-radius:8px;background:none;padding:0 .25em;cursor:pointer;position:relative}
+.leucht .rolle{display:none;font-size:.75rem;font-weight:700;margin-left:.3em}
+.leucht.zeigt{background:var(--ink-soft)} .leucht.zeigt .rolle{display:inline}
+.merktab{display:flex;flex-direction:column;gap:4px}
+.answer .taste.per{order:3}
 </style>
 </head>
 <body>
@@ -446,7 +467,14 @@ UR.TEXTE = {
   lzkUnterschrift: 'Unterschrift:',
   lzkLernziele: 'Lernziele',
   lzkSymbol: 'Kästchen für das Kompetenzsymbol',
-  lzkBerechne: 'Berechne!'
+  lzkBerechne: 'Berechne!',
+  lzkKreuze: 'Kreuze an!',
+  lzkMarkiere: 'Markiere im Bild!',
+  lzkNummeriere: 'Nummeriere in der richtigen Reihenfolge!',
+  lzkOrdneZu: 'Ordne zu: Schreib die Nummern in die passenden Felder!',
+  lzkErgebnis: 'Ergebnis:',
+  lzkLuecken: 'Ergänze die Lücken!',
+  lzkAndereReihenfolge: 'Andere Reihenfolgen sind auch richtig, wenn jeder Schritt erst nach dem kommt, was er braucht.'
 };
 })(window.UR = window.UR || {});
 </script>
@@ -663,20 +691,26 @@ UR.bindungen.push(app=>{ if(!app.querySelector) return;   // Testumgebung ohne D
 
 /* ---------- 'zahlen' ---------- */
 // t.felder [{label, ans, tol, ansText, einheit (fest daneben), einheiten (Tasten), einheitAns, auch:[weitere richtige Werte]}]
+// Ein Fach kann je Feld eigene Eingabe und eigenes Lesen mitbringen (fachneutral, 20.11.2026):
+//   f.feldHTML(id) → HTML mit genau einem Element [data-feld] (z. B. Bruchfeld), f.lesen(roh) → Zahl, null (leer) oder NaN,
+//   f.formOk(roh) → false, wenn der Wert stimmt, die Form aber nicht (z. B. nicht gekürzt; Feld zählt dann als falsch).
 const zahlText = s => String(s??'').trim();
+UR.zahlFeldHTML = (f,i) => `<label class="lbl" for="z${i}">${f.label}</label>
+      <div class="answer">${f.feldHTML?f.feldHTML('z'+i):`<input id="z${i}" class="zahl" data-feld inputmode="decimal" placeholder="?">`}${f.einheit?`<span class="einheit">${f.einheit}</span>`:''}</div>${
+      f.einheiten?`${UR.wahlFeld('e'+i)}${UR.wahlGruppe('e'+i,f.einheiten.map(e=>[e,e]),{klasse:'einheiten'})}`:''}`;
+// liest die Felder aus der Liste l (verbraucht sie von vorn) und bewertet jedes Feld
+UR.zahlFelderBewerten = (felder,l) => felder.map(f=>{
+  const roh=l.shift(), e=f.einheiten?(l.shift()||''):null, v=f.lesen?f.lesen(roh):UR.leseZahl(roh);
+  const passt=w=>w!==null&&w!==undefined&&!Number.isNaN(w)&&[f.ans,...(f.auch||[])].some(a=>Math.abs(w-a)<=(f.tol||0)+1e-9*Math.max(1,Math.abs(a)));
+  // andere Einheit derselben Art: zählt, wenn richtig umgerechnet (Umrechnung liefert das Fach: UR.umrechner)
+  const um=f.einheiten&&e&&e!==f.einheitAns&&UR.umrechner ? UR.umrechner(v,e,f.einheitAns) : null, umOk=um!==null&&um!==undefined&&passt(um);
+  const wertOk=passt(v)||umOk, formOk=!f.formOk||!wertOk||f.formOk(roh);
+  return {roh:zahlText(roh), v, e, wertOk, formOk, zahlOk:wertOk&&formOk, einheitOk:!f.einheiten||e===f.einheitAns||umOk};
+});
 UR.formAnmelden('zahlen', {
-  html: t => `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off">${t.felder.map((f,i)=>`<label class="lbl" for="z${i}">${f.label}</label>
-      <div class="answer"><input id="z${i}" class="zahl" data-feld inputmode="decimal" placeholder="?">${f.einheit?`<span class="einheit">${f.einheit}</span>`:''}</div>${
-      f.einheiten?`${UR.wahlFeld('e'+i)}${UR.wahlGruppe('e'+i,f.einheiten.map(e=>[e,e]),{klasse:'einheiten'})}`:''}`).join('')}${okKnopf}</form>`,
+  html: t => `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off">${t.felder.map(UR.zahlFeldHTML).join('')}${okKnopf}</form>`,
   bewerten(t,pre,raw){
-    const l=Array.isArray(raw)?raw:[raw]; let k=0;
-    const erg=t.felder.map(f=>{
-      const roh=l[k++], e=f.einheiten?(l[k++]||''):null, v=UR.leseZahl(roh);
-      const passt=w=>w!==null&&!Number.isNaN(w)&&[f.ans,...(f.auch||[])].some(a=>Math.abs(w-a)<=(f.tol||0)+1e-9*Math.max(1,Math.abs(a)));
-      // andere Einheit derselben Art: zählt, wenn richtig umgerechnet (Umrechnung liefert das Fach: UR.umrechner)
-      const um=f.einheiten&&e&&e!==f.einheitAns&&UR.umrechner ? UR.umrechner(v,e,f.einheitAns) : null, umOk=um!==null&&um!==undefined&&passt(um);
-      return {roh:zahlText(roh), v, e, zahlOk:passt(v)||umOk, einheitOk:!f.einheiten||e===f.einheitAns||umOk};
-    });
+    const erg=UR.zahlFelderBewerten(t.felder, Array.isArray(raw)?[...raw]:[raw]);
     t.ergebnis=erg;
     t.hinweis = t.hinweisNach ? t.hinweisNach(erg) : (erg.every(x=>x.zahlOk)&&erg.some(x=>!x.einheitOk) ? T.einheitFalsch : '');
     // optional: Felder hängen zusammen (z. B. Probe mit dem eigenen Ergebnis); t.zusammen(erg) → true/false
@@ -686,6 +720,41 @@ UR.formAnmelden('zahlen', {
   },
   loesung: t => t.felder.map(f=>f.ansText).join(' | ')
 });
+
+/* ---------- Papierfassungen für die LZK (kern/lzk.js) ----------
+   Bild immer mit; Auswahl zum Ankreuzen, Reihenfolge zum Nummerieren, Zuordnen als Tabelle zum Eintragen. */
+const P = () => UR.papier;
+// Auswahl im Bild (imBild): auf Papier im Bild markieren, die Lösung zeigt das Lösungsbild
+UR.formen.fragen.papier = t => {
+  const imBild = t.gruppen.some(g=>g.imBild);
+  const teil = r => t.gruppen.map(g=>`${g.frage?`<div class="pz-frage">${P().ohneTippen(g.frage)}</div>`:''}${g.imBild
+    ? (r?`<div class="pz-loesung">${beschriftung(g,norm(g.ans,g))}</div>`:'')
+    : P().ankreuzen(g.optionen, r?String(g.ans).split(','):null, g.klasse==='skizzen'?'bilder':'')}`).join('');
+  const ganz = r => P().mitBild(P().angabe(t, imBild)+teil(r), r&&imBild&&t.loesungBild ? t.loesungBild : t.bild);
+  return {aufgabe:ganz(false), loesung:ganz(true), statt:true, lead:t.lead||(t.gruppen.every(g=>g.imBild)?T.lzkMarkiere:T.lzkKreuze),
+    aufwand:t.gruppen.length>1||t.bild?2:1};
+};
+UR.formen.reihenfolge.papier = t => {
+  const nr = id => t.loesungen[0].indexOf(id)+1;
+  const liste = r => `<div class="pz-karten">${t.karten.map(k=>`<div class="pz-karte"><span class="pz-box gross">${r?nr(k.id):''}</span><span>${k.text}</span></div>`).join('')}</div>`;
+  const ganz = r => P().mitBild(P().angabe(t)+liste(r), t.bild);
+  const andere = t.loesungen.length>1 ? `<div class="pz-loesung">${T.lzkAndereReihenfolge}</div>` : '';
+  return {aufgabe:ganz(false), loesung:ganz(true)+andere, statt:true, kreuz:false, lead:t.lead||T.lzkNummeriere, aufwand:2};
+};
+UR.formen.zuordnen.papier = t => {
+  const nr = {}; t.dinge.forEach((d,i)=>nr[d.id]=i+1);
+  const inZiel = id => t.dinge.filter(d=>t.ans[d.id]===id).map(d=>nr[d.id]).join(', ');
+  const dinge = `<div class="pz-dinge">${t.dinge.map(d=>`<div class="pz-ding">${/class="nr"/.test(d.html)?'':`<b>${nr[d.id]}</b> `}${d.html}</div>`).join('')}</div>`;
+  const tabelle = r => t.raster
+    ? `<table class="pz-tab"><tr><th></th>${t.raster.spalten.map(([,s])=>`<th>${s}</th>`).join('')}</tr>${t.raster.zeilen.map(([z,zt])=>`<tr><th>${zt}</th>${
+        t.raster.spalten.map(([s])=>`<td>${r?inZiel(`${z}|${s}`):''}</td>`).join('')}</tr>`).join('')}</table>`
+    : `<table class="pz-tab">${t.ziele.map(z=>`<tr><th>${z.text}</th><td>${r?inZiel(z.id):''}</td></tr>`).join('')}</table>`;
+  const kopf = `${P().angabe(t)}${dinge}`;
+  return {aufgabe:kopf+tabelle(false), loesung:kopf+tabelle(true), statt:true, kreuz:false, lead:t.lead||T.lzkOrdneZu, aufwand:3};
+};
+UR.formen.zahlen.papier = t => ({
+  aufgabe:P().mitBild(`${P().angabe(t)}${P().platz(t.papierPlatz||(t.felder.length>1&&!t.bild?2:1))}${t.felder.map(f=>P().linie(f.label, f.einheit||'')).join('')}`, t.bild),
+  loesung:t.felder.map(f=>f.ansText+(f.tol>=0.1&&f.einheit?` (± ${String(f.tol).replace('.',',')} ${f.einheit})`:'')).join('<br>'), lead:t.lead||undefined, aufwand:t.felder.length>1||t.bild?2:1});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -1365,7 +1434,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-20.10","datum":"20.11.2026","pruefsumme":"26bb4b159fe524bb"};
+UR.version = {"nummer":"2026-11-20.19","datum":"20.11.2026","pruefsumme":"1ae0cd647b6262b2"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -1948,7 +2017,8 @@ UR.formAnmelden('luecken', {
   },
   loesung: t => t.felder.map(f=>f.ansText||f.ans).join(' | ')
 });
-UR.formen.luecken.papier = t => ({aufgabe:`<div class="pz-q text">${t.qh}</div>`, loesung:bruchAnzeige(t.felder.map(f=>f.ansText||f.ans).join(' | ')), aufwand:2});
+UR.formen.luecken.papier = t => ({aufgabe:UR.papier.mitBild(`<div class="pz-q text">${t.qh}</div>${t.felder.map((f,i)=>UR.papier.linie((f.label||'①②③④⑤⑥'[i])+' =')).join('')}`, t.bild),
+  loesung:t.felder.map((f,i)=>bruchAnzeige(String(f.ansText||`${'①②③④⑤⑥'[i]} ${f.ans}`))).join('&emsp;'), lead:t.lead||UR.TEXTE.lzkLuecken, aufwand:2});
 // Tasten unter dem Eingabefeld: fügen an der Schreibmarke des zuletzt benutzten Feldes ein
 UR.bindungen.push(app=>{
   let ziel=null;
@@ -2396,7 +2466,13 @@ UR.formAnmelden('schritte', {
     const valOk = erg.every(y=>y.ok);
     return {ok:preOk&&valOk, preOk, valOk, shown:ohneTags(`${s1Text} | ${erg.map(y=>y.text).join(' | ')}`)};
   },
-  loesung: t => `${t.s1.ansText} | ${t.s2.ansText}`
+  loesung: t => `${t.s1.ansText} | ${t.s2.ansText}`,
+  // LZK auf Papier: Angabe mit Bild, Platz für die Rechnung (Schritt 1), Linie fürs Ergebnis bzw. Ankreuzen
+  papier: t => {
+    const P=UR.papier, s1 = t.s1.art==='wahl' ? `<div class="pz-frage">${t.s1.label}</div>${P.ankreuzen(t.s1.wahl)}` : P.platz(2);
+    const s2 = felder2(t).map(f=>f.wahl ? `${f.label?`<div class="pz-frage">${f.label}</div>`:''}${P.ankreuzen(f.wahl)}` : P.linie(String(f.label||T.lzkErgebnis).replace(/^Schritt \d+: /,''), f.einheit||'')).join('');
+    return {aufgabe:P.mitBild(`${P.angabe(t)}${s1}${s2}`, t.bild), loesung:`${t.s1.ansText}<br>${t.s2.ansText}`, lead:t.lead||undefined, aufwand:2};
+  }
 });
 UR.bindungen.push(app=>{ if(!app.querySelector) return;   // Testumgebung ohne DOM
  
@@ -2428,6 +2504,214 @@ const vorschlaege = (richtig, ...falsch) => { const l=[...new Set([richtig,...fa
 UR.dreiecke = {felder2, rund, D, Df, stellen, mischen, versuche, bereich, bruch, sub, GR, KL, NAMEN, rad, grad, dist, plus, minus, mal, schwer,
   winkelBei, winkel, seiten, gegen, merkwuerdig, ausWinkeln, ausSeiten, drehen, lage, lot, heron, zeichne, koordSVG, liesRechnung, gleicheZahlen,
   LAENGE, FLAECHE, EINHEITEN, FAKTOR, umrechnen, einheitHinweis, hilfe, aufg, vorschlaege};
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/bausteine/prozent.js */
+/* Mathe-Baustein Prozentrechnung (M-Proz, Entscheidungen der Lehrkraft 20.11.2026, Mathe/2.3 Prozentrechnung/AUSWAHL.md):
+   - Zahlen schreiben (Komma, Tausender-Leerzeichen, Euro mit Cent), Brüche mit waagrechtem Strich
+   - Periodenpunkt: Taste setzt einen Punkt über die zuletzt getippte Ziffer (0,3̇ wie im Mathe Know How); gelesen wird
+     die Zahl mit unendlich wiederholter Ziffer, ohne Punkt ist 0,33 nicht 1/3
+   - Bruchfeld für die Form 'zahlen' (Zähler über dem Bruchstrich, Nenner darunter), auf Wunsch „vollständig gekürzt“
+   - Anteil-Figur (Hunderterfeld, Rechteck, Quadrat, Kreis) und Raster zum Antippen (Antwortform 'bemalen')
+   - Antwortform 'zweischritt': Schritt 1 und Schritt 2 aus Zahlfeldern, Einstieg mit Hilfe = Schritt 1 auswählen
+   - Komma verschieben als Bild (Prozent ↔ Dezimalzahl)
+   - Farben für G, p, W (Grundwert blau, Prozentsatz orange, Prozentwert grün), in allen Beispielen gleich */
+(function(UR){
+const T = UR.TEXTE, esc = UR.esc, rnd = UR.rnd, pick = UR.pick;
+const NB = String.fromCharCode(160), PUNKT = '̇';
+
+/* ---------- Zahlen ---------- */
+const ggT = (a,b) => { a=Math.abs(a); b=Math.abs(b); while(b) [a,b]=[b,a%b]; return a; };
+const kuerzen = (z,n) => { const g=ggT(z,n)||1; return [z/g, n/g]; };
+const rund = x => Number(Number(x).toPrecision(12));
+const nachkomma = x => { const s=String(rund(x)); return s.includes('.') ? s.split('.')[1].length : 0; };
+// Zahl mit Komma und Tausender-Leerzeichen (2 400), nk = feste Nachkommastellen
+function Z(x, nk){
+  const r=rund(x), s=nk==null ? String(Math.abs(r)) : Math.abs(r).toFixed(nk);
+  let [g,d]=s.split('.'); if(g.length>=4) g=g.replace(/\B(?=(\d{3})+(?!\d))/g, NB);
+  return (r<0?UR.M:'')+g+(d?','+d:'');
+}
+const E = x => Number.isInteger(rund(x)) ? `${Z(x)}${NB}€` : `${Z(x,2)}${NB}€`;        // 7,20 €
+const P = x => `${Z(x)}${NB}%`;
+const br = (z,n) => `<span class="bruch"><span>${z}</span><span>${n}</span></span>`;
+const mischen = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; };
+function versuche(fn){ for(let n=0;n<3000;n++){ const r=fn(); if(r) return r; } throw new Error('Generator findet keine passende Aufgabe'); }
+
+// Dezimaldarstellung eines Bruchs, Periode (nur einstellig) mit Punkt über der Ziffer: 1/3 → 0,3̇; 1/6 → 0,16̇
+function dezimal(z,n){
+  [z,n]=kuerzen(z,n); const ganz=Math.floor(z/n); let rest=z%n; const ziffern=[], gesehen=new Map();
+  while(rest && !gesehen.has(rest) && ziffern.length<12){ gesehen.set(rest, ziffern.length); rest*=10; ziffern.push(Math.floor(rest/n)); rest%=n; }
+  let s=Z(ganz);
+  if(!ziffern.length) return s;
+  if(!rest) return s+','+ziffern.join('');
+  const ab=gesehen.get(rest);
+  if(ziffern.length-ab!==1) throw new Error(`Periode länger als eine Ziffer: ${z}/${n}`);
+  return s+','+ziffern.join('')+PUNKT;
+}
+const prozentText = (z,n) => `${dezimal(z*100,n)}${NB}%`;   // Bruch als Prozent: 1/3 → 33,3̇ %
+// Zahl lesen, auch mit Periodenpunkt über einer Nachkommaziffer (genau ein Punkt)
+function lesePeriode(roh){
+  const s=String(roh??'').trim().replace(/\s/g,'').replace(/−|–/g,'-').replace(',','.');
+  if(s==='') return null;
+  const teile=s.split(PUNKT);
+  if(teile.length===1) return UR.leseZahl(s);
+  if(teile.length>2||teile[1]!==''||!/^-?\d+\.\d+$/.test(teile[0])) return NaN;
+  const vor=teile[0], k=vor.split('.')[1].length, d=Number(vor[vor.length-1]);
+  return Number(vor) + (vor[0]==='-'?-1:1)*d*Math.pow(10,-k)/9;
+}
+// Bruch lesen: „7/20“ (aus dem Bruchfeld) oder eine Zahl (Nenner leer)
+function leseBruch(roh){
+  const s=String(roh??'').trim(); if(s==='') return null;
+  const [z,n,...rest]=s.split('/'); if(rest.length) return NaN;
+  const a=UR.leseZahl(z), b=n===undefined?1:UR.leseZahl(n);
+  return a===null||b===null||Number.isNaN(a)||Number.isNaN(b)||b===0 ? NaN : a/b;
+}
+const bruchTeile = roh => { const [z,n]=String(roh??'').split('/').map(x=>UR.leseZahl(x)); return [z, n===undefined?1:n]; };
+const istGekuerzt = roh => { const [z,n]=bruchTeile(roh); return Number.isInteger(z)&&Number.isInteger(n)&&n>1&&ggT(z,n)===1; };
+
+/* ---------- Felder für die Form 'zahlen' (kern/formen.js) ---------- */
+// Bruchfeld: dieselbe Mechanik wie bei Terme (terme.js füllt das versteckte Feld mit „Zähler/Nenner“)
+const bruchFeldHTML = id => `<div class="bfeld"><input id="${id}_z" class="term" data-bteil="${id}" inputmode="numeric" placeholder="Zähler" aria-label="Zähler"><span class="bstrich" aria-hidden="true"></span><input id="${id}_n" class="term" data-bteil="${id}" inputmode="numeric" placeholder="Nenner" aria-label="Nenner"></div><input type="hidden" id="${id}" data-feld>`;
+// Feld für einen Bruch; gekuerzt: nur vollständig gekürzt zählt; nenner: nur dieser Nenner zählt (z. B. 100)
+const bruchFeld = (label, z, n, o={}) => ({label, ans:z/n, ansText:`${z}/${n}`, eingabe:`${z}/${n}`, feldHTML:bruchFeldHTML, lesen:leseBruch,
+  formOk: o.gekuerzt ? istGekuerzt : o.nenner ? (r=>bruchTeile(r)[1]===o.nenner) : undefined, bruch:true});
+// Zahlfeld mit Taste „Periodenpunkt“ (steht bei jeder Aufgabe des Typs, damit sie nichts verrät)
+const periodeFeldHTML = id => `<input id="${id}" class="zahl" data-feld data-periode inputmode="decimal" placeholder="?"><button type="button" class="taste per" data-per="${id}" aria-label="Periodenpunkt über die letzte Ziffer setzen">Perioden&shy;punkt <span aria-hidden="true">ẋ</span></button>`;
+const periodeFeld = (label, wert, text, einheit) => ({label, ans:wert, ansText:text+(einheit?NB+einheit:''), eingabe:text.replace(/\s/g,''), einheit, feldHTML:periodeFeldHTML, lesen:lesePeriode});
+UR.bindungen.push(app=>{ if(!app.querySelector) return;   // Testumgebung ohne DOM
+  app.querySelectorAll('[data-per]').forEach(b=>{
+    b.onpointerdown = e => e.preventDefault();
+    b.onclick = () => { const inp=document.getElementById(b.dataset.per); if(!inp) return;
+      let v=inp.value; const hatte=v.indexOf(PUNKT); v=v.split(PUNKT).join('');
+      let i=v.length-1; while(i>=0&&!/\d/.test(v[i])) i--;
+      if(i>=0 && hatte!==i+1) v=v.slice(0,i+1)+PUNKT+v.slice(i+1);
+      inp.value=v; inp.focus(); };
+  });
+});
+
+/* ---------- Anteil-Figur: gleiche Teile, k davon gefärbt ---------- */
+// art 'hundert' (10 × 10), 'rechteck'/'quadrat' (Zeilen × Spalten), 'kreis' (n Sektoren). Jeder Teil trägt class="ateil",
+// gefärbte Teile zusätzlich „an“ (der Prüfer zählt sie im Bild).
+const RASTER = {2:[1,2], 4:[2,2], 5:[1,5], 8:[2,4], 10:[2,5], 20:[4,5]};
+function figur(art, n, an){
+  const teil = (d,ist) => `<path class="ateil${ist?' an':''}" d="${d}"/>`;
+  if(art==='kreis'){
+    const r=90, c=100; let s='';
+    for(let i=0;i<n;i++){
+      const a0=-Math.PI/2+2*Math.PI*i/n, a1=-Math.PI/2+2*Math.PI*(i+1)/n, p=a=>`${(c+r*Math.cos(a)).toFixed(2)} ${(c+r*Math.sin(a)).toFixed(2)}`;
+      s+= n===1 ? teil(`M${c-r} ${c}a${r} ${r} 0 1 0 ${2*r} 0a${r} ${r} 0 1 0 ${-2*r} 0`, an.includes(i)) : teil(`M${c} ${c}L${p(a0)}A${r} ${r} 0 0 1 ${p(a1)}Z`, an.includes(i));
+    }
+    return `<svg class="anteil" viewBox="0 0 200 200" role="img" aria-label="Kreis in ${n} gleiche Teile geteilt">${s}</svg>`;
+  }
+  const [zl,sp] = art==='hundert' ? [10,10] : RASTER[n], w=art==='quadrat'?180/Math.max(zl,sp):Math.min(56,300/sp), h=art==='quadrat'?w:art==='hundert'?w:Math.min(56,w*1.2);
+  let s='';
+  for(let i=0;i<zl;i++) for(let j=0;j<sp;j++) s+=teil(`M${4+j*w} ${4+i*h}h${w}v${h}h${-w}Z`, an.includes(i*sp+j));
+  return `<svg class="anteil" viewBox="0 0 ${8+sp*w} ${8+zl*h}" role="img" aria-label="Figur in ${zl*sp} gleiche Teile geteilt">${s}</svg>`;
+}
+const gefaerbt = (n,k,verteilt) => verteilt ? mischen([...Array(n).keys()]).slice(0,k) : [...Array(k).keys()];
+
+/* ---------- Komma verschieben (Prozent ↔ Dezimalzahl) als Bild ---------- */
+// ziffern als Text ohne Komma, von/nach = Anzahl der Ziffern vor dem Komma
+function kommaBild(ziffern, von, nach){
+  const w=30, x0=14, x=k=>x0+k*w, H=86, y=62;
+  const z=[...ziffern].map((d,i)=>`<text class="kb-z" x="${x(i)+w/2}" y="${y}">${d}</text>`).join('');
+  const schritte=[]; const dir=nach>von?1:-1;
+  for(let k=von;k!==nach;k+=dir){ const a=x(k), b=x(k+dir); schritte.push(`<path class="kb-pf" d="M${a} ${y-30}Q${(a+b)/2} ${y-52} ${b} ${y-30}" marker-end="url(#kbp)"/>`); }
+  return `<svg class="kommabild" viewBox="0 0 ${2*x0+ziffern.length*w} ${H}" role="img" aria-label="Komma um ${Math.abs(nach-von)} Stellen nach ${dir<0?'links':'rechts'}">
+    <defs><marker id="kbp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" class="kb-sp"/></marker></defs>
+    ${z}<text class="kb-alt" x="${x(von)}" y="${y+4}">,</text><text class="kb-neu" x="${x(nach)}" y="${y+4}">,</text>${schritte.join('')}</svg>`;
+}
+// Prozent (als Dezimaltext mit Punkt, z. B. "6.5") → Bild „Komma 2 Stellen nach links“ und umgekehrt
+function kommaSchritt(prozentText, richtung){
+  let [g,d='']=prozentText.split('.'); g=g.padStart(3,'0');
+  const ziffern=g+d, vorP=g.length, vorD=g.length-2;
+  return richtung==='zuDezimal' ? kommaBild(ziffern, vorP, vorD) : kommaBild(ziffern, vorD, vorP);
+}
+
+/* ---------- Antwortform 'bemalen': Felder im Raster antippen, es zählt nur die Anzahl ---------- */
+function rasterSVG(zl, sp, an=[], tippbar=false){
+  const w=Math.min(40, 320/sp); let s='';
+  for(let i=0;i<zl;i++) for(let j=0;j<sp;j++){ const k=i*sp+j;
+    s+=`<rect class="bem-zelle${an.includes(k)?' an':''}"${tippbar?` data-zelle="${k}"`:''} x="${3+j*w}" y="${3+i*w}" width="${w}" height="${w}"/>`; }
+  return `<svg class="raster" viewBox="0 0 ${6+sp*w} ${6+zl*w}" role="img" aria-label="Raster mit ${zl*sp} Feldern">${s}</svg>`;
+}
+UR.formAnmelden('bemalen', {
+  ohneLeer: true,
+  html: t => `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off"><input type="hidden" data-feld data-bem-wert value="0">
+    <div class="bild bemalen">${rasterSVG(t.zeilen, t.spalten, [], true)}</div>
+    <p class="small muted" style="text-align:center"><span data-bem-zahl>0</span> von ${t.zeilen*t.spalten} Feldern bemalt. Nochmal tippen macht ein Feld wieder weiß.</p>
+    <div class="answer"><button class="big" type="submit">Fertig</button></div></form>`,
+  bewerten(t,pre,raw){
+    const v=Number((Array.isArray(raw)?raw[0]:raw)||0);
+    return {ok:v===t.ans, shown:`${v} ${v===1?'Feld':'Felder'}`};
+  },
+  loesung: t => `${t.ans} Felder`,
+  papier: t => ({aufgabe:UR.papier.mitBild(UR.papier.angabe(t), rasterSVG(t.zeilen,t.spalten)), lead:'Male an!',
+    loesung:UR.papier.mitBild(`${t.ans} Felder`, rasterSVG(t.zeilen,t.spalten,[...Array(t.ans).keys()])), aufwand:1})
+});
+UR.bindungen.push(app=>{ if(!app.querySelector) return;   // Testumgebung ohne DOM
+  const wert=app.querySelector('[data-bem-wert]'); if(!wert) return;
+  const zahl=app.querySelector('[data-bem-zahl]');
+  app.querySelectorAll('[data-zelle]').forEach(z=>z.addEventListener('click',()=>{
+    z.classList.toggle('an'); const n=app.querySelectorAll('[data-zelle].an').length; wert.value=n; if(zahl) zahl.textContent=n; }));
+});
+
+/* ---------- Antwortform 'zweischritt': zwei Schritte aus Zahlfeldern (auch Bruch- und Periodenfelder) ----------
+   t.s1 {label, kurz, felder, ansText}, t.s2 {label, felder, ansText}, t.pre {ans, optionen:[[Wert, HTML]]}
+   allein: beide Schritte eintippen; Einstieg mit Hilfe: Schritt 1 aus drei Vorschlägen wählen, Schritt 2 eintippen. */
+const okKnopf = `<div class="answer"><button class="big" type="submit">${T.ok}</button></div>`;
+UR.formAnmelden('zweischritt', {
+  gefuehrt: true,
+  html(t,st){
+    const kopf=UR.aufgabeKopf(t), n1=t.s1.felder.length;
+    const s2 = t.s2.felder.map((f,i)=>UR.zahlFeldHTML(f,n1+i)).join('');
+    if(st.self) return `${kopf}<form class="selfform" id="multiForm" autocomplete="off"><p class="lbl">${t.s1.label}</p>${t.s1.felder.map(UR.zahlFeldHTML).join('')}
+      <p class="lbl">${t.s2.label}</p>${s2}${okKnopf}</form>`;
+    if(!st.stage) return `${kopf}<p class="muted">${t.s1.label}</p><div class="choices drei">${t.pre.optionen.map(([v,l])=>`<button data-pre="${esc(v)}">${l}</button>`).join('')}</div>`;
+    const s = st.coach && !st.preOk ? t.pre.ans : st.pre, txt=(t.pre.optionen.find(o=>o[0]===s)||[s,esc(s)])[1];
+    const note = !st.coach ? '' : st.preOk ? `<div class="fb ok"><span><b class="t">${T.richtig}!</b></span></div>`
+      : `<div class="fb no"><span><b class="t">Achtung:</b> Richtig ist <b>${txt}</b>. Rechne damit weiter.</span></div>`;
+    return `${kopf}<div class="ex">${t.s1.kurz}: ${txt}</div>${note}<form class="selfform" id="multiForm" autocomplete="off"><p class="lbl">${t.s2.label}</p>${s2}${okKnopf}</form>`;
+  },
+  bewerten(t,pre,raw,self){
+    const l=Array.isArray(raw)?[...raw]:[raw];
+    const e1 = self ? UR.zahlFelderBewerten(t.s1.felder,l) : null;
+    const preOk = self ? e1.every(x=>x.zahlOk&&x.einheitOk) : pre===t.pre.ans;
+    const e2 = UR.zahlFelderBewerten(t.s2.felder,l), valOk=e2.every(x=>x.zahlOk&&x.einheitOk);
+    t.hinweis = t.hinweisNach ? t.hinweisNach(e1, e2) : '';
+    const txt = e => e.map(x=>x.roh||'?').join(', ');
+    const s1Text = self ? txt(e1) : ohneTags((t.pre.optionen.find(o=>o[0]===pre)||[,pre||'?'])[1]);
+    return {ok:preOk&&valOk, preOk, valOk, shown:`${s1Text} | ${txt(e2)}`};
+  },
+  loesung: t => `${t.s1.ansText} | ${t.s2.ansText}`,
+  papier: t => { const Pp=UR.papier, lin=f=>Pp.linie(f.label, f.einheit||'');
+    return {aufgabe:Pp.mitBild(`${Pp.angabe(t)}${t.s1.felder.map(lin).join('')}${t.s2.felder.map(lin).join('')}`, t.bild),
+      loesung:`${t.s1.ansText}<br>${t.s2.ansText}`, lead:t.lead||undefined, aufwand:2}; }
+});
+const ohneTags = h => String(h).replace(/<[^>]+>/g,'').replace(/&shy;|­/g,'').trim();
+
+/* ---------- Antippen zum Hervorheben (Erklärungen): [data-leucht] zeigt seine Rolle ---------- */
+UR.bindungen.push(app=>{ if(!app.querySelector) return;
+  app.querySelectorAll('[data-leucht]').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('zeigt')));
+});
+
+/* ---------- Rückmeldung: Hinweis und Lösungsbild ---------- */
+function aufg(t){
+  t.zusatzRueckmeldung = f => {
+    let h='';
+    if(!f.ok&&t.hinweis) h+=`<div class="fb no pop"><span>${t.hinweis}</span></div>`;
+    if(t.loesungBild) h+=`<div class="bild">${t.loesungBild}</div>`;
+    return h;
+  };
+  return t;
+}
+// G, p, W immer in denselben Farben (Steckbrief M-Proz-G1)
+const G = x => `<span class="pg">${x}</span>`, Pz = x => `<span class="pp">${x}</span>`, W = x => `<span class="pw">${x}</span>`;
+const merk = html => `<div class="merk">${html}</div>`;
+
+UR.prozent = {ggT, kuerzen, rund, nachkomma, Z, E, P, br, NB, PUNKT, mischen, versuche, dezimal, prozentText, lesePeriode, leseBruch,
+  istGekuerzt, bruchFeld, periodeFeld, figur, gefaerbt, RASTER, kommaBild, kommaSchritt, rasterSVG, aufg, G, Pz, W, merk, ohneTags};
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -4072,7 +4356,7 @@ function umfangGemischt(gs){
     const q = gs?`a = b = ${D(A.a.v)} ${A.a.e}, c = ${D(A.c.v)} ${A.c.e}`:['a','b','c'].map(x=>`${x} = ${D(A[x].v)} ${A[x].e}`).join(', ');
     const zahlen = gs?[[2,a,c],[a,a,c],[2,rund(a/10),rund(c/10)],[rund(a/10),rund(a/10),rund(c/10)]]:[[a,b,c],[rund(a/10),rund(b/10),rund(c/10)]];
     const um=`Rechne zuerst alle Längen in dieselbe Einheit um: 1 ${g} = 10 ${k}.`;
-    return aufg({kind:'schritte', q, text:true, lead:'',
+    return aufg({kind:'schritte', papierLead:'Berechne den Umfang!', q, text:true, lead:'',
       bild:zeichne(ausSeiten(a,b,c),{farben:gs, seitenNamen:true, seitenText:Object.fromEntries(['a','b','c'].map(x=>[x,`${D(A[x].v)} ${A[x].e}`]))}),
       daten:{a,b,c,k,g}, pruef:gs?'umfang_gs':'umfang', gemischt:true,
       s1:{label:'Schritt 1: Rechne alle Längen in dieselbe Einheit um und setze ein (Rechnung)', kurz:'Rechnung', art:'rechnung', wert:sum, zahlen,
@@ -4095,7 +4379,7 @@ const typen = {
     return versuche(()=>{
       const a=mitStellen(1,30,d), b=mitStellen(1,30,d), c=mitStellen(1,30,d); if(!gut(a,b,c)) return null;
       const sum=rund(a+b+c), r=`${D(a)} + ${D(b)} + ${D(c)}`;
-      return aufg({kind:'schritte', q:zahlenText({a,b,c},u), text:true, lead:ctx&&ctx.einstieg?merk('Formel: u = a + b + c'):'',
+      return aufg({kind:'schritte', papierLead:'Berechne den Umfang!', q:zahlenText({a,b,c},u), text:true, lead:ctx&&ctx.einstieg?merk('Formel: u = a + b + c'):'',
         bild:seitenBild({a,b,c},u), daten:{a,b,c,u}, pruef:'umfang',
         s1:{label:'Schritt 1: Setze die Seitenlängen ein (Rechnung)', kurz:'Rechnung', art:'rechnung', wert:sum, zahlen:[[a,b,c]], ans:r, ansText:`u = ${r}`},
         s2:schritteBasis({label:'Schritt 2: Ergebnis mit Einheit', ans:sum, einheitAns:u, ansText:`u = ${D(sum)} ${u}`,
@@ -4112,7 +4396,7 @@ const typen = {
     return versuche(()=>{
       const a=zehntel(1,20), c=zehntel(1,20); if(c>=2*a||Math.abs(c-a)<.15*a||!gut(a,a,c)) return null;
       const sum=rund(2*a+c), r=`2 · ${D(a)} + ${D(c)}`;
-      return aufg({kind:'schritte', q:`a = b = ${D(a)} ${u}, c = ${D(c)} ${u}`, text:true, lead:ctx&&ctx.einstieg?merk('Formel: u = 2 · a + c'):'',
+      return aufg({kind:'schritte', papierLead:'Berechne den Umfang!', q:`a = b = ${D(a)} ${u}, c = ${D(c)} ${u}`, text:true, lead:ctx&&ctx.einstieg?merk('Formel: u = 2 · a + c'):'',
         bild:zeichne(ausSeiten(a,a,c),{farben:true, seitenNamen:true, seitenText:{a:`${D(a)} ${u}`, b:`${D(a)} ${u}`, c:`${D(c)} ${u}`}}),
         daten:{a,c,u}, pruef:'umfang_gs',
         s1:{label:'Schritt 1: Setze ein (Rechnung)', kurz:'Rechnung', art:'rechnung', wert:sum, zahlen:[[2,a,c],[a,a,c]], ans:r, ansText:`u = ${r}`},
@@ -4130,7 +4414,7 @@ const typen = {
       const g=ganz?rnd(2,30):pick([rnd(1,30),zehntel(1,30)]), h=ganz?rnd(2,30):pick([rnd(1,30),zehntel(1,30)]), A=rund(g*h/2);
       if(stellen(A)>2||g<1||h<1||Math.abs(g+h-g*h)<1e-9) return null;    // 2 + 2 = 2 · 2: Rechnung nicht eindeutig
       const r=`${D(g)} · ${D(h)}`, p=pick([.2,.35,.5,.65,.8,-.2,1.2]);
-      return aufg({kind:'schritte', q:`${x} = ${D(g)} ${u}, h${x} = ${D(h)} ${u}`, qh:`${x} = ${D(g)} ${u}, ${sub('h',x)} = ${D(h)} ${u}`, text:true,
+      return aufg({kind:'schritte', papierLead:'Berechne den Flächeninhalt!', q:`${x} = ${D(g)} ${u}, h${x} = ${D(h)} ${u}`, qh:`${x} = ${D(g)} ${u}, ${sub('h',x)} = ${D(h)} ${u}`, text:true,
         lead:ctx&&ctx.einstieg?merk(`Formel: ${FORMEL_A(x)}`):'', bild:hoehenBild(x,g,h,u,p), daten:{x,g,h,u}, pruef:'flaeche',
         s1:{label:'Schritt 1: Grundseite mal Höhe (Rechnung)', kurz:'Rechnung', art:'rechnung', wert:rund(g*h), zahlen:[[g,h]], ans:r, ansText:`${r} = ${D(g*h)}`},
         s2:schritteBasis({label:'Schritt 2: die Hälfte, mit Einheit', ans:A, einheitAns:u+'²', ansText:`A = ${D(A)} ${u}²`,
@@ -4146,7 +4430,7 @@ const typen = {
     const e=pick(heronListe()), u=pick(['cm','mm','dm','m']), L=mischen(e.L), x='abc'[L.indexOf(e.s)], h=rund(2*e.A/e.s), X=x.toUpperCase();
     const S={a:L[0], b:L[1], c:L[2]}, P=ausSeiten(S.a,S.b,S.c), [Y,Z]=gegen[X], {F,t}=lot(P[X],P[Y],P[Z]);
     const verl = t<0||t>1 ? [[t<0?P[Y]:P[Z],F]] : [];
-    return aufg({kind:'schritte', q:`${zahlenText(S,u)}, h${x} = ${D(h)} ${u}`, qh:`${zahlenText(S,u)}, ${sub('h',x)} = ${D(h)} ${u}`, text:true,
+    return aufg({kind:'schritte', papierLead:'Berechne den Flächeninhalt!', q:`${zahlenText(S,u)}, h${x} = ${D(h)} ${u}`, qh:`${zahlenText(S,u)}, ${sub('h',x)} = ${D(h)} ${u}`, text:true,
       bild:zeichne(P,{ecken:true, seitenNamen:true, strecken:[{von:P[X],bis:F,art:'hoehe',text:sub('h',x),fussRecht:true}], verlaengern:verl}),
       daten:{S, x, h, u}, pruef:'passende_hoehe',
       s1:{label:'Schritt 1: Zu welcher Seite gehört die Höhe?', kurz:'Seite', art:'wahl', wahl:[['a','Seite a'],['b','Seite b'],['c','Seite c']], ans:x, ansText:`Seite ${x}`},
@@ -4490,7 +4774,7 @@ const typen = {
     const offen=[...['a','b','c'],...['A','B','C']].filter(k=>!d.geg.includes(k)&&!(d.fall==='WSW'&&!istSeite(k)));
     const k=pick(offen), seite=istSeite(k), wert=seite?d.S[k]:d.W[k], name=seite?k:GR[k];
     const soll=seite?`${name} ≈ ${cm(rund(wert,1))}`:`${name} ≈ ${D(rund(wert,0))}°`;
-    return aufg({kind:'zahlen', q:`Konstruiere das Dreieck: ${angabe(d)}. Miss ${seite?'die Seite':'den Winkel'} ${name}.`, text:true,
+    return aufg({kind:'zahlen', papierPlatz:4, q:`Konstruiere das Dreieck: ${angabe(d)}. Miss ${seite?'die Seite':'den Winkel'} ${name}.`, text:true,
       lead:`Du brauchst Papier, Zirkel und Geodreieck.${leicht?`<br>${merk(`So geht es (${FAELLE[d.fall]}):<ol class="kon-liste">${ablauf(d).map(s=>`<li>${s.text}</li>`).join('')}</ol>`)}`:''}`,
       bild:leicht?skizze(d):'', pruef:'messwert', d, gesucht:k,
       felder:[{label:`Gemessen: ${name} =`, ans:rund(wert,6), tol:seite?.2:2, einheit:seite?'cm':'°', ansText:soll}],
@@ -5101,7 +5385,7 @@ const typen = {
     const P=ausSeiten(a,b,c), mp=merkwuerdig(P), wert=art==='I'?mp.rho:mp.R, name=art==='I'?'ρ':'r';
     const soll=`${name} ≈ ${cm(rund(wert,1))}`, kreis=art==='I'?'Inkreis':'Umkreis';
     const schritte=ablauf(art).map(k=>k.text);
-    return aufg({kind:'zahlen', q:`Konstruiere das Dreieck: a = ${cm(a)}, b = ${cm(b)}, c = ${cm(c)}. Konstruiere den ${PUNKT[art]} und den ${kreis}. Miss den Radius ${name} des ${kreis}es.`, text:true,
+    return aufg({kind:'zahlen', papierPlatz:4, q:`Konstruiere das Dreieck: a = ${cm(a)}, b = ${cm(b)}, c = ${cm(c)}. Konstruiere den ${PUNKT[art]} und den ${kreis}. Miss den Radius ${name} des ${kreis}es.`, text:true,
       lead:`Du brauchst Papier, Zirkel und Geodreieck.${leicht?`<br>${merk(`So geht es: Zuerst das Dreieck aus den drei Seiten (SSS), dann<ol class="kon-liste">${schritte.map(s=>`<li>${s}</li>`).join('')}</ol>`)}`:''}`,
       pruef:'x1_messwert', art,
       felder:[{label:`Gemessen: ${name} =`, ans:rund(wert,6), tol:.2, einheit:'cm', ansText:soll}],
@@ -5429,6 +5713,412 @@ const erklaerung = {
 };
 
 UR.kompetenzAnmelden({id:'M-Drei-X2', typen, stationen, kern, leicht, plus, plusHint, erklaerung});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/2.3 Prozentrechnung/M-Proz-G1.js */
+/* Baustein M-Proz-G1: „Ich kenne wichtige Begriffe und Eigenschaften betreffend Prozentrechnung und kann sie erklären.“
+   Steckbrief: M-Proz-G1.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026). G, p und W immer in denselben Farben. */
+(function(UR){
+const {rnd, pick} = UR;
+const {Z, E, P, NB, br, mischen, versuche, G, Pz, W, merk, aufg} = UR.prozent;
+
+const MERK = merk(`${G('Grundwert G')} = das Ganze = 100 % · ${Pz('Prozentsatz p')} = die Zahl mit dem %-Zeichen · ${W('Prozentwert W')} = der Anteil in Zahlen`);
+const WARUM = `„von …“ ist der ${G('Grundwert')} (das Ganze, 100 %), die Zahl mit % ist der ${Pz('Prozentsatz')}, der Anteil in Zahlen ist der ${W('Prozentwert')}.`;
+const ABS = 'Absolut = eine feste Anzahl oder Größe. Relativ = ein Anteil im Vergleich zu einem Ganzen, deshalb kann man damit „fair“ vergleichen.';
+const mitMerk = (t,ctx) => { if(ctx&&ctx.leicht) t.lead = (t.lead?t.lead+' ':'')+MERK; return t; };
+
+/* ---------- Pool absolut / relativ ---------- */
+const ABSREL = [
+  ['In der 3a nehmen 18 Schüler*innen am Wettbewerb teil.','absolut'],
+  ['Der Schulweg ist 2,5 km lang.','absolut'],
+  ['Im Glas sind 250 ml Saft.','absolut'],
+  ['Die Klasse hat 24 Kinder.','absolut'],
+  ['Ein Fahrrad kostet 480 €.','absolut'],
+  [`Am Samstag kamen 1${NB}350 Besucher*innen ins Stadion.`,'absolut'],
+  ['Lea hat 7 Tore geschossen.','absolut'],
+  ['75 % der Kinder spielen Schach.','relativ'],
+  [`${br(3,4)} der Klasse fehlen.`,'relativ'],
+  ['Die Hälfte der Kinder fährt mit dem Bus.','relativ'],
+  ['0,2 aller Lose gewinnen.','relativ'],
+  ['Der Preis sinkt um 30 %.','relativ'],
+  ['Jedes dritte Kind hat ein Haustier.','relativ'],
+  ['40 % der Fläche sind Wald.','relativ']
+];
+
+/* ---------- Sätze mit G, p und W ---------- */
+// passende Werte: W = G · p / 100, ganz (bei € auf Cent genau)
+const PROZENTE = [2,3,4,5,10,12,15,20,25,30,35,40,45,50,60,65,70,75,80,90,95];
+function tripel(euro){
+  return versuche(()=>{
+    const p=pick(PROZENTE), g=euro?rnd(4,60)*10:rnd(8,400), w=g*p/100;
+    if(euro ? Math.round(w*100)!==w*100 : !Number.isInteger(w)) return null;
+    if(w===g||w===p||g===p||w<2) return null;
+    return {g,p,w};
+  });
+}
+// Satzbaupläne (Material: LZK G1, MKH G1); g, p, w sind die fertig geschriebenen Zahlen
+const SAETZE = [
+  {s:(g,p,w)=>`Von ${g} Kindern sind ${w} Schachspieler*innen, das sind ${p} der Kinder.`},
+  {s:(g,p,w)=>`${w} Schüler*innen, das sind ${p} von ${g} Schüler*innen, sind krank.`},
+  {euro:true, s:(g,p,w)=>`Von ${g} betragen ${p} Preisnachlass ${w}.`},
+  {s:(g,p,w)=>`${p} von ${g} Personen sind ${w} Personen.`},
+  {s:(g,p,w)=>`In einem Korb liegen ${g} Äpfel. ${w} davon sind rot, das sind ${p}.`},
+  {s:(g,p,w)=>`${w} von ${g} Losen gewinnen. Das sind ${p}.`},
+  {s:(g,p,w)=>`Beim Lauf starten ${g} Läufer*innen. ${p} davon, das sind ${w}, kommen ins Ziel.`},
+  {einheit:'g', s:(g,p,w)=>`Ein Saft enthält ${p} Zucker. In ${g} Saft sind das ${w} Zucker.`},
+  {einheit:'km', s:(g,p,w)=>`${w} der ${g} langen Strecke sind schon geschafft, das sind ${p}.`},
+  {euro:true, s:(g,p,w)=>`Ein Hemd kostet ${g}. Es wird um ${p} billiger, das sind ${w} weniger.`},
+  {s:(g,p,w)=>`${p} der ${g} Mitglieder, also ${w} Mitglieder, kommen zum Fest.`},
+  {einheit:'m²', s:(g,p,w)=>`Auf ${g} Fläche wachsen Blumen. ${w}, das sind ${p}, sind Rosen.`}
+];
+// Sätze mit einer Zahl, die nicht zu G, p oder W gehört (Material: MKH G1 „über 60“)
+const ABLENKER = [
+  (g,p,w,x)=>`${p} von ${g} Männern sind über ${x}. Dies sind ${w} Personen.`,
+  (g,p,w,x)=>`Im Verein sind ${g} Mitglieder, ${x} davon sind Kinder. ${p} aller Mitglieder, also ${w}, fahren mit zum Turnier.`,
+  (g,p,w,x)=>`Bei ${g} Spielen, die ${x} Minuten dauern, gewinnt das Team ${p}, das sind ${w} Spiele.`
+];
+function satzMit(ablenker){
+  const v = ablenker ? {s:pick(ABLENKER)} : pick(SAETZE), t=tripel(v.euro);
+  const f = x => v.euro ? E(x) : v.einheit ? `${Z(x)}${NB}${v.einheit}` : Z(x);
+  const g=f(t.g), p=P(t.p), w=f(t.w);
+  let x=null;
+  // Ablenker: kein anderes Paar der drei Zahlen passt zu p (nur G → W geht auf)
+  if(ablenker) x=versuche(()=>{ const c=rnd(5,90), l=[t.g,t.w,c];
+    if(new Set([...l,t.p]).size<4) return null;
+    const paare=l.flatMap(a=>l.filter(b=>b!==a&&Math.abs(a*t.p/100-b)<1e-9).map(b=>[a,b]));
+    return paare.length===1 ? c : null; });
+  return {...t, g:t.g, gT:g, pT:p, wT:w, x, satz:ablenker?v.s(g,p,w,x):v.s(g,p,w), euro:!!v.euro, einheit:v.euro?'€':v.einheit||''};
+}
+
+/* ---------- Begriffe ---------- */
+const ERKL = {
+  G:['steht für das Ganze (100 %)','ist das Ganze, von dem man ausgeht','entspricht immer 100 %'],
+  p:['wird in Prozent angegeben','gibt an, wie viel Prozent vom Ganzen es sind','ist die Zahl mit dem %-Zeichen'],
+  W:['ist der Anteil in Zahlen ausgedrückt','ist die zahlenmäßige Größe des Anteils','ist der Teil vom Ganzen in Zahlen, z. B. 30 Frauen']
+};
+const BEGRIFF = {G:'Grundwert', p:'Prozentsatz', W:'Prozentwert'}, FARBE = {G, p:Pz, W};
+const LUECKEN = [
+  {s:'Der ① (G) steht für das Ganze und entspricht ② %.', l:[['Grundwert',['Prozentsatz','Prozentwert','Anteil']],['100',['10','1','1 000']]]},
+  {s:'Der ① (p) gibt an, um welchen prozentuellen Anteil vom Ganzen es sich handelt.', l:[['Prozentsatz',['Grundwert','Prozentwert','Bruch']]]},
+  {s:'Die zahlenmäßige Größe dieses Anteils heißt ① (W).', l:[['Prozentwert',['Prozentsatz','Grundwert','Prozent']]]},
+  {s:'① Werte stehen für exakte, fixe Anzahlen oder Größen.', l:[['Absolute',['Relative','Prozentuelle','Halbe']]]},
+  {s:'Prozent bedeutet so viel wie „je ①“.', l:[['100',['10','1 000','1']]]},
+  {s:'Relative Anteile setzen Werte in Vergleich zu etwas ①. Dafür eignen sich neben ② besonders Prozente.', l:[['Ganzem',['Kleinem','Festem','Absolutem']],['Brüchen',['Summen','Längen','Uhrzeiten']]]}
+];
+const AUSSAGEN = [
+  ['Der Grundwert entspricht immer 100 %.','wahr','Das Ganze sind immer 100 %.'],
+  ['Der Prozentwert wird in Prozent angegeben.','falsch','In Prozent wird der Prozentsatz angegeben.'],
+  ['Der Prozentwert kann größer sein als der Grundwert.','wahr','Zum Beispiel sind 120 % von 50 kg 60 kg.'],
+  ['Der Prozentsatz wird mit dem Zeichen % geschrieben.','wahr','Zum Beispiel 75 %.'],
+  ['50 % sind die Hälfte des Ganzen.','wahr','50 % = 50 von 100 = die Hälfte.'],
+  ['Prozent bedeutet „je 1 000“.','falsch','Prozent bedeutet „je 100“.'],
+  ['Mit Prozenten kann man Anteile verschieden großer Gruppen fair vergleichen.','wahr','Prozent bezieht alles auf 100.'],
+  ['Absolute Werte sind Anteile vom Ganzen.','falsch','Absolute Werte sind feste Anzahlen oder Größen.'],
+  ['10 % von 50 sind mehr als 10 % von 80.','falsch','10 % von 50 sind 5, 10 % von 80 sind 8.'],
+  ['100 % von einer Zahl ist die Zahl selbst.','wahr','100 % sind das Ganze.'],
+  ['Der Grundwert ist immer die kleinste Zahl in der Aufgabe.','falsch','Das Ganze ist meist die größte Zahl (wenn p unter 100 % ist).'],
+  ['25 % sind ein Viertel.','wahr','25 von 100 = 1 von 4.']
+];
+const WAHR = [['wahr','wahr'],['falsch','falsch']];
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // G1-A01 Absolut oder relativ?
+  absolut_relativ(ctx){
+    const [s,ans]=pick(ABSREL);
+    return mitMerk(aufg({kind:'fragen', qh:s, q:UR.prozent.ohneTags(s), lead:'Ist die Angabe absolut oder relativ?',
+      gruppen:[{optionen:[['absolut','absolut'],['relativ','relativ']], ans}], why:ABS}),ctx);
+  },
+  // G1-A03 G, p und W im Satz erkennen
+  gpw_satz(ctx){
+    const a=satzMit(false), ids=mischen(['z0','z1','z2']), rolle={G:a.gT, p:a.pT, W:a.wT};
+    const dinge=mischen(['G','p','W'].map((r,i)=>({id:ids[i], html:rolle[r], kurz:rolle[r], rolle:r})));
+    const ans={}; dinge.forEach(d=>ans[d.id]=d.rolle);
+    return mitMerk(aufg({kind:'zuordnen', text:true, q:a.satz, lead:'Welche Zahl ist der Grundwert, welche der Prozentsatz, welche der Prozentwert?',
+      dinge:dinge.map(({id,html,kurz})=>({id,html,kurz})), ziele:['G','p','W'].map(r=>({id:r, text:FARBE[r](`${BEGRIFF[r]} ${r}`)})), ans,
+      why:WARUM, steps:`G = ${a.gT} · p = ${a.pT} · W = ${a.wT}`}),ctx);
+  },
+  // G1-A04 G, p und W aus einem Text ablesen (auch mit einer Zahl, die nicht dazugehört)
+  gpw_ablesen(ctx){
+    const abl=Math.random()<.4, a=satzMit(abl), e=a.einheit;
+    return mitMerk(aufg({kind:'zahlen', text:true, q:a.satz, lead:'Lies aus dem Text G, p und W ab!',
+      felder:[{label:G('Grundwert G'), ans:a.g, ansText:`G = ${a.gT}`, einheit:e||undefined},
+              {label:Pz('Prozentsatz p'), ans:a.p, ansText:`p = ${a.pT}`, einheit:'%'},
+              {label:W('Prozentwert W'), ans:a.w, ansText:`W = ${a.wT}`, einheit:e||undefined}],
+      why:WARUM+(abl?` Die Zahl ${a.x} gehört nicht zu G, p oder W.`:''), steps:`G = ${a.gT} · p = ${a.pT} · W = ${a.wT}`}),ctx);
+  },
+  // G1-A05 Begriffe verbinden
+  begriffe_verbinden(ctx){
+    const ids=mischen(['e0','e1','e2']), zuord={};
+    const ziele=mischen(['G','p','W'].map((r,i)=>{ zuord[r]=ids[i]; return {id:ids[i], text:pick(ERKL[r])}; }));
+    const dinge=mischen(['G','p','W']).map(r=>({id:r, html:FARBE[r](BEGRIFF[r]), kurz:BEGRIFF[r]}));
+    const ans={}; dinge.forEach(d=>ans[d.id]=zuord[d.id]);
+    return mitMerk(aufg({kind:'zuordnen', q:'Verbinde den Begriff mit der richtigen Erklärung!', dinge, ziele, ans,
+      why:`${G('Grundwert')}: das Ganze (100 %) · ${Pz('Prozentsatz')}: in Prozent angegeben · ${W('Prozentwert')}: der Anteil in Zahlen. Beispiel: Von ${G('50')} Personen sind ${W('30')} Frauen, das sind ${Pz('60 %')}.`}),ctx);
+  },
+  // G1-A02 (Plus) Begriffe in Lücken
+  begriffe_luecke(){
+    const v=pick(LUECKEN), marke=['①','②'];
+    const gruppen=v.l.map(([richtig,falsch],i)=>({frage:`Lücke ${marke[i]}`, optionen:mischen([richtig,...falsch]).map(w=>[w,w]), ans:richtig}));
+    let voll=v.s; v.l.forEach(([r],i)=>{ voll=voll.replace(marke[i], r); });
+    return aufg({kind:'fragen', text:true, q:v.s, lead:'Ergänze den Satz mit den richtigen Begriffen!', gruppen, why:voll, voll});
+  },
+  // G1-A06 (Plus) Stimmt das?
+  stimmt_das(){
+    const l=mischen(AUSSAGEN).slice(0,rnd(2,3));
+    return aufg({kind:'fragen', q:'Ist die Aussage wahr oder falsch?', gruppen:l.map(([s,ans])=>({frage:s, optionen:WAHR, ans})),
+      why:l.map(([s,a,g])=>`${s} → ${a}: ${g}`).join(' ')});
+  },
+  // G1-N01 (Plus) Fairer Vergleich
+  fairer_vergleich(){
+    return versuche(()=>{
+      const n=rnd(2,3), namen=pick([['3a','3b','3c'],['Klasse A','Klasse B','Klasse C'],['Schule X','Schule Y','Schule Z']]);
+      const gr=[...Array(n)].map((_,i)=>{ const g=pick([16,18,20,24,25,30,40,50,150,200,250]), w=rnd(1,g-1); return {name:namen[i], g, w, p:w*100/g}; });
+      if(gr.some(x=>!Number.isInteger(x.p*2))) return null;
+      const ps=gr.map(x=>x.p).sort((a,b)=>b-a); if(ps[0]-ps[1]<3) return null;
+      const best=gr.find(x=>x.p===ps[0]);
+      return aufg({kind:'fragen', text:true, q:`Welche Gruppe hat den größten relativen Anteil? ${gr.map(x=>`${x.name}: ${x.w} von ${x.g}`).join(' · ')}`,
+        gruppen:[{optionen:gr.map(x=>[x.name,x.name]), ans:best.name}],
+        why:`Vergleiche in Prozent: ${gr.map(x=>`${x.name} ${P(x.p)}`).join(' · ')}.`});
+    });
+  }
+};
+
+/* ---------- Stationen (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Absolut oder relativ', hint:'18 Kinder ist absolut, 75 % ist relativ', types:['absolut_relativ']},
+  {id:'S2', name:'Grundwert, Prozentsatz, Prozentwert', hint:'Grundwert = das Ganze = 100 %', types:['begriffe_verbinden']},
+  {id:'S3', name:'In Texten erkennen', hint:'Von 20 Kindern sind 15, das sind 75 % → G = 20, W = 15, p = 75 %', types:['gpw_satz','gpw_ablesen']}
+];
+const kern = ['absolut_relativ','gpw_satz','gpw_ablesen','begriffe_verbinden'];
+const leicht = ['absolut_relativ','gpw_satz','gpw_ablesen','begriffe_verbinden'];   // Einstieg mit Merkkarte
+const plus = ['begriffe_luecke','stimmt_das','fairer_vergleich'];
+const plusHint = 'Lückentext · Stimmt das? · Fairer Vergleich';
+
+/* ---------- Erklärung ---------- */
+function beispiel(){ const a=satzMit(false); return a; }
+const leuchte = (x,rolle,f) => `<button type="button" class="leucht ${f}" data-leucht>${x}<span class="rolle">${rolle}</span></button>`;
+function satzHTML(a){
+  // die drei Zahlen im Satz antippbar machen (G, p, W leuchten)
+  return a.satz.replace(a.pT, '\u0001').replace(a.gT, '\u0002').replace(a.wT, '\u0003')
+    .replace('\u0001', leuchte(a.pT,'Prozentsatz p','pp')).replace('\u0002', leuchte(a.gT,'Grundwert G','pg')).replace('\u0003', leuchte(a.wT,'Prozentwert W','pw'));
+}
+const erklaerung = {
+  beispiele: ()=>({b:beispiel()}),
+  neu(kind,E){ if(kind==='satz') E.b=beispiel(); },
+  html: E => `<section class="sheet"><h2>Begriffe der Prozentrechnung</h2>
+    <div class="rule"><h3>1. Absolut und relativ</h3>
+      <p><b>Absolute</b> Werte sind feste Anzahlen oder Größen: 18 Kinder, 2,5 km. <b>Relative</b> Anteile vergleichen mit einem Ganzen: ${br(3,4)} der Klasse, 75 % der Kinder.</p>
+      <p>Prozent heißt „je 100“. Damit kann man Anteile verschieden großer Gruppen <b>fair</b> vergleichen: 9 von 18 sind 50 %, 12 von 16 sind 75 %.</p></div>
+    <div class="rule"><h3>2. Grundwert, Prozentsatz, Prozentwert</h3>
+      <ul><li>${G('Grundwert G')}: das Ganze, entspricht 100 %</li><li>${Pz('Prozentsatz p')}: wie viel Prozent vom Ganzen, mit %-Zeichen</li>
+      <li>${W('Prozentwert W')}: der Anteil in Zahlen (auch Prozentanteil A)</li></ul>
+      <p>Tippe die Zahlen im Satz an:</p><div class="ex text">${satzHTML(E.b)}</div>
+      <button class="newex" data-newex="satz">Neues Beispiel</button></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How Prozentrechnung.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
+};
+
+const lzk = {merkmal:{absolut_relativ:'absolut_relativ', gpw_satz:'gpw', gpw_ablesen:'gpw', begriffe_verbinden:'begriffe'}};
+UR.kompetenzAnmelden({id:'M-Proz-G1', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/2.3 Prozentrechnung/M-Proz-G2.js */
+/* Baustein M-Proz-G2: „Ich kann geeignete Prozentangaben als Brüche oder Dezimalzahlen darstellen und umgekehrt.“
+   Steckbrief: M-Proz-G2.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026). Brüche immer mit waagrechtem Strich
+   (auch bei der Eingabe), Drittel mit Periodenpunkt (Taste „Periodenpunkt“, Notiz der Lehrkraft). */
+(function(UR){
+const {rnd, pick} = UR;
+const {Z, P, NB, br, mischen, versuche, ggT, kuerzen, rund, dezimal, prozentText, bruchFeld, periodeFeld, figur, gefaerbt, RASTER,
+  kommaSchritt, aufg, merk} = UR.prozent;
+
+/* ---------- geeignete Anteile wie im Mathe Know How (als gekürzter Bruch) ---------- */
+const MKH = [[1,100],[1,20],[1,10],[17,100],[1,5],[1,4],[2,5],[1,2],[3,5],[3,4],[4,5]];
+const DRITTEL = [[1,3],[2,3]];
+const MERKTABELLE = [[1,2],[1,4],[3,4],[1,5],[1,10],[1,20],[1,100],[1,3],[2,3]];
+const zeile = ([z,n]) => `${prozentText(z,n)} = ${br(z,n)} = ${dezimal(z,n)}`;
+const HUNDERT = '% heißt „je Hundert“: p % = p Hundertstel.';
+const PERIODE = d => `Die ${d} wiederholt sich unendlich oft; das zeigt der Periodenpunkt.`;
+const KUERZEN = 'Der Bruch stimmt, aber du musst ihn noch vollständig kürzen.';
+const benannt = felder => felder.map(f=>Object.assign(f,{ansText:`${f.label} ${f.ansText}`}));   // „Richtig ist …“ mit Feldnamen
+
+// Felder je Darstellung
+const feldProzent = ([z,n],label='Prozent') => periodeFeld(label, z*100/n, dezimal(z*100,n), '%');
+const feldBruch = ([z,n],label='gekürzter Bruch') => bruchFeld(label, z, n, {gekuerzt:true});
+const feldDezimal = ([z,n],label='Dezimalzahl') => periodeFeld(label, z/n, dezimal(z,n));
+// Hinweise nach dem Bewerten der Felder (Form 'zahlen'): nicht gekürzt, Periodenpunkt vergessen
+function hinweise(felder, r){
+  return erg => {
+    const i=erg.findIndex((x,k)=>felder[k].bruch&&x.wertOk&&!x.formOk); if(i>=0) return KUERZEN;
+    if(r[1]%3===0 && erg.some((x,k)=>!x.zahlOk&&felder[k].lesen&&!felder[k].bruch&&x.roh&&!x.roh.includes(UR.prozent.PUNKT))) return PERIODE(dezimal(r[0],r[1]).slice(-2,-1));
+    return '';
+  };
+}
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // G2-A01 Anteil im Bild ablesen
+  anteil_bild(){
+    return versuche(()=>{
+      const art=pick(['hundert','rechteck','quadrat','kreis']);
+      const n = art==='hundert'?100 : art==='quadrat'?4 : art==='kreis'?pick([2,4,5,8,10,20]) : pick([2,5,8,10,20]);
+      const k=rnd(1,n-1), r=kuerzen(k,n);
+      if(Math.round(k*1000/n)!==k*1000/n) return null;                                   // höchstens eine Nachkommastelle in %
+      const felder=benannt([{label:'Prozent', ans:k*100/n, ansText:P(k*100/n), einheit:'%'}, feldBruch(r), {label:'Dezimalzahl', ans:k/n, ansText:Z(rund(k/n))}]);
+      const bild=figur(art, n, gefaerbt(n,k,art==='rechteck'||art==='quadrat'));
+      return aufg({kind:'zahlen', q:'Welcher Anteil der Figur ist gefärbt? Gib Prozent, gekürzten Bruch und Dezimalzahl an!', bild, felder,
+        hinweisNach:hinweise(felder,r),
+        why:`Zähle alle Teile (${n}) und die gefärbten Teile (${k}): ${k} von ${n} = ${br(k,n)}${r[1]!==n?` = ${br(r[0],r[1])}`:''} = ${Z(rund(k/n))} = ${P(k*100/n)}.`});
+    });
+  },
+  // G2-A02 Tabelle: Prozent, Bruch, Dezimalzahl (eine Darstellung gegeben, Drittel mit Periodenpunkt)
+  tabelle(){
+    const r = Math.random()<.2 ? pick(DRITTEL) : pick(MKH), geg=pick(['p','b','d']);
+    const anzeige = {p:prozentText(...r), b:br(...r), d:dezimal(...r)}[geg];
+    const felder = benannt([geg!=='p'&&feldProzent(r), geg!=='b'&&feldBruch(r), geg!=='d'&&feldDezimal(r)].filter(Boolean));
+    return aufg({kind:'zahlen', qh:`gegeben: <b>${anzeige}</b>`, q:`gegeben: ${UR.prozent.ohneTags(anzeige)}`, wert:r,
+      lead:'Stelle als Prozentangabe, gekürzten Bruch und Dezimalzahl dar!', felder, hinweisNach:hinweise(felder,r),
+      why:`Merke: ${zeile(r)}`});
+  },
+  // G2-A03 Prozent ↔ Dezimalzahl (Komma um zwei Stellen verschieben)
+  proz_dezimal(ctx){
+    const p = Math.random()<.3 ? rnd(10,999)/10 : Math.random()<.8 ? rnd(1,99) : rnd(100,150);
+    const d=rund(p/100), zuD=Math.random()<.5, pT=String(p);
+    const bild=kommaSchritt(pT, zuD?'zuDezimal':'zuProzent');
+    const t = zuD
+      ? {q:`${P(p)} als Dezimalzahl`, felder:[{label:'Dezimalzahl', ans:d, ansText:Z(d)}], steps:`${P(p)} = ${Z(d)}`,
+         why:'Prozent → Dezimalzahl: Komma um zwei Stellen nach links (durch 100).'}
+      : {q:`${Z(d)} in Prozent`, felder:[{label:'Prozent', ans:p, ansText:P(p), einheit:'%'}], steps:`${Z(d)} = ${P(p)}`,
+         why:'Dezimalzahl → Prozent: Komma um zwei Stellen nach rechts (mal 100).'};
+    // Einstieg: dasselbe Bild an einem anderen Beispiel (sonst stünde die Lösung schon da)
+    if(ctx&&ctx.leicht){ let b; do{ b=rnd(2,98); }while(b===p); const bd=rund(b/100);
+      t.bild=kommaSchritt(String(b), zuD?'zuDezimal':'zuProzent'); t.lead=`${t.why} Beispiel: ${zuD?`${P(b)} = ${Z(bd)}`:`${Z(bd)} = ${P(b)}`}`; }
+    return aufg(Object.assign({kind:'zahlen', loesungBild:bild}, t));
+  },
+  // G2-A04 Prozent als gekürzter Bruch (Schritt 1 Nenner 100, Schritt 2 kürzen)
+  proz_bruch(){
+    const p=versuche(()=>{ const x=rnd(2,98); return ggT(x,100)>1 ? x : null; }), r=kuerzen(p,100);
+    const opt=mischen([[`${p}/100`,br(p,100)],[`100/${p}`,br(100,p)],[`${p}/10`,br(p,10)]]);
+    return aufg({kind:'zweischritt', q:`${P(p)} als Bruch`, qh:`${P(p)} = ?`, lead:'Schreibe als Bruch mit dem Nenner 100 und kürze!', schritt:'Schritt 1',
+      s1:{label:'Schritt 1: Bruch mit dem Nenner 100', kurz:'Schritt 1', felder:[bruchFeld('',p,100,{nenner:100})], ansText:`${p}/100`},
+      s2:{label:'Schritt 2: vollständig gekürzt', felder:[bruchFeld('',r[0],r[1],{gekuerzt:true})], ansText:`${r[0]}/${r[1]}`},
+      pre:{ans:`${p}/100`, optionen:opt},
+      hinweisNach:(e1,e2)=>e2[0].wertOk&&!e2[0].formOk?KUERZEN:'',
+      why:`p % = p Hundertstel: ${P(p)} = ${br(p,100)}. Dann Zähler und Nenner durch ${100/r[1]} dividieren: ${br(r[0],r[1])}.`,
+      stepsh:`${P(p)} = ${br(p,100)} = ${br(r[0],r[1])}`, steps:`${P(p)} = ${p}/100 = ${r[0]}/${r[1]}`});
+  },
+  // G2-A05 Bruch erweitern, dann Prozent
+  bruch_proz(){
+    return versuche(()=>{
+      const n=pick([2,4,5,10,20,25,50]), z=rnd(1,2*n-1); if(z===n) return null;
+      const f=100/n, e=z*f, falsch=[z+100-n, z*n].filter(x=>x!==e&&x>0);
+      if(new Set(falsch).size<2) return null;
+      const opt=mischen([e,...falsch].map(x=>[String(x),br(x,100)]));
+      return aufg({kind:'zweischritt', q:`${z}/${n} in Prozent`, qh:`${br(z,n)} = ?`, lead:'Erweitere den Bruch auf den Nenner 100 und schreibe ihn in Prozent!', schritt:'Schritt 1',
+        s1:{label:`Schritt 1: erweitert auf den Nenner 100: Zähler über ${br('?',100)}`, kurz:'Schritt 1', felder:[{label:'Zähler', ans:e, ansText:`${e}/100`}], ansText:`${e}/100`},
+        s2:{label:'Schritt 2: in Prozent', felder:[{label:'', ans:e, ansText:P(e), einheit:'%'}], ansText:P(e)},
+        pre:{ans:String(e), optionen:opt},
+        why:`Erweitere mit 100 : ${n} = ${f}: ${br(z,n)} = ${br(e,100)} = ${P(e)}. Zähler über 100 ist gleich Zähler %.`,
+        stepsh:`${br(z,n)} = ${br(e,100)} = ${P(e)}`, steps:`${z}/${n} = ${e}/100 = ${e} %`});
+    });
+  },
+  // G2-A07 Anteil bemalen (Raster antippen, es zählt nur die Anzahl)
+  anteil_bemalen(){
+    return versuche(()=>{
+      const N=pick([20,24,36,40,50]), lay={20:[4,5],24:[4,6],36:[6,6],40:[5,8],50:[5,10]}[N];
+      const p=pick([5,10,12.5,15,20,25,30,40,50,60,70,75,80,90]), k=N*p/100;
+      if(!Number.isInteger(k)||k<=0||k>=N) return null;
+      return aufg({kind:'bemalen', q:`Male ${P(p)} der Felder an!`, zeilen:lay[0], spalten:lay[1], ans:k, prozent:p,
+        why:`Alle Felder · p : 100 = ${N} · ${Z(p)} : 100 = ${k} Felder.`, steps:`${N} · ${Z(p)} : 100 = ${k}`});
+    });
+  },
+  // G2-N01 Memory als Zuordnen-Tabelle: zu 4 Prozentkarten je Bruch und Dezimalzahl
+  memory(){
+    const POOL=[[1,2],[1,4],[3,4],[1,5],[1,10],[2,5],[3,5],[4,5],[1,20],[1,100],[3,10],[7,10]];
+    const l=mischen(POOL).slice(0,4), ans={};
+    const dinge=mischen(l.flatMap(([z,n],i)=>[{id:'b'+i, html:br(z,n), kurz:`${z}/${n}`},{id:'d'+i, html:dezimal(z,n), kurz:dezimal(z,n)}]));
+    l.forEach((_,i)=>{ ans['b'+i]=`r${i}|b`; ans['d'+i]=`r${i}|d`; });
+    return aufg({kind:'zuordnen', q:'Finde die zusammengehörigen Karten!', lead:'Lege zu jeder Prozentkarte den Bruch und die Dezimalzahl.',
+      dinge, ans, raster:{zeilen:l.map((r,i)=>['r'+i, prozentText(...r)]), spalten:[['b','Bruch'],['d','Dezimalzahl']]}, karten:l,
+      why:l.map(zeile).join(' · ')});
+  },
+  // G2-A06 (Plus) Lückentext Prozent, Hundert, Dezimalzahl
+  lueckentext(){
+    const p=rnd(1,99), d=rund(p/100);
+    if(Math.random()<.5) return aufg({kind:'zahlen', q:`${P(p)} sind ① von Hundert oder ②.`, lead:'Fülle den Lückentext aus!',
+      felder:[{label:'① von Hundert', ans:p, ansText:String(p)},{label:'② als Dezimalzahl', ans:d, ansText:Z(d)}],
+      why:`${P(p)} sind ${p} von Hundert oder ${Z(d)}.`});
+    return aufg({kind:'zahlen', q:`① sind ${p} von Hundert oder ②.`, lead:'Fülle den Lückentext aus!',
+      felder:[{label:'① in Prozent', ans:p, ansText:P(p), einheit:'%'},{label:'② als Dezimalzahl', ans:d, ansText:Z(d)}],
+      why:`${P(p)} sind ${p} von Hundert oder ${Z(d)}.`});
+  },
+  // G2-N02 (Plus) Was ist größer?
+  groesser(){
+    return versuche(()=>{
+      const POOL=[[1,2],[1,4],[3,4],[1,5],[2,5],[3,5],[4,5],[1,10],[3,10],[7,10],[9,10],[1,20],[3,20],[9,20],[11,20],[13,20],[17,20]];
+      const a=pick(POOL), b=pick(POOL), pa=a[0]*100/a[1], pb=b[0]*100/b[1];
+      if(Math.abs(pa-pb)<5) return null;
+      const [fa,fb]=mischen(['p','b','d']), zeig=(r,f)=>({p:prozentText(...r), b:br(...r), d:dezimal(...r)}[f]);
+      const opt=[['a',zeig(a,fa)],['b',zeig(b,fb)]];
+      return aufg({kind:'fragen', q:'Welche Zahl ist größer?', gruppen:[{optionen:opt, ans:pa>pb?'a':'b'}], werte:[a,b],
+        why:`In Prozent: ${zeig(a,fa)} = ${prozentText(...a)}, ${zeig(b,fb)} = ${prozentText(...b)}.`});
+    });
+  },
+  // G2-N03 (Plus) Drittel und Sechstel
+  drittel(){
+    return versuche(()=>{
+      const r=pick([[1,3],[2,3],[1,6],[5,6]]), inP=Math.random()<.5;
+      const rich = inP ? prozentText(...r) : dezimal(...r);
+      const ohne = rich.replace(UR.prozent.PUNKT,''), zehn = inP ? `${dezimal(r[0]*10,r[1])}${NB}%` : dezimal(r[0]*10,r[1]);
+      const kurz = inP ? P(Math.floor(r[0]*100/r[1])) : Z(rund(Math.floor(r[0]*100/r[1])/100));
+      const l=[rich,ohne,zehn,kurz]; if(new Set(l).size<4) return null;
+      return aufg({kind:'fragen', qh:`Welche Schreibweise passt zu ${br(...r)}${inP?' in Prozent':' als Dezimalzahl'}?`, q:`Welche Schreibweise passt zu ${r[0]}/${r[1]}?`, wert:r,
+        gruppen:[{optionen:mischen(l).map(x=>[x,x]), ans:rich}], why:`${br(...r)} = ${zeile(r)}. ${PERIODE(dezimal(...r).slice(-2,-1))}`});
+    });
+  }
+};
+
+/* ---------- Stationen (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Prozent und Dezimalzahl', hint:'97 % = 0,97', types:['proz_dezimal']},
+  {id:'S2', name:'Prozent und Bruch', hint:'72 % = 72 Hundertstel = 18 Fünfundzwanzigstel', types:['proz_bruch','bruch_proz']},
+  {id:'S3', name:'Anteile im Bild', hint:'6 von 8 Teilen = 75 %', types:['anteil_bild','anteil_bemalen']},
+  {id:'S4', name:'Alles gemischt', hint:`Ein Drittel = 33,3${UR.prozent.PUNKT} % = 0,3${UR.prozent.PUNKT}`, types:['tabelle','memory']}
+];
+const kern = ['anteil_bild','tabelle','proz_dezimal','proz_bruch','bruch_proz','anteil_bemalen','memory'];
+const leicht = ['proz_dezimal'];   // Einstieg: Komma-Verschieben als Bild
+const plus = ['lueckentext','groesser','drittel'];
+const plusHint = 'Lückentext · Was ist größer? · Drittel und Sechstel';
+
+/* ---------- Erklärung ---------- */
+const hundertBsp = () => { const k=pick([5,10,20,25,35,40,50,60,75]), r=kuerzen(k,100); return {k, r}; };
+const erklaerung = {
+  beispiele: ()=>({h:hundertBsp(), p:typen.proz_dezimal({modus:'check'})}),
+  neu(kind,E){ if(kind==='hundert') E.h=hundertBsp(); if(kind==='komma') E.p=typen.proz_dezimal({modus:'check'}); },
+  html: E => `<section class="sheet"><h2>Prozent, Bruch und Dezimalzahl</h2>
+    <div class="rule"><h3>1. Prozent heißt „je Hundert“</h3>
+      <p>p % = ${br('p',100)} = p : 100. ${HUNDERT}</p>
+      <div class="bild">${figur('hundert',100,gefaerbt(100,E.h.k))}</div>
+      <div class="ex">${E.h.k} von 100 Feldern = ${P(E.h.k)} = ${br(E.h.k,100)} = ${br(...E.h.r)} = ${Z(E.h.k/100)}</div>
+      <button class="newex" data-newex="hundert">Neues Beispiel</button></div>
+    <div class="rule"><h3>2. Merktabelle</h3>
+      <div class="merktab">${MERKTABELLE.map(r=>`<div class="ex">${zeile(r)}</div>`).join('')}</div>
+      <p>Bei den Dritteln wiederholt sich eine Ziffer unendlich oft: 0,333… schreibt man 0,3${UR.prozent.PUNKT}. Den Punkt über der Ziffer setzt die Taste <b>Periodenpunkt</b>: erst die Ziffer tippen, dann die Taste.</p></div>
+    <div class="rule"><h3>3. Komma verschieben</h3>
+      <p>Prozent → Dezimalzahl: Komma um zwei Stellen nach links. Dezimalzahl → Prozent: Komma um zwei Stellen nach rechts.</p>
+      <div class="ex">${E.p.steps}</div><div class="bild">${E.p.loesungBild}</div>
+      <button class="newex" data-newex="komma">Neues Beispiel</button></div>
+    <div class="rule"><h3>4. Bruch und Prozent</h3>
+      <p>Prozent → Bruch: Nenner 100, dann kürzen: 72 % = ${br(72,100)} = ${br(18,25)}.<br>Bruch → Prozent: auf den Nenner 100 erweitern: ${br(7,25)} = ${br(28,100)} = 28 %.</p></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How Prozentrechnung.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
+};
+
+const lzk = {merkmal:{anteil_bild:'anteil_bild', anteil_bemalen:'anteil_bild', tabelle:'tabelle', memory:'tabelle', proz_dezimal:'proz_dezimal',
+  proz_bruch:'proz_bruch', bruch_proz:'proz_bruch'}};
+UR.kompetenzAnmelden({id:'M-Proz-G2', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
 })(window.UR = window.UR || {});
 </script>
 <script>UR.start(document.getElementById('app'));</script>
