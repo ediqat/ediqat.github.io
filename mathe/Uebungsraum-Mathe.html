@@ -393,6 +393,48 @@ svg.kreisdia .st-t{fill:var(--text)} svg.kreisdia path+text,svg.kreisdia .st-t{p
 .sign.an{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .zgtab td,.zgtab th{text-align:center}
 .vrblock{display:block;width:100%;text-align:center}
+/* Koordinatensystem (Mathe/bausteine/koordinatensystem.js, M-RaZa-G3, 20.11.2026): Gitter, Achsen, Punkte als X,
+   Antippen mit großer Tipp-Fläche und Pfeiltasten (am Handy 360 px ohne seitliches Scrollen) */
+.bild svg.ks-svg,svg.ks-svg{width:100%;max-width:440px;height:auto;display:block;margin:0 auto;touch-action:manipulation}
+.ks-gitter{stroke:var(--line);stroke-width:1}
+.ks-halb{stroke:var(--line);stroke-width:.7;stroke-dasharray:2 3}
+.ks-achse{stroke-width:2.2}
+.ks-achse.ks-hervor{stroke:var(--c2);stroke-width:4}
+.ks-zahl{font-size:12px;fill:var(--text)}
+.ks-aname{font-size:16px;font-weight:800;font-style:italic}
+.ks-quadrant{font-size:26px;font-weight:800;fill:var(--ink);fill-opacity:.55}
+.ks-quadrant.klein{font-size:14px}
+.ks-x{stroke-width:3.2;stroke-linecap:round}
+.ks-name{font-size:17px;font-weight:800}
+.ks-text{font-size:13px;font-weight:800}
+.ks-wegt{font-size:14px;font-weight:700}
+.ks-weg1{stroke:var(--c1);stroke-width:4;stroke-opacity:.8}
+.ks-weg2{stroke:var(--c2);stroke-width:4;stroke-opacity:.8}
+.ks-verb{stroke:var(--c2);stroke-width:2;stroke-dasharray:5 4}
+.ks-figur{fill:var(--ink-soft);fill-opacity:.7;stroke:var(--ink);stroke-width:2.2;stroke-linejoin:round}
+.ks-marke circle{fill:var(--paper);stroke:var(--ink);stroke-width:2}
+.ks-marke text{font-size:15px;font-weight:800;fill:var(--ink)}
+.ks-flaeche{fill:transparent;cursor:crosshair;pointer-events:all}
+.ks-gesetzt path{stroke:var(--cop);stroke-width:3.4;stroke-linecap:round}
+.ks-gesetzt text{font-size:17px;font-weight:800;fill:var(--cop)}
+.ks-setzen{width:100%;display:flex;flex-direction:column;align-items:center;gap:6px}
+.ks-knoepfe{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.ks-knoepfe button{font:inherit;font-weight:800;min-width:48px;min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--ink-soft);color:var(--ink);cursor:pointer;padding:0 .7em}
+.ks-pfeile button{font-size:1.3rem;min-width:56px}
+.ks-wahl button.an{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.ks-wahl button.gesetzt:not(.an)::after{content:" ✓"}
+.ks-hinweis{margin:0;text-align:center}
+.kstab td,.kstab th{text-align:center}
+.ksbox .ks-st{opacity:0;transition:opacity .3s}
+.ksbox.k1 .ks-st1,.ksbox.k2 .ks-st2{opacity:1}
+.ksbox.k1 [data-ksstufe="1"],.ksbox.k2 [data-ksstufe="2"]{background:var(--ink-soft)}
+.pz-bild .ks-knoepfe,.pz-bild .ks-hinweis{display:none}
+.choices.vier{grid-template-columns:repeat(4,minmax(0,1fr))}
+.ks-zahl.ks-null{font-weight:800;fill:var(--ink);font-size:12px}
+.ks-loes{width:100%;text-align:center} .ks-loes p{margin:.4em 0 0}
+/* Koordinatensystem auf Papier (LZK): Kästchen etwa 5 mm, damit man Punkte einzeichnen kann; ohne Tipp-Knöpfe */
+.pz-bild svg.ks-svg{width:88mm;max-height:none}
+.pz-bild .ks-setzen{display:block}
 </style>
 </head>
 <body>
@@ -869,7 +911,8 @@ UR.formen.zuordnen.papier = t => {
         t.raster.spalten.map(([s])=>`<td>${r?inZiel(`${z}|${s}`):''}</td>`).join('')}</tr>`).join('')}</table>`
     : `<table class="pz-tab">${t.ziele.map(z=>`<tr><th>${z.text}</th><td>${r?inZiel(z.id):''}</td></tr>`).join('')}</table>`;
   const kopf = `${P().angabe(t)}${dinge}`;
-  return {aufgabe:kopf+tabelle(false), loesung:kopf+tabelle(true), statt:true, kreuz:false, lead:t.lead||T.lzkOrdneZu, aufwand:3};
+  // mit Bild (z. B. Nummern im Koordinatensystem, M-RaZa-G3): Bild rechts daneben, in der Lösung das Lösungsbild
+  return {aufgabe:P().mitBild(kopf+tabelle(false), t.bild), loesung:P().mitBild(kopf+tabelle(true), t.loesungBild||t.bild), statt:true, kreuz:false, lead:t.lead||T.lzkOrdneZu, aufwand:3};
 };
 UR.formen.zahlen.papier = t => ({
   aufgabe:P().mitBild(`${P().angabe(t)}${P().platz(t.papierPlatz||(t.felder.length>1&&!t.bild?2:1))}${t.felder.map(f=>P().linie(f.label, f.einheit||'')).join('')}`, t.bild),
@@ -1050,9 +1093,18 @@ function renderHistory(c){
 
 /* ---------- Check (Eingang / Abschluss) ---------- */
 // nr: die wievielte Aufgabe dieses Typs im Check (0, 1, …), z. B. je Richtung eine Aufgabe (M-RaZa-G1, 20.11.2026)
+// Keine Wiederholung zwischen den Checks (LEITFADEN „Antwortprüfung und Vielfalt“, 20.11.2026): Jede Aufgabe bekommt
+// einen kurzen Fingerabdruck dessen, was das Kind sieht (ohne Reihenfolge der Auswahlknöpfe). Der Check merkt sich die
+// Fingerabdrücke (c.zuletzt); der nächste Check würfelt eine Aufgabe neu, wenn sie schon dort oder im selben Check vorkam.
+// Bei Typen mit fester Auswahl (wenige verschiedene Aufgaben) bleibt nach 20 Versuchen die letzte.
+function fingerabdruck(t){
+  const s=JSON.stringify([t.type,t.lead,t.q,t.qh,t.bild,(t.felder||[]).map(f=>f.label),t.s1&&t.s1.label,t.s2&&t.s2.label,(t.gruppen||[]).map(g=>g.frage)]);
+  let h=5381; for(let i=0;i<s.length;i++) h=(h*33+s.charCodeAt(i))|0; return (h>>>0).toString(36);
+}
 function startCheck(kind){
-  const plan = checkPlan(view.id);
-  const items = plan.map((t,i)=>Object.assign(make(view.id,t,{modus:'check',nr:plan.slice(0,i).filter(x=>x===t).length}),{station:stationVon(view.id,t)})).sort(()=>Math.random()-.5);
+  const plan = checkPlan(view.id), c = UR.comp(view.id), schon = new Set(c.zuletzt||[]);
+  const neu = (t,nr) => { let a; for(let n=0;n<20;n++){ a=make(view.id,t,{modus:'check',nr}); if(!schon.has(fingerabdruck(a))) break; } schon.add(fingerabdruck(a)); return a; };
+  const items = plan.map((t,i)=>Object.assign(neu(t,plan.slice(0,i).filter(x=>x===t).length),{station:stationVon(view.id,t)})).sort(()=>Math.random()-.5);
   go({name:'check',id:view.id,kind,items,i:0,answers:[]});
 }
 function renderCheck(){
@@ -1070,6 +1122,7 @@ function submitCheck(raw){
   const ok=view.answers.filter(a=>a.ok).length, pct=Math.round(ok/view.answers.length*100);
   const c=UR.comp(view.id); c.checks.push({kind:view.kind,d:Date.now(),pct,rating:UR.bewerte(pct)});
   c.fehlerTypen=[...new Set(view.answers.filter(a=>!a.ok).map(a=>a.t.type))];
+  c.zuletzt=view.items.map(fingerabdruck);
   if(view.kind==='eingang'){
     const wrong=new Set(view.answers.filter(a=>!a.ok).map(a=>a.t.station));
     c.path=B(view.id).stationen.filter(s=>!s.extra&&wrong.has(s.id)).map(s=>s.id);
@@ -1568,7 +1621,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-20.65","datum":"20.11.2026","pruefsumme":"6ebd024d4f85982c"};
+UR.version = {"nummer":"2026-11-20.83","datum":"20.11.2026","pruefsumme":"437c955a5e8d6a4e"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -3297,6 +3350,195 @@ UR.raza = {ggT, Q, qadd, qsub, qmul, qdiv, qvgl, qwert, rund, alsQ, Z, br, gemHT
 })(window.UR = window.UR || {});
 </script>
 <script>
+/* Mathe/bausteine/koordinatensystem.js */
+/* Mathe-Baustein Koordinatensystem (M-RaZa-G3, Entscheidungen 20.11.2026, LEITFADEN.md „Rationale Zahlen“):
+   - Gitter von −8 bis 8 (o.min, o.max), x-Achse waagrecht, y-Achse senkrecht, Pfeilspitzen, „x“ und „y“ an den Enden,
+     jede ganze Zahl beschriftet (unter der x-Achse, links der y-Achse), „0“ einmal links unter dem Nullpunkt
+   - Quadranten I bis IV gegen den Uhrzeigersinn (I rechts oben), Punkte als X mit Namen
+   - Beschriftungen überlappen nie: Jede bekommt mehrere mögliche Plätze, genommen wird der erste freie
+   - Punkte setzen durch Antippen (Form 'fragen' mit Antippen im Bild): Das Bild ist eine einzige Tipp-Fläche, der Punkt
+     springt auf den nächsten Gitterpunkt (auf 1 bzw. 0,5 genau). Nochmal tippen versetzt ihn, Pfeiltasten schieben ihn
+     um einen Schritt (am Handy genauer als der Finger). Gezogen wird nie. Mehrere Punkte: Knöpfe wählen, welcher dran ist.
+   - Wert eines gesetzten Punkts im versteckten Feld: „x;y“ (Punkt als Dezimalzeichen), Anzeige „(x|y)“ wie im MKH. */
+(function(UR){
+const M = UR.M;
+const Z = x => UR.raza.Z(x);
+const U = 22, RL = 24, RR = 28, RO = 28, RU = 24;          // Einheit und Ränder im Bild
+
+// Geometrie eines Bildes: Lage des Nullpunkts und Umrechnung Wert ↔ Bild
+function geo(o){
+  const min=o.min??-8, max=o.max??8, W=RL+(max-min)*U+RR, H=RO+(max-min)*U+RU;
+  const X0=RL-min*U, Y0=RO+max*U;
+  return {min, max, W, H, X0, Y0, px:x=>X0+x*U, py:y=>Y0-y*U};
+}
+const ksKey = (x,y) => `${x};${y}`;
+const ksText = (x,y) => `(${Z(x)}|${Z(y)})`;
+// angetippte Stelle (Bild-Koordinaten) → nächster Gitterpunkt im Schritt s, innerhalb des Gitters
+function ksAusPixel(g, s, px, py){
+  const r=v=>Math.min(g.max, Math.max(g.min, Math.round(v/s)*s));
+  return {x:r((px-g.X0)/U)+0, y:r((g.Y0-py)/U)+0};
+}
+// alle Gitterpunkte als Auswahl (für 'fragen': Beschriftung der Lösung und der Eingabe)
+function ksOptionen(s=0.5, min=-8, max=8){
+  const l=[]; for(let x=min;x<=max;x+=s) for(let y=min;y<=max;y+=s) l.push([ksKey(x,y), ksText(x,y)]);
+  return l;
+}
+
+/* ---------- Beschriftungen ohne Überlappung ---------- */
+const breite = (t, fs) => String(t).length*fs*0.62+2;
+const ueber = (a,b) => a.x<b.x+b.w && b.x<a.x+a.w && a.y<b.y+b.h && b.y<a.y+a.h;
+function platzierer(g){
+  const belegt=[];
+  return {
+    belegt,
+    // kandidaten: [[dx, dy, anchor]] relativ zu (x, y); dy = Grundlinie
+    setze(text, x, y, kand, fs){
+      let best=null;
+      for(const [dx,dy,anc] of kand){
+        const w=breite(text,fs), bx=anc==='start'?x+dx:anc==='end'?x+dx-w:x+dx-w/2, b={x:bx, y:y+dy-fs*0.8, w, h:fs};
+        const rand = b.x<2||b.y<2||b.x+b.w>g.W-2||b.y+b.h>g.H-2;
+        const n = belegt.filter(o=>ueber(o,b)).length + (rand?5:0);
+        if(!best||n<best.n) best={n, b, tx:x+dx, ty:y+dy, anc};
+        if(n===0) break;
+      }
+      if(!best.n||!kand.ohneNot) belegt.push(best.b);   // ohneNot: ohne freien Platz entfällt die Beschriftung
+      return best;
+    }
+  };
+}
+const halo = 'paint-order="stroke" stroke="var(--paper)" stroke-width="3.5" stroke-linejoin="round"';
+// Plätze für den Namen eines Punkts: rechts oben, links oben, rechts unten, links unten, darüber, darunter
+const NAMENPLATZ = [[8,-8,'start'],[-8,-8,'end'],[8,17,'start'],[-8,17,'end'],[0,-11,'middle'],[0,22,'middle'],[12,5,'start'],[-12,5,'end'],
+  ...[-24,33,-40,49].flatMap(dy=>[[8,dy,'start'],[-8,dy,'end'],[0,dy,'middle']]), ...[-8,17,5].flatMap(dy=>[[30,dy,'start'],[-30,dy,'end']])];
+
+/* ---------- das Bild ----------
+   o.punkte [{x, y, name, koord (Name mit Koordinaten), farbe}], o.wege [{x, y}] (vom Nullpunkt erst waagrecht, dann senkrecht),
+   o.quadranten (I bis IV, 'ecke': klein in den Ecken), o.marken [{x, y, text}] (Nummern zum Zuordnen),
+   o.figur [[x,y] …] (Vieleck), o.zahlen false (ohne Zahlen), o.namen false (ohne „x“, „y“), o.farbig (Achsen farbig),
+   o.spiegel 'x'|'y' (Achse hervorheben), o.verbindung [[x1,y1,x2,y2]] (gestrichelt), o.halb (Halbschritt-Linien),
+   o.beschriftung [{x, y, text, farbe}] (Texte an Gitterpunkten, ohne Überlappung), o.tipp {schritt} (Tipp-Fläche),
+   o.marke [{g, name}] (versteckte X für gesetzte Punkte), o.stufen (Weg in Schritten zum Antippen, Erklärung). */
+function ksSVG(o={}){
+  const g=geo(o), {min, max, W, H, X0, Y0, px, py}=g, P=platzierer(g);
+  let s=`<defs><marker id="ksax" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text)"/></marker>
+    <marker id="ksw1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="3" markerHeight="3" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--c1)"/></marker>
+    <marker id="ksw2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="3" markerHeight="3" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--c2)"/></marker></defs>`;
+  // Gitter (Kästchen je Einheit), auf Wunsch Halbschritte
+  if(o.halb) for(let v=min+0.5; v<max; v++) s+=`<line class="ks-halb" x1="${px(v)}" x2="${px(v)}" y1="${py(max)}" y2="${py(min)}"/><line class="ks-halb" x1="${px(min)}" x2="${px(max)}" y1="${py(v)}" y2="${py(v)}"/>`;
+  for(let v=min; v<=max; v++) s+=`<line class="ks-gitter" x1="${px(v)}" x2="${px(v)}" y1="${py(max)}" y2="${py(min)}"/><line class="ks-gitter" x1="${px(min)}" x2="${px(max)}" y1="${py(v)}" y2="${py(v)}"/>`;
+  if(o.figur&&o.figur.length) s+=`<polygon class="ks-figur" points="${o.figur.map(([x,y])=>`${px(x)},${py(y)}`).join(' ')}"/>`;
+  // Achsen mit Pfeilspitzen
+  const fx=o.farbig?'var(--c1)':'var(--text)', fy=o.farbig?'var(--c2)':'var(--text)';
+  s+=`<line class="ks-achse${o.spiegel==='x'?' ks-hervor':''}" x1="${px(min)-8}" x2="${px(max)+18}" y1="${Y0}" y2="${Y0}" stroke="${fx}" marker-end="url(#ksax)"/>
+    <line class="ks-achse${o.spiegel==='y'?' ks-hervor':''}" x1="${X0}" x2="${X0}" y1="${py(min)+8}" y2="${py(max)-18}" stroke="${fy}" marker-end="url(#ksax)"/>`;
+  if(o.namen!==false){
+    s+=`<text class="ks-aname" x="${W-6}" y="${Y0+19}" text-anchor="end" fill="${fx}">x</text><text class="ks-aname" x="${X0+9}" y="${RO-12}" fill="${fy}">y</text>`;
+    P.belegt.push({x:W-20, y:Y0+4, w:18, h:18}, {x:X0+6, y:RO-28, w:16, h:18}); }
+  // Zahlen an den Achsen (Platz wird belegt, damit Namen ausweichen)
+  if(o.zahlen!==false){
+    for(let v=min; v<=max; v++){ if(v===0) continue;
+      s+=`<text class="ks-zahl" data-achse="x" x="${px(v)}" y="${Y0+15}" text-anchor="middle" ${halo}>${Z(v)}</text>`;
+      s+=`<text class="ks-zahl" data-achse="y" x="${X0-5}" y="${py(v)+4}" text-anchor="end" ${halo}>${Z(v)}</text>`;
+      const w=breite(Z(v),12); P.belegt.push({x:px(v)-w/2, y:Y0+5, w, h:12}, {x:X0-5-w, y:py(v)-6, w, h:12}); }
+    s+=`<text class="ks-zahl ks-null" data-achse="0" x="${X0-4}" y="${Y0+15}" text-anchor="end" ${halo}>0</text>`; P.belegt.push({x:X0-13, y:Y0+5, w:9, h:11});
+  }
+  // Quadranten: groß in der Mitte bzw. klein in den Ecken
+  if(o.quadranten){ const e=o.quadranten==='ecke', d=e?max-0.6:(max+1)/2;
+    [['I',1,1],['II',-1,1],['III',-1,-1],['IV',1,-1]].forEach(([n,a,b])=>{
+      s+=`<text class="ks-quadrant${e?' klein':''}" x="${px(a*d)}" y="${py(b*d)+(e?5:9)}" text-anchor="middle">${n}</text>`;
+      const w=breite(n,e?14:26); P.belegt.push({x:px(a*d)-w/2, y:py(b*d)-(e?9:16), w, h:e?14:26}); }); }
+  if(o.verbindung) for(const [x1,y1,x2,y2] of o.verbindung) s+=`<line class="ks-verb" x1="${px(x1)}" y1="${py(y1)}" x2="${px(x2)}" y2="${py(y2)}"/>`;
+  // Nummern zum Zuordnen (A01) und Punkte: zuerst platziert, damit die Wege ausweichen; gezeichnet über den Wegen
+  let sp='';
+  for(const m of o.marken||[]) sp+=`<g class="ks-marke"><circle cx="${px(m.x)}" cy="${py(m.y)}" r="11"/><text x="${px(m.x)}" y="${py(m.y)+5}" text-anchor="middle">${m.zahl??m.text}</text></g>`;
+  for(const m of o.marken||[]) P.belegt.push({x:px(m.x)-11, y:py(m.y)-11, w:22, h:22});
+  // Punkte: zuerst alle X belegen, dann die Namen platzieren
+  const pk=o.punkte||[];
+  pk.forEach(p=>P.belegt.push({x:px(p.x)-7, y:py(p.y)-7, w:14, h:14}));
+  // Name mit Koordinaten; ist dafür kein Platz frei, nur der Name (die Koordinaten stehen dann in der Rückmeldung)
+  const NOT=Object.assign([...NAMENPLATZ],{ohneNot:true});
+  for(const p of pk){ const X=px(p.x), Y=py(p.y), c=p.farbe||'var(--cop)'; let t=p.koord?`${p.name}${ksText(p.x,p.y)}`:p.name;
+    let l=t&&p.koord?P.setze(t, X, Y, NOT, 17):null;
+    if(p.koord&&l.n){ t=p.name; l=null; }
+    if(t&&!l) l=P.setze(t, X, Y, NAMENPLATZ, 17);
+    const g1=`<g class="ks-punkt"><path class="ks-x" d="M${X-6} ${Y-6} L${X+6} ${Y+6} M${X+6} ${Y-6} L${X-6} ${Y+6}" stroke="${c}"/>${l?`<text class="ks-name" x="${l.tx}" y="${l.ty}" text-anchor="${l.anc}" fill="${c}" ${halo}>${t}</text>`:''}</g>`;
+    sp+= p.stufe ? `<g class="ks-st ks-st${p.stufe}">${g1}</g>` : g1; }
+  // Weg vom Nullpunkt: erst waagrecht (x, blau), dann senkrecht (y, grün)
+  for(const w of o.wege||[]){
+    const st = (n,inhalt) => o.stufen ? `<g class="ks-st ks-st${n}">${inhalt}</g>` : inhalt;
+    const hx = Math.abs(w.x)>0, hy = Math.abs(w.y)>0;
+    const t1 = `${Z(Math.abs(w.x))} nach ${w.x>0?'rechts':'links'}`, t2 = `${Z(Math.abs(w.y))} nach ${w.y>0?'oben':'unten'}`;
+    let a='', b='';
+    // die Wege selbst sind Hindernisse für die Beschriftungen (Text nie auf einer Weglinie)
+    if(hy) P.belegt.push({x:px(w.x)-3, y:Math.min(Y0,py(w.y)), w:6, h:Math.abs(py(w.y)-Y0)});
+    if(hx) P.belegt.push({x:Math.min(X0,px(w.x)), y:Y0-3, w:Math.abs(px(w.x)-X0), h:6});
+    if(hx){ a+=`<line class="ks-weg1" x1="${X0}" y1="${Y0}" x2="${px(w.x)}" y2="${Y0}" marker-end="url(#ksw1)"/>`;
+      const k1=[]; for(const dy of [-6,31,49,-28,-50]) for(const f of [.5,.3,.7]) k1.push([(px(w.x)-X0)*(f-.5),dy,'middle']);
+      k1.ohneNot=true; const l=P.setze(t1, (X0+px(w.x))/2, Y0, k1, 14);
+      if(!l.n) a+=`<text class="ks-wegt" x="${l.tx}" y="${l.ty}" text-anchor="${l.anc}" fill="var(--c1)" ${halo}>${t1}</text>`; }
+    if(hy){ b+=`<line class="ks-weg2" x1="${px(w.x)}" y1="${Y0}" x2="${px(w.x)}" y2="${py(w.y)+(w.y>0?1:-1)*(Math.abs(w.y)*U>14?8:0)}" marker-end="url(#ksw2)"/>`;
+      const r=w.x>=0, k2=[]; for(const f of [.5,.3,.7,.15,.85,1.25,-.45,1.6,-.9]) for(const a of [r,!r]) k2.push([a?7:-7,(py(w.y)-Y0)*f+4,a?'start':'end']);
+      k2.ohneNot=true; const l=P.setze(t2, px(w.x), Y0, k2, 14);
+      if(!l.n) b+=`<text class="ks-wegt" x="${l.tx}" y="${l.ty}" text-anchor="${l.anc}" fill="var(--c2)" ${halo}>${t2}</text>`; }
+    s+=st(1,a)+st(2,b);
+  }
+  s+=sp;
+  // weitere Texte an Gitterpunkten (Lösungsbild A01)
+  for(const b of o.beschriftung||[]){ const l=P.setze(b.text, px(b.x), py(b.y), b.plaetze||NAMENPLATZ, 13);
+    s+=`<text class="ks-text" x="${l.tx}" y="${l.ty}" text-anchor="${l.anc}" fill="${b.farbe||'var(--text)'}" ${halo}>${b.text}</text>`; }
+  // versteckte X für die gesetzten Punkte (Antippen)
+  for(const m of o.marke||[]) s+=`<g class="ks-gesetzt" data-ks-marke="${m.g}" style="display:none"><path d="M-7 -7 L7 7 M7 -7 L-7 7"/><text x="9" y="-8" ${halo}>${m.name||''}</text></g>`;
+  if(o.tipp) s+=`<rect class="ks-flaeche" data-x0="${X0}" data-y0="${Y0}" data-u="${U}" data-min="${min}" data-max="${max}" data-schritt="${o.tipp.schritt}" x="0" y="0" width="${W}" height="${H}"/>`;
+  return `<svg class="ks-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Koordinatensystem">${s}</svg>`;
+}
+
+/* ---------- Punkte setzen (für die Form 'fragen', Gruppen mit imBild) ----------
+   punkte [{g:'q0', name:'A'}], schritt 1 oder 0,5; o wie bei ksSVG (z. B. o.wege als Hilfe, o.quadranten) */
+function ksSetzen(punkte, schritt, o={}){
+  const mehr=punkte.length>1;
+  const wahl = mehr ? `<div class="ks-knoepfe ks-wahl">${punkte.map((p,i)=>`<button type="button" class="${i?'':'an'}" data-ks-wahl="${i}" data-ks-g="${p.g}">Punkt ${p.name}</button>`).join('')}</div>` : '';
+  const pfeile = `<div class="ks-knoepfe ks-pfeile" aria-label="Punkt verschieben">${[['l','←','nach links'],['o','↑','nach oben'],['u','↓','nach unten'],['r','→','nach rechts']]
+    .map(([k,z,a])=>`<button type="button" data-ks-pfeil="${k}" aria-label="${a}">${z}</button>`).join('')}</div>`;
+  const svg=ksSVG(Object.assign({}, o, {halb:schritt<1||o.halb, tipp:{schritt}, marke:punkte.map(p=>({g:p.g, name:mehr?p.name:''}))}));
+  return `<div class="ks-setzen" data-ks-gruppen="${punkte.map(p=>p.g).join(',')}">${wahl}${svg}<p class="small muted ks-hinweis">Tippe ins Gitter. Nochmal tippen versetzt den Punkt, die Pfeile schieben ihn${schritt<1?' um ein halbes Kästchen':''}.</p>${pfeile}</div>`;
+}
+UR.bindungen.push(app=>{ if(!app.querySelectorAll) return;   // Testumgebung ohne DOM
+  app.querySelectorAll('.ks-setzen').forEach(box=>{
+    const svg=box.querySelector('svg'), fl=box.querySelector('.ks-flaeche'); if(!svg||!fl) return;
+    const d=fl.dataset, g={X0:+d.x0, Y0:+d.y0, min:+d.min, max:+d.max}, s=+d.schritt, U0=+d.u;
+    const gruppen=box.dataset.ksGruppen.split(','), pos={}; let akt=0;
+    const feld=k=>app.querySelector(`[data-wfeld="${k}"]`);
+    const knopf=i=>box.querySelector(`[data-ks-wahl="${i}"]`);
+    const aktiv=i=>{ akt=i; box.querySelectorAll('[data-ks-wahl]').forEach(b=>b.classList.toggle('an', +b.dataset.ksWahl===i)); };
+    function setze(i,x,y){
+      const r=v=>Math.min(g.max, Math.max(g.min, Math.round(v/s)*s))+0; x=r(x); y=r(y);
+      pos[i]={x,y}; const f=feld(gruppen[i]); if(f) f.value=ksKey(x,y);
+      const m=box.querySelector(`[data-ks-marke="${gruppen[i]}"]`);
+      if(m){ m.style.display=''; m.setAttribute('transform', `translate(${g.X0+x*U0} ${g.Y0-y*U0})`); }
+      const k=knopf(i); if(k) k.classList.add('gesetzt');
+    }
+    fl.onclick=e=>{ const p=svg.createSVGPoint(); p.x=e.clientX; p.y=e.clientY; const q=p.matrixTransform(svg.getScreenCTM().inverse());
+      const neu=pos[akt]===undefined, w=ksAusPixel(Object.assign({}, g), s, q.x, q.y);
+      setze(akt, w.x, w.y);
+      if(neu&&gruppen.length>1){ const n=gruppen.findIndex((_,i)=>pos[i]===undefined); if(n>=0) aktiv(n); } };
+    box.querySelectorAll('[data-ks-wahl]').forEach(b=>b.onclick=()=>aktiv(+b.dataset.ksWahl));
+    box.querySelectorAll('[data-ks-pfeil]').forEach(b=>b.onclick=()=>{ const p=pos[akt]||{x:0,y:0}, k=b.dataset.ksPfeil;
+      setze(akt, p.x+(k==='r'?s:k==='l'?-s:0), p.y+(k==='o'?s:k==='u'?-s:0)); });
+  });
+  // Erklärung: Weg in Schritten zum Antippen (① waagrecht, ② senkrecht)
+  app.querySelectorAll('[data-ksstufe]').forEach(b=>b.onclick=()=>{ const box=b.closest('.ksbox'); box.classList.toggle('k'+b.dataset.ksstufe); });
+});
+
+/* ---------- Hilfen für die Aufgaben ---------- */
+// Quadrant aus den Vorzeichen; 0 = auf einer Achse
+const quadrant = (x,y) => x>0&&y>0?'I':x<0&&y>0?'II':x<0&&y<0?'III':x>0&&y<0?'IV':'';
+const VZ_TABELLE = () => `<div class="tablewrap"><table class="mini kstab"><thead><tr><th>Quadrant</th><th>x</th><th>y</th></tr></thead><tbody>${
+  [['I','+','+'],['II',M,'+'],['III',M,M],['IV','+',M]].map(([q,a,b])=>`<tr><th>${q}</th><td><span class="sgn">${a}</span></td><td><span class="sgn">${b}</span></td></tr>`).join('')}</tbody></table></div>`;
+
+Object.assign(UR.mathe, {ksSVG, ksSetzen, ksGeo:geo, ksKey, ksText, ksAusPixel, ksOptionen, ksQuadrant:quadrant, ksVzTabelle:VZ_TABELLE, ksU:U});
+})(window.UR = window.UR || {});
+</script>
+<script>
 /* Mathe/1.1 Rationale-Zahlen/M-RaZa-G1.js */
 /* Baustein M-RaZa-G1: „Ich kenne wichtige Begriffe und Eigenschaften betreffend Rationale Zahlen und kann sie erklären.“
    Steckbrief: M-RaZa-G1.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026). Entscheidungen der Lehrkraft 20.11.2026:
@@ -3706,6 +3948,268 @@ UR.kompetenzAnmelden({id:'M-RaZa-G2', typen, stationen, kern, jeTyp, plus, plusH
 })(window.UR = window.UR || {});
 </script>
 <script>
+/* Mathe/1.1 Rationale-Zahlen/M-RaZa-G3.js */
+/* Baustein M-RaZa-G3: „Ich kann Rationale Zahlen für Darstellungen im Koordinatensystem verwenden.“
+   Steckbrief: M-RaZa-G3.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026). Bild: Fachbaustein koordinatensystem.js.
+   - Schreibweise P(4|−3): zuerst x (waagrecht), dann y (senkrecht); Quadranten I bis IV gegen den Uhrzeigersinn
+   - Koordinaten eintippen mit Vorzeichen-Taste (vzFeld), Punkte setzen durch Antippen im Gitter (Form 'fragen', imBild)
+   - Einstieg (leicht): A01 weniger Paare und Merkkarte, A02 nur der gefragte Punkt mit Weg „erst waagrecht, dann
+     senkrecht“, A03 Merkkarte mit der Vorzeichen-Tabelle, A04 der waagrechte Weg ist schon eingezeichnet
+   - A05 zeichnen auf Papier mit Selbstkontrolle (Form 'zeichnen'), zählt auch im Check */
+(function(UR){
+const {rnd, pick} = UR, M = UR.M;
+const {Q, qwert, Z, gemHTML, gemText, vzFeld} = UR.raza;
+const {ksSVG, ksSetzen, ksKey, ksText, ksOptionen, ksQuadrant, ksVzTabelle} = UR.mathe;
+const mischen = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; };
+function versuche(fn){ for(let n=0;n<3000;n++){ const r=fn(); if(r) return r; } throw new Error('Generator findet keine passende Aufgabe'); }
+const merk = html => `<div class="merk">${html}</div>`;
+const KREIS = ['①','②','③','④','⑤','⑥','⑦'];
+const NAMEN = 'ABCDEFGHKLMNPQRSTUVW'.split('');          // ohne I und O (sehen aus wie Quadrant I bzw. 0)
+const nz = (a,b) => { let n=0; while(n===0) n=rnd(a,b); return n; };
+const pkt = (n,x,y) => `${n}${ksText(x,y)}`;              // A(3|−4)
+const ZUERST = 'Zuerst kommt x (waagrecht, nach rechts oder links), dann y (senkrecht, nach oben oder unten).';
+const WEG = (x,y) => `Vom Nullpunkt ${x?`${Z(Math.abs(x))} nach ${x>0?'rechts':'links'}`:'nicht nach rechts oder links'}, dann ${y?`${Z(Math.abs(y))} nach ${y>0?'oben':'unten'}`:'nicht nach oben oder unten'}.`;
+function aufg(t){
+  t.zusatzRueckmeldung = f => `${!f.ok&&t.hinweis?`<div class="fb no pop"><span>${t.hinweis}</span></div>`:''}${t.loesungBild?`<div class="bild">${t.loesungBildVon?t.loesungBildVon(f):t.loesungBild}</div>`:''}`;
+  return t;
+}
+// Hinweis bei zwei Koordinaten-Feldern: vertauscht oder Vorzeichen falsch
+const koordHinweis = (x,y) => erg => {
+  const v=erg.map(e=>e.v); if(erg.every(e=>e.zahlOk)) return '';
+  if(x!==y&&v[0]===y&&v[1]===x) return `x und y vertauscht? ${ZUERST}`;
+  if(v.every((w,i)=>w!==null&&Math.abs(w)===Math.abs([x,y][i]))) return 'Achte auf die Vorzeichen: rechts und oben +, links und unten −.';
+  return '';
+};
+const koordFelder = (x,y) => [vzFeld('x-Koordinate', x), vzFeld('y-Koordinate', y)];
+const ansHTML = (n,x,y) => `${n}(${Z(x)}|${Z(y)})`;
+
+/* ---------- Zahlen mit Vorzeichen für A03 und N03: ganze Zahlen, Dezimalzahlen, Brüche ---------- */
+function rationaleZahl(){
+  const art=pick(['ganz','ganz','dez','bruch']), s=Math.random()<.5?-1:1;
+  if(art==='ganz'){ const v=s*rnd(1,60); return {q:Q(v), text:Z(v), html:Z(v)}; }
+  if(art==='dez'){ const v=s*rnd(1,99)/10; return {q:Q(Math.round(v*10),10), text:Z(v), html:Z(v)}; }
+  const [z,n]=pick([[1,2],[1,3],[2,3],[1,4],[3,4],[1,5],[2,5],[3,5],[4,5],[1,8],[3,8],[5,8],[7,8]]), g=rnd(0,9), q=Q(s*(g*n+z),n);
+  return {q, text:gemText(q), html:gemHTML(q)};
+}
+const NULL = {q:Q(0), text:'0', html:'0'};
+
+/* ---------- Figuren für A05 (Punkte gegen den Uhrzeigersinn) ---------- */
+function figurPunkte(art){
+  const r=(a,b)=>rnd(a,b);
+  if(art==='Parallelogramm'){ const p=r(4,8), sx=nz(-3,3), h=r(3,6); if(p*p===sx*sx+h*h) return null;
+    const A=[r(-7,7-p-Math.max(0,sx)), r(-7,7-h)]; A[0]=Math.max(A[0],-7-Math.min(0,sx)); return [A,[A[0]+p,A[1]],[A[0]+p+sx,A[1]+h],[A[0]+sx,A[1]+h]]; }
+  if(art==='Rechteck'){ const w=r(3,9), h=r(2,7); if(w===h) return null; const A=[r(-7,7-w), r(-7,7-h)]; return [A,[A[0]+w,A[1]],[A[0]+w,A[1]+h],[A[0],A[1]+h]]; }
+  if(art==='Quadrat'){ const a=r(2,4); if(Math.random()<.5){ const A=[r(-7,7-2*a), r(-7+a,7-a)]; return [A,[A[0]+a,A[1]-a],[A[0]+2*a,A[1]],[A[0]+a,A[1]+a]]; }
+    const A=[r(-7,7-a), r(-7,7-a)]; return [A,[A[0]+a,A[1]],[A[0]+a,A[1]+a],[A[0],A[1]+a]]; }
+  if(art==='Drachen'){ const m=r(-4,4), w=r(2,3), u=r(1,4), o=r(2,6); if(u===o) return null; const y2=r(-7+u,7-o);
+    if(m-w<-7||m+w>7) return null; return [[m,y2-u],[m+w,y2],[m,y2+o],[m-w,y2]]; }
+  if(art==='Trapez'){ const p=r(5,9), q=r(2,p-2), d=r(0,p-q), h=r(3,6); const A=[r(-7,7-p), r(-7,7-h)]; return [A,[A[0]+p,A[1]],[A[0]+d+q,A[1]+h],[A[0]+d,A[1]+h]]; }
+  // Dreieck
+  const P=[[r(-7,7),r(-7,7)],[r(-7,7),r(-7,7)],[r(-7,7),r(-7,7)]];
+  const fl=(P[1][0]-P[0][0])*(P[2][1]-P[0][1])-(P[2][0]-P[0][0])*(P[1][1]-P[0][1]);
+  if(Math.abs(fl)<16) return null;
+  return fl>0?P:[P[0],P[2],P[1]];
+}
+const FIGUREN = ['Parallelogramm','Parallelogramm','Rechteck','Quadrat','Drachen','Trapez','Dreieck'];
+const FIGUR_TEXT = {Parallelogramm:'ein Parallelogramm', Rechteck:'ein Rechteck', Quadrat:'ein Quadrat', Drachen:'ein Drachenviereck', Trapez:'ein Trapez', Dreieck:'ein Dreieck'};
+
+/* ---------- Teile des Koordinatensystems (A01) ---------- */
+const TEILE = [
+  {id:'xa', text:'x-Achse', kurz:'x-Achse'}, {id:'ya', text:'y-Achse', kurz:'y-Achse'}, {id:'np', text:'Nullpunkt (Ursprung)', kurz:'Nullpunkt'},
+  {id:'q1', text:'Quadrant I', kurz:'Quadrant I'}, {id:'q2', text:'Quadrant II', kurz:'Quadrant II'}, {id:'q3', text:'Quadrant III', kurz:'Quadrant III'}, {id:'q4', text:'Quadrant IV', kurz:'Quadrant IV'}];
+function teilOrt(id){
+  if(id==='xa') return [(Math.random()<.5?-1:1)*rnd(2,7), 0];
+  if(id==='ya') return [0, (Math.random()<.5?-1:1)*rnd(2,7)];
+  if(id==='np') return [0,0];
+  const s={q1:[1,1],q2:[-1,1],q3:[-1,-1],q4:[1,-1]}[id];
+  return [s[0]*rnd(2,6), s[1]*rnd(2,6)];
+}
+const MERK_TEILE = 'Die <b>x-Achse</b> ist waagrecht, die <b>y-Achse</b> senkrecht. Sie schneiden sich im <b>Nullpunkt</b> (Ursprung). Die <b>Quadranten</b> I bis IV zählt man gegen den Uhrzeigersinn, I liegt rechts oben.';
+
+/* ---------- Lösungswörter (A06): vier verschiedene Buchstaben, ohne I und O ---------- */
+const WOERTER = ['ZAHL','HALB','PLUS','GRAD','WERT','FELD','MAUS','HAUS','BAUM','BERG','WALD','HUND','TURM','GELD','HELD','ZELT','SALZ','KERN','NEST','HERZ','WURM','FLUG'];
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // G3-A01 Begriffe im Koordinatensystem zuordnen (Kärtchen antippen, dann die Nummer im Bild)
+  begriffe(ctx){
+    const leicht=!!(ctx&&ctx.leicht), teile=mischen(TEILE).slice(0, leicht?3:pick([4,5]));
+    const orte=teile.map(t=>teilOrt(t.id)), nummern=mischen(teile.map((_,i)=>i));
+    const marken=teile.map((t,i)=>({x:orte[i][0], y:orte[i][1], text:KREIS[nummern[i]], zahl:nummern[i]+1}));
+    const bild=ksSVG({zahlen:false, namen:false, marken});
+    const loesungBild=ksSVG({zahlen:false, farbig:true, marken,
+      beschriftung:[...teile].sort((a,b)=>a.id[0]==='q'?1:b.id[0]==='q'?-1:0).map(t=>{ const i=teile.indexOf(t), [x,y]=orte[i];
+        return {x, y, text:t.kurz, farbe:t.id==='xa'?'var(--c1)':t.id==='ya'?'var(--c2)':'var(--text)',
+          plaetze:t.id==='xa'?[[0,-17,'middle'],[0,27,'middle'],[30,-17,'middle'],[-30,-17,'middle'],[30,27,'middle'],[-30,27,'middle']]:t.id==='ya'?[[16,5,'start'],[-16,5,'end'],[16,-16,'start'],[-16,-16,'end'],[16,26,'start'],[-16,26,'end']]:t.id==='np'?[[14,24,'start'],[-14,24,'end'],[14,-14,'start']]:undefined}; })});
+    const ans={}; teile.forEach((t,i)=>ans[t.id]='m'+nummern[i]);
+    const ziele=teile.map((_,i)=>({id:'m'+i, text:KREIS[i]})).sort((a,b)=>a.id<b.id?-1:1);
+    return aufg({kind:'zuordnen', q:'Welcher Teil des Koordinatensystems ist das? Ordne zu!', qh:'Welcher Teil des Koordinatensystems ist das? Ordne zu!',
+      lead: leicht ? merk(MERK_TEILE) : '', bild, loesungBild, marken, teile:teile.map(t=>t.id),
+      dinge:teile.map(t=>({id:t.id, html:t.text, kurz:t.kurz})), ziele, ans,
+      why:`${MERK_TEILE} Merke: x vor y, zuerst waagrecht.`});
+  },
+  // G3-A02 Koordinaten ablesen (zwei Felder mit Vorzeichen-Taste); leicht: nur der Punkt, mit Weg
+  ablesen(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const pkte=versuche(()=>{ const l=[]; const anz=leicht?1:3;
+      while(l.length<anz){ const achse=Math.random()<.15; let x=rnd(-8,8), y=rnd(-8,8);
+        if(achse){ if(Math.random()<.5) x=0; else y=0; } else if(!x||!y) continue;
+        if(!x&&!y) continue;
+        if(l.some(p=>Math.abs(p.x-x)+Math.abs(p.y-y)<2)) continue;
+        l.push({x,y}); }
+      return l; });
+    const namen=mischen(NAMEN).slice(0,pkte.length); pkte.forEach((p,i)=>p.name=namen[i]);
+    const p=pkte[0], {x,y}=p;
+    const bild=ksSVG({punkte:pkte.map(q=>({x:q.x, y:q.y, name:q.name})), wege:leicht?[{x,y}]:[]});
+    const loesungBild=ksSVG({punkte:[{x,y,name:p.name,koord:true,farbe:'var(--g)'}], wege:[{x,y}]});
+    return aufg({kind:'zahlen', q:`Gib die Koordinaten des Punktes ${p.name} an!`, qh:`Gib die Koordinaten des Punktes <b>${p.name}</b> an! <span class="nw">${p.name}( x | y )</span>`,
+      lead: leicht ? merk(`${ZUERST} Folge dem Weg im Bild.`) : '', papierLead:'Lies die Koordinaten ab!', bild, loesungBild, punkt:p,
+      felder:koordFelder(x,y).map((f,i)=>Object.assign(f,{ansHTML:i?Z(y):Z(x)})), hinweisNach:koordHinweis(x,y),
+      why:`${WEG(x,y)} Also ${ansHTML(p.name,x,y)}. ${ZUERST}`, steps:pkt(p.name,x,y)});
+  },
+  // G3-A03 In welchem Quadranten liegt der Punkt? (ohne Bild; nie auf einer Achse)
+  quadrant(ctx){
+    const leicht=!!(ctx&&ctx.leicht), A=rationaleZahl(), B=rationaleZahl(), a=A.q, b=B.q, n=pick(NAMEN);
+    const qa=ksQuadrant(qwert(a),qwert(b));
+    return aufg({kind:'fragen', q:`In welchem Quadranten liegt ${n}(${A.text}|${B.text})?`, qh:`In welchem Quadranten liegt <b>${n}(${A.html}|${B.html})</b>?`,
+      lead: leicht ? merk(`Schau auf die Vorzeichen: zuerst x, dann y.${ksVzTabelle()}`) : '', x:qwert(a), y:qwert(b), name:n,
+      gruppen:[{optionen:[['I','I'],['II','II'],['III','III'],['IV','IV']], ans:qa, klasse:'vier'}],
+      loesungBild:ksSVG({quadranten:true, zahlen:false}),
+      why:`x ist ${qwert(a)>0?'positiv (+)':'negativ (−)'}, y ist ${qwert(b)>0?'positiv (+)':'negativ (−)'}: Quadrant ${qa}.${ksVzTabelle()}`, steps:`Quadrant ${qa}`});
+  },
+  // G3-A04 Punkt im Koordinatensystem einzeichnen (antippen; Stufe 3 mit 0,5)
+  einzeichnen(ctx){
+    const leicht=!!(ctx&&ctx.leicht), halb=!leicht&&Math.random()<.35;
+    const halbZahl = () => (Math.random()<.5?-1:1)*(rnd(0,7)+0.5);
+    const [x,y]=versuche(()=>{ let x=nz(-8,8), y=nz(-8,8);
+      if(halb){ const w=rnd(0,2); if(w!==1) x=halbZahl(); if(w!==0) y=halbZahl(); }
+      return [x,y]; });
+    const n=pick(NAMEN), s=halb?0.5:1;
+    const loesungBildVon=f=>{ const ihr=String(f&&f.shown||'').match(/^\(([^|]+)\|([^)]+)\)$/);
+      const zahl=t=>Number(t.replace(M,'-').replace(',','.')), punkte=[{x,y,name:n,koord:true,farbe:'var(--g)'}];
+      if(ihr&&!f.ok) punkte.push({x:zahl(ihr[1]), y:zahl(ihr[2]), name:'dein Punkt', farbe:'var(--cop)'});
+      return ksSVG({punkte, wege:[{x,y}], halb}); };
+    return aufg({kind:'fragen', q:`Trage den Punkt ${pkt(n,x,y)} in das Koordinatensystem ein!`, qh:`Trage den Punkt <b>${pkt(n,x,y)}</b> in das Koordinatensystem ein!`,
+      lead: leicht ? merk(`${ZUERST} Der erste Teil des Wegs ist schon eingezeichnet.`) : '', x, y, name:n, halb,
+      bild:ksSetzen([{g:'q0', name:n}], s, {wege:leicht?[{x,y:0}]:[]}), loesungBildVon, loesungBild:loesungBildVon({ok:true}),
+      gruppen:[{imBild:true, optionen:ksOptionen(0.5), ans:ksKey(x,y), ansHTML:pkt(n,x,y)}],
+      why:`${WEG(x,y)} ${halb?'Eine Koordinate mit ,5 liegt genau zwischen zwei Gitterlinien. ':''}${ZUERST}`, steps:pkt(n,x,y)});
+  },
+  // G3-A05 Koordinatensystem zeichnen und Punkte eintragen (Papier, Selbstkontrolle)
+  zeichnen_ks(){
+    const art=pick(FIGUREN);
+    const pk=versuche(()=>{ const p=figurPunkte(art); if(!p) return null;
+      if(p.some(([x,y])=>Math.abs(x)>7||Math.abs(y)>7)) return null;
+      if(p.every(([x,y])=>x>=0&&y>=0)||p.every(([x,y])=>x<=0&&y<=0)) return null;     // Punkte in mehreren Quadranten
+      return p; });
+    // manchmal um ein halbes Kästchen verschoben (Koordinaten mit ,5 wie in der LZK)
+    const dx=Math.random()<.3?pick([0.5,-0.5]):0, dy=Math.random()<.3?pick([0.5,-0.5]):0;
+    const P=pk.map(([x,y])=>[x+dx,y+dy]);
+    const namen='ABCD'.slice(0,P.length).split(''), liste=P.map(([x,y],i)=>pkt(namen[i],x,y)), nw=liste.map(x=>`<span class="nw">${x}</span>`).join(', ');
+    const viereck=P.length===4;
+    return aufg({kind:'zeichnen', text:true, zeug:'Du brauchst kariertes Papier, Bleistift und Geodreieck.', art, punkte:P, papierPlatz:4, papierLead:'Zeichne!',
+      qh:`Zeichne ein Koordinatensystem (1${UR.raza.NB}EH ≙ 1${UR.raza.NB}cm) und beschrifte es. Trage die Punkte ${nw} ein und verbinde sie der Reihe nach${viereck?` zum Viereck ${namen.join('')}`:''}. Welche Figur entsteht?`,
+      q:`Zeichne ein Koordinatensystem (1${UR.raza.NB}EH ≙ 1${UR.raza.NB}cm) und beschrifte es. Trage die Punkte ${liste.join(', ')} ein und verbinde sie der Reihe nach${viereck?` zum Viereck ${namen.join('')}`:''}. Welche Figur entsteht?`,
+      loesungBild:`<div class="ks-loes">${ksSVG({punkte:P.map(([x,y],i)=>({x,y,name:namen[i],koord:true})), figur:P, halb:dx!==0||dy!==0})}<p class="small muted">${nw}<br>1 EH ≙ 1 cm (2 Kästchen) · Es entsteht ${FIGUR_TEXT[art]}.</p></div>`,
+      pruefliste:['x-Achse waagrecht, y-Achse senkrecht, beide mit Pfeil und beschriftet (x, y, Nullpunkt 0)', '1 EH ≙ 1 cm: auf beiden Achsen gleich eingeteilt (2 Kästchen je Einheit)',
+        `Punkte richtig eingetragen und mit Namen: ${nw}`, `der Reihe nach verbunden: Es entsteht ${FIGUR_TEXT[art]}.`],
+      why:`${ZUERST} Kontrolliere mit dem Lösungsbild: Es entsteht ${FIGUR_TEXT[art]}.`});
+  },
+  /* ---------- Plus ---------- */
+  // G3-A06 Lösungswort: vier Punkte, einer je Quadrant; Buchstaben in der Reihenfolge I, II, III, IV
+  loesungswort(){
+    const wort=pick(WOERTER), Qs=[[1,1],[-1,1],[-1,-1],[1,-1]];
+    const pk=Qs.map(([a,b],i)=>({x:a*rnd(1,6), y:b*rnd(1,6), name:wort[i]}));
+    const reihe=mischen(pk), uhr=[0,3,2,1].map(i=>wort[i]).join(''), rueck=[3,2,1,0].map(i=>wort[i]).join(''), liste=reihe.map(p=>p.name).join('');
+    const opt=[...new Set([wort, uhr, rueck, liste, ...[[1,0,3,2],[2,3,0,1],[0,2,1,3]].map(l=>l.map(i=>wort[i]).join(''))])].slice(0,4);
+    return aufg({kind:'fragen', text:true, q:`Trage die Punkte ein: ${reihe.map(p=>pkt(p.name,p.x,p.y)).join(', ')}. Lies die Buchstaben in der Reihenfolge der Quadranten I, II, III, IV. Welches Wort entsteht?`,
+      qh:`Trage die Punkte ein: ${reihe.map(p=>`<span class="nw">${pkt(p.name,p.x,p.y)}</span>`).join(', ')}. Lies die Buchstaben in der Reihenfolge der Quadranten I, II, III, IV. Welches Wort entsteht?`,
+      punkte:reihe, wort, bild:ksSetzen(reihe.map((p,i)=>({g:'q'+i, name:p.name})), 1, {quadranten:'ecke'}),
+      loesungBild:`${ksSVG({punkte:reihe.map(p=>({x:p.x, y:p.y, name:p.name, koord:true})), quadranten:'ecke'})}`,
+      gruppen:[...reihe.map(p=>({imBild:true, optionen:ksOptionen(1), ans:ksKey(p.x,p.y), ansHTML:pkt(p.name,p.x,p.y)})),
+        {frage:'Lösungswort', optionen:mischen(opt).map(w=>[w,w]), ans:wort}],
+      why:`Quadrant I: ${wort[0]}, II: ${wort[1]}, III: ${wort[2]}, IV: ${wort[3]}. Die Quadranten zählt man gegen den Uhrzeigersinn: Das Wort heißt ${wort}.`});
+  },
+  // G3-N01 Punkt spiegeln (an der x-Achse, an der y-Achse oder an beiden)
+  spiegeln(){
+    const art=pick(['x','y','beide']), n=pick(NAMEN), h=()=>Math.random()<.2?0.5:0;
+    const x=nz(-7,7)+h()*Math.sign(nz(-1,1)), y=nz(-7,7)+h()*Math.sign(nz(-1,1));
+    const [sx,sy]=art==='x'?[x,-y]:art==='y'?[-x,y]:[-x,-y];
+    const text=art==='x'?'an der x-Achse':art==='y'?'an der y-Achse':'zuerst an der x-Achse, dann an der y-Achse';
+    const regel=art==='x'?'An der x-Achse spiegeln: y ändert das Vorzeichen, x bleibt.':art==='y'?'An der y-Achse spiegeln: x ändert das Vorzeichen, y bleibt.':'An beiden Achsen spiegeln: x und y ändern das Vorzeichen.';
+    const bild=ksSVG({punkte:[{x,y,name:n}], spiegel:art==='beide'?undefined:art, halb:x%1!==0||y%1!==0});
+    return aufg({kind:'zahlen', q:`Spiegle ${pkt(n,x,y)} ${text}! Gib die Koordinaten des Bildpunkts ${n}′ an.`, qh:`Spiegle <b>${pkt(n,x,y)}</b> ${text}! Gib die Koordinaten des Bildpunkts <b>${n}′</b> an.`,
+      art, punkt:{x,y,name:n}, bild,
+      felder:koordFelder(sx,sy).map((f,i)=>Object.assign(f,{ansHTML:i?Z(sy):Z(sx)})), hinweisNach:koordHinweis(sx,sy),
+      loesungBild:ksSVG({punkte:[{x,y,name:n},{x:sx,y:sy,name:n+'′',koord:true,farbe:'var(--g)'}], spiegel:art==='beide'?undefined:art, verbindung:[[x,y,sx,sy]], halb:x%1!==0||y%1!==0}),
+      why:`${regel} ${pkt(n,x,y)} → ${pkt(n+'′',sx,sy)}`, steps:pkt(n+'′',sx,sy)});
+  },
+  // G3-N02 Vierten Eckpunkt eines achsenparallelen Rechtecks ergänzen
+  eckpunkt(){
+    const [x1,x2,y1,y2]=versuche(()=>{ const x1=rnd(-7,4), x2=rnd(x1+2,7), y1=rnd(-7,4), y2=rnd(y1+2,7); return x2-x1===y2-y1?null:[x1,x2,y1,y2]; });
+    const ecken=[[x1,y1],[x2,y1],[x2,y2],[x1,y2]], start=rnd(0,3), P=[0,1,2,3].map(i=>ecken[(start+i)%4]), fehlt=rnd(0,3), N='ABCD';
+    const geg=[0,1,2,3].filter(i=>i!==fehlt), [fx,fy]=P[fehlt];
+    return aufg({kind:'zahlen', q:`${geg.map(i=>pkt(N[i],...P[i])).join(', ')} sind Eckpunkte des Rechtecks ABCD. Die Seiten sind parallel zu den Achsen. Gib ${N[fehlt]} an!`,
+      qh:`${geg.map(i=>`<span class="nw">${pkt(N[i],...P[i])}</span>`).join(', ')} sind Eckpunkte des Rechtecks ABCD. Die Seiten sind parallel zu den Achsen. Gib <b>${N[fehlt]}</b> an!`,
+      ecken:P, fehlt, felder:koordFelder(fx,fy).map((f,i)=>Object.assign(f,{ansHTML:i?Z(fy):Z(fx)})), hinweisNach:koordHinweis(fx,fy),
+      loesungBild:ksSVG({punkte:P.map(([x,y],i)=>({x,y,name:N[i],koord:i===fehlt,farbe:i===fehlt?'var(--g)':undefined})), figur:P}),
+      why:`Zwei Ecken haben dasselbe x, zwei dasselbe y. ${N[fehlt]} hat das x von ${N[geg.find(i=>P[i][0]===fx)]} und das y von ${N[geg.find(i=>P[i][1]===fy)]}: ${pkt(N[fehlt],fx,fy)}.`, steps:pkt(N[fehlt],fx,fy)});
+  },
+  // G3-N03 Punkt auf einer Achse (x-Achse, y-Achse oder Nullpunkt)
+  achse(){
+    const r=Math.random(), n=pick(NAMEN), a=rationaleZahl();
+    const [X,Y]=r<.15?[NULL,NULL]:r<.575?[a,NULL]:[NULL,a], x=qwert(X.q), y=qwert(Y.q);
+    const ans=x===0&&y===0?'np':y===0?'xa':'ya';
+    return aufg({kind:'fragen', q:`Wo liegt ${n}(${X.text}|${Y.text})?`, qh:`Wo liegt <b>${n}(${X.html}|${Y.html})</b>?`, x, y, name:n,
+      gruppen:[{optionen:[['xa','auf der x-Achse'],['ya','auf der y-Achse'],['np','im Nullpunkt']], ans}],
+      why:'Auf der x-Achse ist y = 0, auf der y-Achse ist x = 0. Im Nullpunkt sind beide 0.'});
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Achsen und Quadranten', hint:'x-Achse, y-Achse, Nullpunkt, Quadrant I bis IV', types:['begriffe','quadrant']},
+  {id:'S2', name:'Koordinaten ablesen', hint:`A(3|4), F(${M}1|${M}1): zuerst x, dann y`, types:['ablesen']},
+  {id:'S3', name:'Punkte einzeichnen', hint:`P(4|${M}3), Q(${M}5,5|${M}5)`, types:['einzeichnen']},
+  {id:'S4', name:'Selbst zeichnen', hint:'Koordinatensystem mit 1 EH ≙ 1 cm auf Papier', types:['zeichnen_ks']}
+];
+const kern = ['begriffe','ablesen','quadrant','einzeichnen','zeichnen_ks'];
+// leichtere Fassung bzw. geführter Einstieg (Steckbrief: Hilfslinien in den ersten 2 Aufgaben je Station)
+const leicht = ['begriffe','quadrant','ablesen','einzeichnen'];
+const plus = ['loesungswort','spiegeln','eckpunkt','achse'];
+const plusHint = 'Lösungswort · Spiegeln · Vierter Eckpunkt · Punkte auf den Achsen';
+
+/* ---------- Erklärung ---------- */
+const bsp = () => versuche(()=>{ const x=nz(-7,7), y=nz(-7,7); return Math.abs(x)>=2&&Math.abs(y)>=2 ? {x, y, n:pick(NAMEN)} : null; });
+const erklaerung = {
+  beispiele: ()=>({p:{x:4, y:-3, n:'P'}}),
+  neu(kind,E){ if(kind==='pkt') E.p=bsp(); },
+  html: E => { const {x,y,n}=E.p;
+    return `<section class="sheet"><h2>Rationale Zahlen im Koordinatensystem</h2>
+    <div class="rule"><h3>1. Das Koordinatensystem</h3>
+      <p>${MERK_TEILE}</p>
+      ${ksSVG({farbig:true, quadranten:true, beschriftung:[{x:6,y:0,text:'x-Achse',farbe:'var(--c1)',plaetze:[[0,-17,'middle']]},{x:0,y:6,text:'y-Achse',farbe:'var(--c2)',plaetze:[[16,5,'start']]},{x:0,y:0,text:'Nullpunkt',plaetze:[[14,30,'start']]}]})}</div>
+    <div class="rule"><h3>2. Zuerst x, dann y</h3>
+      <p>Ein Punkt hat zwei Koordinaten: <b>${pkt(n,x,y)}</b>. Die erste Zahl (x) sagt, wie weit nach rechts (+) oder links (−), die zweite (y), wie weit nach oben (+) oder unten (−).</p>
+      <div class="ksbox"><p class="small muted">Tippe nacheinander auf 1 und 2.</p>
+        <ol class="legend3"><li><button type="button" class="stepbtn" data-ksstufe="1"><span class="num n1">1</span><span>x = ${Z(x)}: ${Z(Math.abs(x))} nach ${x>0?'rechts':'links'}</span></button></li>
+        <li><button type="button" class="stepbtn" data-ksstufe="2"><span class="num n3">2</span><span>y = ${Z(y)}: ${Z(Math.abs(y))} nach ${y>0?'oben':'unten'}</span></button></li></ol>
+        ${ksSVG({wege:[{x,y}], stufen:true, punkte:[{x,y,name:n,koord:true,farbe:'var(--g)',stufe:2}]})}</div>
+      <p class="small">Halbe Schritte: Q(${M}5,5|${M}5) liegt auf der x-Achse genau zwischen ${M}5 und ${M}6.</p>
+      <button class="newex" data-newex="pkt">Neues Beispiel</button></div>
+    <div class="rule"><h3>3. Vorzeichen in den Quadranten</h3>
+      <p>Am Vorzeichen siehst du, in welchem Quadranten ein Punkt liegt, ganz ohne Bild. Ist eine Koordinate 0, liegt der Punkt auf einer Achse.</p>
+      ${ksVzTabelle()}</div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`; }
+};
+
+const lzk = {merkmal:{begriffe:'ks_begriffe', ablesen:'ks_ablesen', quadrant:'ks_quadrant', einzeichnen:'ks_einzeichnen', zeichnen_ks:'ks_zeichnen'},
+  aufwand:{begriffe:2, einzeichnen:2, ablesen:2}};
+UR.kompetenzAnmelden({id:'M-RaZa-G3', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
 /* Mathe/2.1 Terme/M-Term-G1.js */
 /* Baustein M-Term-G1: „Ich kenne wichtige algebraische Begriffe und kann sie erklären.“
    Steckbrief: M-Term-G1.md, Auswahl der Lehrkraft: AUSWAHL.md (23.10.2026). Monom, Binom, Polynom nur im Plus-Paket. */
@@ -3738,9 +4242,33 @@ const SAETZE = [
   ['Ein Rechenausdruck ohne = heißt …','Term'],
   ['Ein Term mit genau einem Glied heißt …','Monom'],
   ['Ein Term mit genau zwei Gliedern heißt …','Binom'],
-  ['Ein Term mit mehr als zwei Gliedern heißt …','Polynom']
+  ['Ein Term mit mehr als zwei Gliedern heißt …','Polynom'],
+  ['Die Zahl vor der Variablen, mit der die Variable multipliziert wird, heißt …','Koeffizient'],
+  ['Eine Zahl, die allein steht und sich nicht verändert, heißt …','Konstante'],
+  ['Bei einer Taxifahrt ist die Grundgebühr, die immer gleich bleibt, die …','Konstante'],
+  ['Ein Buchstabe, für den man verschiedene Zahlen einsetzen kann, heißt …','Variable'],
+  ['Bei einer Taxifahrt sind die gefahrenen Kilometer, die sich ändern können, die …','Variable'],
+  ['Zahlen, Variablen und Rechenzeichen ohne Gleichheitszeichen bilden einen …','Term'],
+  ['Steht zwischen zwei Termen ein Gleichheitszeichen, so ist das eine …','Gleichung'],
+  ['Eine Formel wie A = a·b ist eine …','Gleichung']
 ];
-const WOERTER = SAETZE.map(s=>s[1]);
+const WOERTER = [...new Set(SAETZE.map(s=>s[1]))];
+// Lückensätze mit Zufallszahlen (Vielfalt, LEITFADEN „Antwortprüfung und Vielfalt“, 20.11.2026)
+const SATZVORLAGEN = [
+  (v,k,c) => [`Im Term ${glied(k,{[v]:1})} + ${c} heißt die Zahl ${R(k)} …`, 'Koeffizient'],
+  (v,k,c) => [`Im Term ${glied(k,{[v]:1})} + ${c} heißt die Zahl ${c} …`, 'Konstante'],
+  (v,k,c) => [`Im Term ${glied(k,{[v]:1})} + ${c} heißt der Buchstabe ${v} …`, 'Variable'],
+  (v,k,c) => [`„${glied(k,{[v]:1})} + ${c} = ${c+k*rnd(2,9)}“ enthält ein Gleichheitszeichen, also ist es eine …`, 'Gleichung'],
+  (v,k,c) => [`„${glied(k,{[v]:1})} + ${c}“ enthält kein Gleichheitszeichen, also ist es ein …`, 'Term']
+];
+// Monom, Binom und Polynom sind auch Terme: in Sätzen über „Term“ (und umgekehrt) nicht als falsche Wahl
+const NOM = ['Monom','Binom','Polynom'];
+const passtAuch = (wort, w) => (wort==='Term'&&NOM.includes(w)) || (NOM.includes(wort)&&w==='Term');
+function lueckenSatz(){
+  if(Math.random()<.5) return pick(SAETZE);
+  const v=pick(['a','b','m','n','p','s','t','x','y','z']), k=rnd(2,12), c=versuche(()=>{ const z=rnd(1,40); return z!==k&&z; });
+  return pick(SATZVORLAGEN)(v,k,c);
+}
 
 /* ---------- Aufgabentypen ---------- */
 const typen = {
@@ -3776,7 +4304,7 @@ const typen = {
   },
   // G1-A04 Begriffe in Lücken
   begriffe_luecke(){
-    const [satz,wort]=pick(SAETZE), andere=mischen(WOERTER.filter(w=>w!==wort)).slice(0,3);
+    const [satz,wort]=lueckenSatz(), andere=mischen(WOERTER.filter(w=>w!==wort&&!passtAuch(wort,w))).slice(0,3);
     return aufg({kind:'twahl', text:true, q:satz, lead:'Welches Wort gehört in die Lücke?', optionen:optionen([wort,...andere]), ans:'o0', pruef:'pool',
       why:`Richtig ist „${wort}“. ${WARUM_ROLLE}`});
   },
@@ -3869,7 +4397,7 @@ const erklaerung = {
     <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
 };
 
-UR.kompetenzAnmelden({id:'M-Term-G1', typen, stationen, kern, jeTyp, plus, plusHint, erklaerung});
+UR.kompetenzAnmelden({id:'M-Term-G1', typen, stationen, kern, jeTyp, plus, plusHint, erklaerung, festeAuswahl:['begriffe_memory']});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -4338,7 +4866,7 @@ const typen = {
   herausheben_einfach(){ return herausheben((v)=>pick([String(rnd(2,9)), v])); },
   // V1-A06 Größten gemeinsamen Faktor herausheben
   herausheben_ggt(){ return herausheben((v,w)=>glied(rnd(2,9), pick([{[v]:1},{[v]:2},{[v]:1,[w]:1},{[v]:2,[w]:1}]))); },
-  // bisher G3-N03: Umfang und Fläche als Term (Kern bei V1)
+  // V1-A07 Umfang und Fläche als Term (bisher G3-N03, Kern bei V1)
   umfang_flaeche(){
     return versuche(()=>{
       const v=pick(['a','x','b','s']), was=pick(['Umfang','Flächeninhalt']), form=pick(['rechteck','rechteck','binom','quadrat']);
@@ -4644,9 +5172,11 @@ function binom(nr){
 
 /* ---------- Aufgabentypen ---------- */
 const typen = {
-  // X1-A01 bis A03: die drei Formeln
+  // X1-A01 erste binomische Formel
   binom1(){ return binom(1); },
+  // X1-A02 zweite binomische Formel
   binom2(){ return binom(2); },
+  // X1-A03 dritte binomische Formel
   binom3(){ return binom(3); },
   // X1-A04 Differenz von Quadraten zerlegen
   zerlegen(){
@@ -4910,7 +5440,7 @@ const erklaerung = {
 
 // LZK (kern/lzk.js): Aufgabenarten, die in einer LZK nur einmal vorkommen, auch über Kompetenzen hinweg
 const lzk = {merkmal:{gleichnamig:'bruch_plusminus', ungleichnamig:'bruch_plusminus', mit_binom:'bruch_plusminus'}};
-UR.kompetenzAnmelden({id:'M-Term-X2', typen, stationen, kern, jeTyp, plus, plusHint, erklaerung, lzk});
+UR.kompetenzAnmelden({id:'M-Term-X2', typen, stationen, kern, jeTyp, plus, plusHint, erklaerung, lzk, festeAuswahl:['pizza']});
 })(window.UR = window.UR || {});
 </script>
 <script>
