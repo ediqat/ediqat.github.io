@@ -842,7 +842,7 @@ UR.formen.reihenfolge.papier = t => {
 UR.formen.zuordnen.papier = t => {
   const nr = {}; t.dinge.forEach((d,i)=>nr[d.id]=i+1);
   const inZiel = id => t.dinge.filter(d=>t.ans[d.id]===id).map(d=>nr[d.id]).join(', ');
-  const dinge = `<div class="pz-dinge">${t.dinge.map(d=>`<div class="pz-ding">${/class="nr"/.test(d.html)?'':`<b>${nr[d.id]}</b> `}${d.html}</div>`).join('')}</div>`;
+  const dinge = `<div class="pz-dinge">${t.dinge.map(d=>`<div class="pz-ding">${/class="nr"/.test(d.html)?'':`<b>${nr[d.id]}</b> `}<span>${d.html}</span></div>`).join('')}</div>`;
   const tabelle = r => t.raster
     ? `<table class="pz-tab"><tr><th></th>${t.raster.spalten.map(([,s])=>`<th>${s}</th>`).join('')}</tr>${t.raster.zeilen.map(([z,zt])=>`<tr><th>${zt}</th>${
         t.raster.spalten.map(([s])=>`<td>${r?inZiel(`${z}|${s}`):''}</td>`).join('')}</tr>`).join('')}</table>`
@@ -1543,7 +1543,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-20.51","datum":"20.11.2026","pruefsumme":"dbdfdc7d99048b12"};
+UR.version = {"nummer":"2026-11-20.52","datum":"20.11.2026","pruefsumme":"03c431fff132a92d"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
