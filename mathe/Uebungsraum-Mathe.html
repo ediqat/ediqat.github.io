@@ -350,6 +350,29 @@ svg.kommabild{width:100%;max-width:260px;height:auto;display:block;margin:0 auto
 .choices.formeln button{font-size:1.05rem;padding:8px 4px}
 .pz-loesung .ds,.pz-mitbild .ds{font-size:1rem}
 [data-panel]:not([hidden]){display:flex;flex-direction:column;gap:12px}
+/* Prozentstreifen und Kreisdiagramm (prozent.js, Teil 4): Okabe-Ito-Farben, Namen in der Legende */
+.ft0{fill:#0072B2;background:#0072B2} .ft1{fill:#E69F00;background:#E69F00} .ft2{fill:#009E73;background:#009E73}
+.ft3{fill:#F0E442;background:#F0E442} .ft4{fill:#CC79A7;background:#CC79A7}
+.figur{display:flex;flex-direction:column;gap:8px;width:100%}
+svg.streifen{width:100%;max-width:520px;height:auto;display:block;margin:0 auto}
+svg.kreisdia{width:100%;max-width:300px;height:auto;display:block;margin:0 auto}
+.st-ab{stroke:#1c2533;stroke-width:1.5;fill-opacity:.85}
+.st-t{font:700 14px var(--f-body);fill:#1c2533;text-anchor:middle}
+svg.kreisdia .st-t{fill:var(--text)} svg.kreisdia path+text,svg.kreisdia .st-t{paint-order:stroke;stroke:var(--paper);stroke-width:3px}
+.st-s{font:13px var(--f-body);fill:var(--muted);text-anchor:middle}
+.st-sk{stroke:var(--muted);stroke-width:1}
+.st-mp{fill:var(--text)}
+.legende{display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;font-size:.95rem}
+.legende span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.legende i{width:14px;height:14px;border:1px solid var(--text);display:inline-block}
+.choices.streifen,.choices.kreise{grid-template-columns:1fr}
+.choices.kreise{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.choices.streifen button,.choices.kreise button{padding:6px;display:flex;align-items:center;gap:8px}
+.choices.kreise button{flex-direction:column}
+.choices .wahlnr{font-weight:800;color:var(--ink)}
+.zeug{background:var(--v-soft);border-radius:10px;padding:8px 12px;font-weight:700}
+.pruef{margin:0;padding-left:1.2em} .pruef li{margin:2px 0}
+[data-fertig-knopf][hidden],[data-vergleich][hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -1482,7 +1505,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-20.40","datum":"20.11.2026","pruefsumme":"5017fe938206f1e0"};
+UR.version = {"nummer":"2026-11-20.47","datum":"20.11.2026","pruefsumme":"b01a78baa4de0b21"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -2775,7 +2798,8 @@ const farbig = (r,x) => `<span class="${ROLLE[r]}">${x}</span>`;
 const srNamen = sr => sr.namen || {G:'G', p:'p', W:'W'};
 const srBegriffe = sr => sr.begriffe || {G:'Grundwert G', p:'Prozentsatz p', W:'Prozentwert W'};
 // lange Einheiten (Personen, Mitglieder) dürfen am Handy unter die Zahl rutschen
-const srWert = (sr,x) => sr.einheit==='€' ? E(x) : `${Z(x)}${sr.einheit?(sr.einheit.length>3?' ':NB)+sr.einheit:''}`;
+const srWert = (sr,x) => sr.einheit==='€' ? (nachkomma(x)<=2 ? E(x) : `${Z(x)}${NB}€`) :   // Zwischenzeile darf mehr als Cent haben (0,802 €)
+   `${Z(x)}${sr.einheit?(sr.einheit.length>3?' ':NB)+sr.einheit:''}`;
 const srProz = (sr,x) => `${Z(x)}${NB}${sr.zeichen}`;
 const nahe = (v,a) => v!==null&&v!==undefined&&!Number.isNaN(v)&&Math.abs(v-a)<=1e-9*Math.max(1,Math.abs(a));
 // gleiche Zahlen dürfen nicht doppelt vorkommen (sonst wären Formel-Vorschläge gleich)
@@ -2944,9 +2968,58 @@ function schlussAufgabe(sr, o={}){
   return aufg(Object.assign({kind:'schluss', sr, r, wahl, pre:{ans:wahl.ans.d, optionen:wahl.d}, schritt:'Schritt 1', loesungBild:srBild(sr), why}, o));
 }
 
+/* ---------- Prozentstreifen und Kreisdiagramm (Teil 4, Mockup von der Lehrkraft freigegeben 20.11.2026) ----------
+   teile = [[Name, Prozent], …]. Farben ft0 … ft4 (fach.css, für Farbsehschwäche geprüfte Palette). Namen stehen in einer
+   Legende unter dem Bild, damit sich nie etwas überlappt. Streifen 10 cm × 1 cm, gezeichnet 300 Einheiten lang
+   (1 % = 3 Einheiten); Skala im Einstieg (oben 0 bis 100 %, unten 0 bis 10 cm), sonst auf Wunsch Striche je cm. */
+const legende = (teile, mitP=true) => `<div class="legende">${teile.map(([n,p],i)=>`<span><i class="ft${i%5}"></i>${n}${mitP?` ${P(p)}`:''}</span>`).join('')}</div>`;
+function streifenSVG(teile, o={}){
+  const L=300, H=34, x0=14, y0=o.skala?24:6; let x=x0, s='';
+  teile.forEach(([n,p],i)=>{ const w=L*p/100;
+    s+=`<rect class="st-ab ft${i%5}" x="${rund(x)}" y="${y0}" width="${rund(w)}" height="${H}"/>`;
+    const txt = o.laengen ? (p<10?`${Z(p)} mm`:`${Z(p/10)} cm`) : o.zahlen!==false ? P(p) : '';
+    if(txt && w>=(o.laengen?46:40)) s+=`<text class="st-t" x="${rund(x+w/2)}" y="${y0+H/2+5}">${txt}</text>`;
+    x+=w; });
+  if(o.skala||o.striche) for(let k=0;k<=10;k++){ const xx=x0+k*L/10;
+    s+=`<line class="st-sk" x1="${xx}" x2="${xx}" y1="${y0-5}" y2="${y0+H+5}"/>`;
+    if(o.skala&&k%2===0) s+=`<text class="st-s" x="${xx}" y="${y0-9}">${k*10}${k===10?'%':''}</text><text class="st-s" x="${xx}" y="${y0+H+19}">${k}${k===10?'cm':''}</text>`; }
+  const h=y0+H+(o.skala?26:10);
+  return `<div class="figur"><svg class="streifen" viewBox="0 0 ${L+2*x0} ${h}" role="img" aria-label="Prozentstreifen">${s}</svg>${o.legende===false?'':legende(teile, o.legendeP!==false)}</div>`;
+}
+// Kreisdiagramm: Winkel im Abschnitt (schmale außen), ohne: winkel:false; Namen in der Legende
+function kreisSVG(teile, o={}){
+  const R=100, c=130; let a=-90, s='', lab='';
+  const rad=d=>d*Math.PI/180, Pt=(d,r)=>[c+r*Math.cos(rad(d)), c+r*Math.sin(rad(d))];
+  teile.forEach(([n,p],i)=>{ const w=(o.grad?o.grad[i]:p*3.6), a1=a+w, [x1,y1]=Pt(a,R), [x2,y2]=Pt(a1,R);
+    s+=`<path class="st-ab ft${i%5}" d="M${c} ${c}L${x1.toFixed(2)} ${y1.toFixed(2)}A${R} ${R} 0 ${w>180?1:0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}Z"/>`;
+    if(o.winkel!==false){ const m=a+w/2, [tx,ty]=Pt(m, w>=30?R*.62:R+20); lab+=`<text class="st-t" x="${tx.toFixed(1)}" y="${(ty+5).toFixed(1)}">${Z(rund(w))}°</text>`; }
+    a=a1; });
+  s+=`<circle cx="${c}" cy="${c}" r="3" class="st-mp"/>`;
+  return `<div class="figur"><svg class="kreisdia" viewBox="0 0 260 260" role="img" aria-label="Kreisdiagramm">${s}${lab}</svg>${o.legende===false?'':legende(teile, o.legendeP!==false)}</div>`;
+}
+
+/* ---------- Antwortform 'zeichnen': Zeichnen auf Papier mit Selbstkontrolle (LEITFADEN, Zeichenaufgaben) ----------
+   Vor der Aufgabe das Zeichenzeug (t.zeug); „Fertig gezeichnet“ zeigt Lösungsbild (t.loesungBild) und Prüfliste
+   (t.pruefliste); das Kind bestätigt „richtig gezeichnet“ oder „falsch gezeichnet“. Das zählt wie eine Antwort. */
+UR.formAnmelden('zeichnen', {
+  ohneLeer: true,
+  html: t => `<div class="zeug">✏️ ${t.zeug}</div>${UR.aufgabeKopf(t)}
+    <div class="answer" data-fertig-knopf><button type="button" class="big" data-fertig>Fertig gezeichnet</button></div>
+    <div data-vergleich hidden><p class="lbl">Vergleiche mit deiner Zeichnung:</p><div class="bild">${t.loesungBild}</div>
+      <ul class="pruef">${t.pruefliste.map(x=>`<li>${x}</li>`).join('')}</ul>
+      <div class="choices"><button data-choice="richtig">✓ richtig gezeichnet</button><button data-choice="falsch">✗ falsch gezeichnet</button></div></div>`,
+  bewerten: (t,pre,raw) => ({ok:raw==='richtig', shown:raw==='richtig'?'richtig gezeichnet':raw==='falsch'?'falsch gezeichnet':T.leer}),
+  loesung: () => 'so wie im Lösungsbild',
+  papier: t => ({aufgabe:`<div class="pz-frage">${t.zeug}</div>${UR.papier.angabe(t)}${UR.papier.platz(t.papierPlatz||4)}`, loesung:t.loesungBild, lead:t.lead||undefined, aufwand:t.papierPlatz?2:3, statt:false})
+});
+UR.bindungen.push(app=>{ if(!app.querySelector) return;
+  const b=app.querySelector('[data-fertig]'); if(!b) return;
+  b.onclick=()=>{ app.querySelector('[data-fertig-knopf]').hidden=true; const v=app.querySelector('[data-vergleich]'); v.hidden=false; v.scrollIntoView({block:'start', behavior:'smooth'}); };
+});
+
 UR.prozent = {ggT, kuerzen, rund, nachkomma, Z, E, P, br, NB, PUNKT, mischen, versuche, dezimal, prozentText, lesePeriode, leseBruch,
   istGekuerzt, bruchFeld, periodeFeld, figur, gefaerbt, RASTER, kommaBild, kommaSchritt, rasterSVG, aufg, G, Pz, W, merk, ohneTags,
-  farbig, srWert, srProz, srOk, srRechnung, srBild, schlussAufgabe, wahlSchritt1, nahe};
+  farbig, srWert, srProz, srOk, srRechnung, srBild, schlussAufgabe, wahlSchritt1, nahe, legende, streifenSVG, kreisSVG};
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -6607,6 +6680,172 @@ UR.kompetenzAnmelden({id:'M-Proz-G3', typen, stationen, kern, plus, plusHint, er
 })(window.UR = window.UR || {});
 </script>
 <script>
+/* Mathe/2.3 Prozentrechnung/M-Proz-G4.js */
+/* Baustein M-Proz-G4: „Ich kann Prozentsätze in Form eines Prozentstreifens darstellen.“
+   Steckbrief: M-Proz-G4.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026). Streifen immer 10 cm × 1 cm, 1 % ≙ 1 mm;
+   Einstieg mit Skala; Längen mit Einheiten-Tasten mm und cm; Zeichnen auf Papier mit Selbstkontrolle (G4-A06). */
+(function(UR){
+const {rnd, pick} = UR;
+const {Z, P, NB, rund, mischen, versuche, aufg, merk, legende, streifenSVG} = UR.prozent;
+
+const MERK = merk(`Streifen 10${NB}cm × 1${NB}cm · 100${NB}% ≙ 10${NB}cm · 1${NB}% ≙ 1${NB}mm · zusammen immer 100${NB}%`);
+const mitMerk = (t,ctx) => { if(ctx&&(ctx.leicht||ctx.einstieg)) t.lead = `${t.lead?t.lead+' ':''}${MERK}`; return t; };
+const laenge = p => p<10 ? `${Z(p)}${NB}mm` : `${Z(p/10)}${NB}cm`;
+const KONTEXTE = [
+  ['Lieblingsfarbe', ['Grün','Rot','Blau','Gelb','Lila']], ['Schulweg', ['Bus','zu Fuß','Rad','Auto']],
+  ['Sportanlage', ['Sportplätze','Tennis','Gebäude','Parkplatz']], ['Schokolade', ['Füllung','Kakao','Milch','Fruchtsirup','Zucker']],
+  ['Mürbteig', ['Mehl','Butter','Zucker']], ['Grundstück', ['Wald','Acker','Baugrund','Grünfläche']],
+  ['Freizeit', ['Sport','Musik','Lesen','Spielen','Basteln']], ['Haustiere', ['Hund','Katze','Fisch','Vogel']]
+];
+// k Abschnitte mit ganzen Prozent, zusammen 100, jeder mindestens min und höchstens max, schritt = Vielfache
+function teilung(k, {min=3, schritt=1}={}){
+  return versuche(()=>{
+    const ps=[]; let rest=100;
+    for(let i=0;i<k-1;i++){ const p=rnd(Math.ceil(min/schritt), Math.floor((rest-min*(k-1-i))/schritt))*schritt; if(p<min) return null; ps.push(p); rest-=p; }
+    if(rest<min||rest%schritt) return null; ps.push(rest);
+    if(ps.filter(p=>p===50||p===25).length>1) return null;   // nicht zu oft Hälften und Viertel
+    return ps;
+  });
+}
+const daten = (k, o) => { const [titel, namen]=pick(KONTEXTE), n=mischen(namen).slice(0, Math.min(k, namen.length)), ps=teilung(n.length, o);
+  return {titel, teile:n.map((x,i)=>[x, ps[i]])}; };
+const liste = teile => teile.map(([n,p])=>`${n} ${P(p)}`).join(', ');
+
+/* ---------- G4-A01: Regeln (Lücken wie im Mathe Know How) ---------- */
+const REGELN = [
+  {s:'Der Streifen hat die Form eines Rechtecks mit ① Länge und ② Höhe.', l:[['10 cm',['10 cm','1 cm','5 cm','100 cm']],['1 cm',['1 cm','10 cm','1 mm','2 cm']]]},
+  {s:'Die Prozentsätze müssen addiert genau ① ergeben.', l:[['100 %',['100 %','10 %','1 000 %','50 %']]]},
+  {s:'Für jeden Prozentsatz gilt: 1 % ≙ ①.', l:[['1 mm',['1 mm','1 cm','10 cm','0,1 mm']]]},
+  {s:'Die einzelnen Abschnitte müssen ① werden und können gefärbt werden.', l:[['beschriftet',['beschriftet','gleich lang','rund','durchgestrichen']]]},
+  {s:'100 % entsprechen der ganzen Länge von ①, 10 % entsprechen ②.', l:[['10 cm',['10 cm','100 cm','1 cm','100 mm²']],['1 cm',['1 cm','1 mm','10 mm²','10 cm']]]}
+].map(r=>({s:r.s.replace(/ (cm|mm|%)/g, NB+'$1'), l:r.l.map(([a,o])=>[a.replace(' ',NB), o.map(x=>x.replace(/ (cm|mm|%|000)/g, NB+'$1'))])}));
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // G4-A01 Regeln für den Prozentstreifen
+  regeln(ctx){
+    const r=pick(REGELN);
+    return aufg(mitMerk({kind:'fragen', q:r.s, lead:'Ergänze die Regel für den Prozentstreifen!',
+      gruppen:r.l.map(([a,o],i)=>({frage:'①②'[i], optionen:mischen(o).map(x=>[x,x]), ans:a, klasse:'drei'})),
+      why:`Regeln: Der Streifen ist 10${NB}cm lang und 1${NB}cm hoch. Alle Prozentsätze zusammen ergeben 100${NB}%. 1${NB}% ≙ 1${NB}mm. Jeder Abschnitt wird beschriftet.`, bild:streifenSVG([['A',40],['B',35],['C',25]],{skala:true, legende:false})}, ctx));
+  },
+  // G4-A02 Länge der Abschnitte (Einheiten-Tasten mm und cm)
+  laengen(ctx){
+    const {titel, teile}=daten(rnd(2,4), {min:1}), leicht=ctx&&ctx.leicht;
+    return aufg(mitMerk({kind:'zahlen', text:true, q:`${titel}: ${liste(teile)}`, lead:'Der Streifen ist 10 cm lang. Wie lang ist jeder Abschnitt?', teile,
+      bild:streifenSVG(teile,{skala:leicht}),
+      felder:teile.map(([n,p])=>({label:n, ans:p/10, ansText:`${n}: ${laenge(p)}`, einheiten:['mm','cm'], einheitAns:'cm'})),
+      why:`1${NB}% ≙ 1${NB}mm, also p${NB}% ≙ p${NB}mm: ${teile.map(([n,p])=>`${n} ${P(p)} ≙ ${Z(p)}${NB}mm${p>=10?` = ${Z(p/10)}${NB}cm`:''}`).join(' · ')}.`}, ctx));
+  },
+  // G4-A03 Fehlenden Prozentsatz ergänzen (der Rest)
+  rest(ctx){
+    const {titel, teile}=versuche(()=>{ const d=daten(rnd(3,5)); const r=d.teile[d.teile.length-1][1]; return r>=1&&r<=40 ? d : null; });
+    const geg=teile.slice(0,-1), [rn,rp]=teile[teile.length-1];
+    return aufg(mitMerk({kind:'zahlen', text:true, q:`${titel}: ${liste(geg)}, der Rest ist ${rn}. Wie viel Prozent sind ${rn}?`, teile,
+      lead:'Die Prozentsätze müssen genau 100 % ergeben.', bild:ctx&&ctx.leicht?streifenSVG([...geg,['?',rp]],{skala:true}):undefined,
+      felder:[{label:rn, ans:rp, ansText:P(rp), einheit:'%'}],
+      why:`100 ${geg.map(([,p])=>`${UR.M} ${Z(p)}`).join(' ')} = ${P(rp)}.`}, ctx));
+  },
+  // G4-A04 Prozentsatz zum Abschnitt (Länge als Text oder im Bild mit Skala)
+  ablesen(ctx){
+    if(Math.random()<.5){ const p=pick([rnd(1,9), rnd(2,19)*5, rnd(11,99)]), mm=Math.random()<.4||p<10;
+      return aufg(mitMerk({kind:'zahlen', q:`Ein Abschnitt ist ${mm?`${Z(p)}${NB}mm`:`${Z(p/10)}${NB}cm`} lang.`, lead:'Der Streifen ist 10 cm lang. Welcher Prozentsatz gehört zum Abschnitt?',
+        felder:[{label:'Prozentsatz', ans:p, ansText:P(p), einheit:'%'}], why:`1${NB}mm ≙ 1${NB}%, 1${NB}cm ≙ 10${NB}%: ${mm?`${Z(p)}${NB}mm`:`${Z(p/10)}${NB}cm = ${Z(p)}${NB}mm`} ≙ ${P(p)}.`}, ctx)); }
+    const {titel, teile}=daten(rnd(3,4), {min:5, schritt:5}), [n,p]=pick(teile);
+    return aufg(mitMerk({kind:'zahlen', q:`${titel}: Wie viel Prozent sind ${n}?`, lead:'Lies am Streifen mit Skala ab!', teile, gefragt:n,
+      bild:streifenSVG(teile,{skala:true, zahlen:false, legendeP:false}),
+      felder:[{label:n, ans:p, ansText:P(p), einheit:'%'}], why:`${n} ist ${Z(p/10)}${NB}cm lang. 1${NB}cm ≙ 10${NB}%, also ${P(p)}.`}, ctx));
+  },
+  // G4-A05 Passenden Streifen wählen (drei Bilder)
+  waehlen(ctx){
+    return versuche(()=>{
+      const {titel, teile}=daten(rnd(3,4), {min:10, schritt:5}), ps=teile.map(x=>x[1]), k=ps.length;
+      const varianten=[];
+      const i=rnd(0,k-2); if(ps[i]!==ps[i+1]){ const v=[...ps]; [v[i],v[i+1]]=[v[i+1],v[i]]; varianten.push({ps:v, warum:`${teile[i][0]} und ${teile[i+1][0]} sind vertauscht.`}); }
+      const j=rnd(0,k-1); { const v=[...ps]; v[j]-=pick([5,10]); if(v[j]>0) varianten.push({ps:v, warum:`Zusammen nur ${P(v.reduce((a,b)=>a+b,0))}: Der Streifen ist zu kurz.`}); }
+      const a=rnd(0,k-1), b=(a+1)%k; { const v=[...ps]; v[a]+=10; v[b]-=10; if(v[b]>0) varianten.push({ps:v, warum:`${teile[a][0]} ist zu lang und ${teile[b][0]} zu kurz.`}); }
+      const falsch=mischen(varianten).filter((v,x,l)=>l.findIndex(w=>w.ps.join()===v.ps.join())===x&&v.ps.join()!==ps.join()).slice(0,2);
+      if(falsch.length<2) return null;
+      const alle=mischen([{ps, richtig:true}, ...falsch]).map((v,x)=>({...v, id:'ABC'[x]}));
+      const rest=teile[k-1][0], text=`${titel}: ${liste(teile.slice(0,-1))}, der Rest ist ${rest}.`;
+      return aufg(mitMerk({kind:'fragen', text:true, q:`${text} Welcher Streifen passt?`, teile, varianten:alle,
+        bild:`<div class="figur">${legende(teile,false)}<p class="small muted mitte">Striche alle 1${NB}cm (= 10${NB}%)</p></div>`,
+        gruppen:[{optionen:alle.map(v=>[v.id, `<span class="wahlnr">${v.id}</span>${streifenSVG(v.ps.map((p,x)=>[teile[x][0],p]),{zahlen:false, striche:true, legende:false})}`]), ans:alle.find(v=>v.richtig).id, klasse:'streifen'}],
+        why:`Der Rest: 100 ${teile.slice(0,-1).map(([,p])=>`${UR.M} ${Z(p)}`).join(' ')} = ${P(ps[k-1])}. Richtig ist ${alle.find(v=>v.richtig).id}. ${alle.filter(v=>!v.richtig).map(v=>`${v.id}: ${v.warum}`).join(' ')}`}, ctx));
+    });
+  },
+  // G4-A06 Prozentstreifen zeichnen (Papier, Selbstkontrolle)
+  zeichnen_streifen(ctx){
+    const {titel, teile}=daten(rnd(2,5), {min:3});
+    const hilfe = ctx&&ctx.leicht ? `Rechne zuerst: ${teile.map(([n,p])=>`${n} ${P(p)} ≙ ${laenge(p)}`).join(' · ')}` : '';
+    return aufg({kind:'zeichnen', text:true, zeug:'Du brauchst Papier, Lineal und Buntstifte.', teile, papierPlatz:2,
+      q:`Zeichne den Prozentstreifen (10${NB}cm × 1${NB}cm), färbe und beschrifte die Abschnitte! ${titel}: ${liste(teile)}`, lead:hilfe||undefined,
+      loesungBild:streifenSVG(teile,{laengen:true}),
+      pruefliste:['10 cm lang und 1 cm hoch', `Abschnitte (± 1 mm): ${teile.map(([n,p])=>`${n} ${laenge(p)}`).join(' · ')}`, 'alle Abschnitte beschriftet'],
+      why:`p${NB}% ≙ p${NB}mm: ${teile.map(([n,p])=>`${n} ${laenge(p)}`).join(' · ')}. Wenn es nicht passt: Rechne p${NB}% ≙ p${NB}mm und miss nochmals.`});
+  },
+  // G4-A07 (Plus) Fehler im Streifen finden
+  fehler_streifen(){
+    return versuche(()=>{
+      const {titel, teile}=daten(rnd(3,4), {min:2}), i=rnd(0,teile.length-1), p=teile[i][1], art=pick(['mal10','durch10','plus1']);
+      const falsch = art==='mal10' ? (p<=9?`${Z(p)}${NB}cm`:null) : art==='durch10' ? (p>=10?`${Z(p/10)}${NB}mm`:null) : `${Z(p/10+1)}${NB}cm`;
+      if(!falsch) return null;
+      const name=pick(['Lea','Tom','Ida','Ben','Mira','Jan']);
+      const angaben=teile.map(([n,q],k)=>`${n} ${k===i?falsch:laenge(q)}`).join(', ');
+      return aufg({kind:'fragen', text:true, q:`${titel}: ${liste(teile)}. ${name} zeichnet die Abschnitte so: ${angaben}. Welcher Abschnitt ist falsch?`,
+        gruppen:[{optionen:teile.map(([n])=>[n,n]), ans:teile[i][0]}], fehlerStelle:i,
+        why:`${teile[i][0]} ${P(p)} ≙ ${Z(p)}${NB}mm = ${laenge(p)}, nicht ${falsch}. ${art==='plus1'?'Der Streifen würde zu lang.':'Die Einheit ist verwechselt (mm und cm).'}`});
+    });
+  },
+  // G4-N01 (Plus) Aus Anzahlen einen Streifen machen
+  anzahlen(){
+    return versuche(()=>{
+      const g=pick([20,25,40,50,200,300,400,500]), w=rnd(1,g-1), p=w*100/g; if(!Number.isInteger(p)) return null;
+      const [was,wer]=pick([['bei Fußball','Kindern'],['Schwimmer*innen','Kindern'],['gehen zu Fuß','Schüler*innen'],['haben ein Haustier','Kindern']]);
+      return aufg({kind:'zweischritt', text:true, q:`Von ${g} ${wer} sind ${w} ${was}.`, lead:'Berechne den Prozentsatz und die Länge des Abschnitts im Streifen (10 cm)!', schritt:'Schritt 1',
+        s1:{label:'Schritt 1: Prozentsatz', kurz:'Prozentsatz', felder:[{label:'', ans:p, ansText:P(p), einheit:'%'}], ansText:P(p)},
+        s2:{label:'Schritt 2: Länge im Streifen', felder:[{label:'', ans:p/10, ansText:`${Z(p/10)}${NB}cm`, einheit:'cm'}], ansText:`${Z(p/10)}${NB}cm`},
+        pre:{ans:String(p), optionen:mischen([p, rund(p/10), 100-p, p+10, p+5].filter((x,i,l)=>x>0&&l.indexOf(x)===i).slice(0,3).map(x=>[String(x),P(x)]))},
+        why:`p = ${w} · 100 : ${g} = ${P(p)}; ${P(p)} ≙ ${Z(p)}${NB}mm = ${Z(p/10)}${NB}cm.`});
+    });
+  }
+};
+
+/* ---------- Stationen (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Regeln für den Prozentstreifen', hint:'10 cm lang, 1 % ≙ 1 mm', types:['regeln']},
+  {id:'S2', name:'Längen und Prozente', hint:'78 % ≙ 7,8 cm', types:['laengen','ablesen']},
+  {id:'S3', name:'Den Rest ergänzen', hint:`100 ${UR.M} 55 ${UR.M} 27 = 18 %`, types:['rest']},
+  {id:'S4', name:'Streifen wählen und zeichnen', hint:'Welcher Streifen passt? Zeichne selbst!', types:['waehlen','zeichnen_streifen']}
+];
+const kern = ['regeln','laengen','rest','ablesen','waehlen','zeichnen_streifen'];
+const leicht = ['regeln','laengen','rest','ablesen','waehlen','zeichnen_streifen'];   // Einstieg mit Skala bzw. Merkkarte
+const plus = ['fehler_streifen','anzahlen'];
+const plusHint = 'Fehler im Streifen finden · Aus Anzahlen einen Streifen machen';
+
+/* ---------- Erklärung ---------- */
+const bsp = () => daten(3, {min:2});
+const erklaerung = {
+  beispiele: ()=>({b:{titel:'Luft', teile:[['Stickstoff',78],['Sauerstoff',21],['Argon',1]]}}),
+  neu(kind,E){ if(kind==='streifen') E.b=bsp(); },
+  html: E => `<section class="sheet"><h2>Der Prozentstreifen</h2>
+    <div class="rule"><h3>1. 100 % ≙ 10 cm, 1 % ≙ 1 mm</h3>${MERK}
+      <p>${E.b.titel}: ${liste(E.b.teile)}</p><div class="bild">${streifenSVG(E.b.teile,{skala:true})}</div>
+      <div class="ex">${E.b.teile.map(([n,p])=>`${n}: ${P(p)} ≙ ${laenge(p)}`).join(' · ')}</div>
+      <button class="newex" data-newex="streifen">Neues Beispiel</button></div>
+    <div class="rule"><h3>2. Die Regeln</h3><ul class="pruef"><li>Rechteck: 10${NB}cm lang, 1${NB}cm hoch</li><li>Alle Prozentsätze zusammen: genau 100${NB}%</li>
+      <li>Jeder Abschnitt: p${NB}% ≙ p${NB}mm</li><li>Jeden Abschnitt beschriften (und färben)</li></ul></div>
+    <div class="rule"><h3>3. Der Rest</h3><p>Fehlt ein Prozentsatz, rechne 100${NB}% minus alle anderen: 100 ${UR.M} 55 ${UR.M} 27 = 18${NB}%.</p></div>
+    <div class="rule"><h3>4. Selbst zeichnen</h3><p>Zeichne auf Papier, tippe „Fertig gezeichnet“ und vergleiche mit dem Lösungsbild. Dann sagst du selbst, ob es richtig ist. Sei ehrlich zu dir: Nur so weißt du, was du schon kannst.</p></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How Prozentrechnung.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
+};
+
+const lzk = {merkmal:{regeln:'regeln_streifen', laengen:'laengen_streifen', rest:'rest', ablesen:'ablesen_streifen', waehlen:'waehlen_streifen', zeichnen_streifen:'zeichnen'}};
+UR.kompetenzAnmelden({id:'M-Proz-G4', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
 /* Mathe/2.3 Prozentrechnung/M-Proz-V1.js */
 /* Baustein M-Proz-V1: „Ich kann den Änderungsfaktor für Rechnungen mit erhöhtem oder vermindertem Grundwert bestimmen
    und ihn für Berechnungen nutzen.“ Steckbrief: M-Proz-V1.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026).
@@ -6789,6 +7028,166 @@ const erklaerung = {
 
 const lzk = {merkmal:{faktor:'aenderungsfaktor', lesen:'aenderungsfaktor_lesen', neuer_wert:'neuer_wert', sach_af:'sach_aenderungsfaktor'}};
 UR.kompetenzAnmelden({id:'M-Proz-V1', typen, stationen, kern, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/2.3 Prozentrechnung/M-Proz-V2.js */
+/* Baustein M-Proz-V2: „Ich kann Prozentsätze in Form eines Kreisdiagramms darstellen.“
+   Steckbrief: M-Proz-V2.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026). 1 % ≙ 3,6°, 100 % ≙ 360°; Einstieg mit Merkkarte
+   und Kontrolle „zusammen 360°“; Zeichnen auf Papier mit Selbstkontrolle (V2-A06). */
+(function(UR){
+const {rnd, pick, M} = UR;
+const {Z, P, NB, rund, mischen, versuche, aufg, merk, legende, kreisSVG} = UR.prozent;
+
+const MERK = merk(`1${NB}% ≙ 3,6° (weil 360° : 100 = 3,6°) · 100${NB}% ≙ 360° · Kontrolle: alle Winkel zusammen 360°`);
+const mitMerk = (t,ctx) => { if(ctx&&(ctx.leicht||ctx.einstieg)) t.lead = `${t.lead?t.lead+' ':''}${MERK}`; return t; };
+const G_ = x => `${Z(rund(x))}°`;
+const KONTEXTE = [
+  ['Grundstück', ['Wald','Acker','Baugrund','Grünfläche']], ['Urlaub', ['Winterurlaub','Sommerurlaub','keine Urlaubsfahrt']],
+  ['Körper', ['Muskeln','Knochen','Fett','Anderes']], ['Butter', ['Fett','Wasser','fettfreie Masse']],
+  ['Lieblingssport', ['Fußball','Schwimmen','Tanzen','Radfahren','Klettern']], ['Schulweg', ['Bus','zu Fuß','Rad','Auto']],
+  ['Taschengeld', ['Sparen','Süßes','Spiele','Kleidung']]
+];
+function teilung(k, {min=2, schritt=1}={}){
+  return versuche(()=>{ const ps=[]; let rest=100;
+    for(let i=0;i<k-1;i++){ const p=rnd(Math.ceil(min/schritt), Math.floor((rest-min*(k-1-i))/schritt))*schritt; if(p<min) return null; ps.push(p); rest-=p; }
+    if(rest<min||rest%schritt) return null; ps.push(rest);
+    if(ps.filter(p=>p===50||p===25).length>1) return null; return ps; });
+}
+const daten = (k,o) => { const [titel,namen]=pick(KONTEXTE), n=mischen(namen).slice(0,Math.min(k,namen.length)), ps=teilung(n.length,o); return {titel, teile:n.map((x,i)=>[x,ps[i]])}; };
+const liste = teile => teile.map(([n,p])=>`${n} ${P(p)}`).join(', ');
+const rechnungen = teile => teile.map(([,p])=>`${Z(p)} · 3,6 = ${G_(p*3.6)}`).join(' · ');
+const kontrolle = teile => `${teile.map(([,p])=>G_(p*3.6)).join(' + ')} = 360°`;
+
+/* ---------- V2-N01 (Plus): Streifen oder Kreis? (eigener Schlüssel im Prüfer) ---------- */
+const WAHL = [
+  ['Anteile von 3 Antworten in einer Umfrage, man will den Anteil am Ganzen sehen','Kreisdiagramm','Wenige Teile eines Ganzen: Das Kreisdiagramm zeigt den Anteil am Ganzen auf einen Blick.'],
+  ['Stimmen für 8 Parteien, die man genau vergleichen will','Prozentstreifen','Viele Teile: Im Streifen kann man die Längen leichter vergleichen und abmessen.'],
+  ['Ein Tag: 8 h schlafen, 6 h Schule, 10 h frei','Kreisdiagramm','Ein Tag ist wie eine Uhr: Das Kreisdiagramm passt gut zu einem Ganzen, das „rundherum“ geht.'],
+  ['Zusammensetzung der Luft, schnell mit dem Lineal zu zeichnen','Prozentstreifen','Mit dem Lineal geht der Streifen am schnellsten: 1 % ≙ 1 mm.'],
+  ['Wie das Taschengeld aufgeteilt wird (Sparen, Süßes, Spiele)','Kreisdiagramm','Wenige Teile eines Ganzen: Kreisdiagramm.'],
+  ['Anteile von 10 Sportarten im Verein, nebeneinander zu vergleichen','Prozentstreifen','Viele schmale Teile: Im Streifen bleiben sie lesbar.']
+];
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // V2-A01 Prozent in Grad (Schritt 1 Rechnung wählen, Schritt 2 Winkel)
+  grad(ctx){
+    const p=rnd(1,99), w=rund(p*3.6);
+    const t={kind:'zweischritt', q:`${P(p)} im Kreisdiagramm`, lead:'Wie groß ist der Winkel?', schritt:'Rechnung',
+      s1:{label:'Schritt 1: Welche Rechnung passt?', kurz:'Rechnung', wahl:mischen([['mal',`${Z(p)} · 3,6`],['durch',`${Z(p)} : 3,6`],['mal360',`${Z(p)} · 360`]]), ans:'mal', ansText:`${Z(p)} · 3,6`},
+      s2:{label:'Schritt 2: Winkel', felder:[{label:'', ans:w, ansText:G_(w), einheit:'°'}], ansText:G_(w)},
+      why:`1${NB}% ≙ 3,6°, weil 360° : 100 = 3,6°. ${Z(p)} · 3,6 = ${G_(w)}.`};
+    return aufg(mitMerk(UR.prozent.wahlSchritt1(t),ctx));
+  },
+  // V2-A03 Winkel für alle Abschnitte (Rest zuerst)
+  winkel_alle(ctx){
+    const {titel, teile}=daten(rnd(3,5)), mitRest=Math.random()<.6, [rn,rp]=teile[teile.length-1];
+    const felder=[...(mitRest?[{label:`${rn} (der Rest) in %`, ans:rp, ansText:`${rn}: ${P(rp)}`, einheit:'%'}]:[]),
+      ...teile.map(([n,p])=>({label:`${n}: Winkel`, ans:rund(p*3.6), ansText:`${n}: ${G_(p*3.6)}`, einheit:'°'}))];
+    const text = mitRest ? `${titel}: ${liste(teile.slice(0,-1))}, der Rest ist ${rn}.` : `${titel}: ${liste(teile)}.`;
+    return aufg(mitMerk({kind:'zahlen', text:true, q:text, lead:'Berechne die Winkel für alle Abschnitte!', teile, felder,
+      loesungBild:kreisSVG(teile), why:`${mitRest?`Rest: 100 ${teile.slice(0,-1).map(([,p])=>`${M} ${Z(p)}`).join(' ')} = ${P(rp)}. `:''}${rechnungen(teile)}. Kontrolle: ${kontrolle(teile)}.`}, ctx));
+  },
+  // V2-A04 Kreisdiagramm lesen (Prozent eines Abschnitts oder größter Abschnitt)
+  ablesen_kreis(ctx){
+    const {titel, teile}=daten(rnd(3,4), {min:5});
+    if(Math.random()<.6){ const [n,p]=pick(teile);
+      return aufg(mitMerk({kind:'zahlen', q:`${titel}: Wie viel Prozent sind ${n}?`, lead:'Lies aus dem Kreisdiagramm ab!', teile, gefragt:n,
+        bild:kreisSVG(teile,{legendeP:false}), felder:[{label:n, ans:p, ansText:P(p), einheit:'%'}],
+        why:`Winkel : 3,6 = Prozent: ${G_(p*3.6)} : 3,6 = ${P(p)}.`}, ctx)); }
+    const max=Math.max(...teile.map(x=>x[1])); if(teile.filter(x=>x[1]===max).length>1) return typen.ablesen_kreis(ctx);
+    const gross=teile.find(x=>x[1]===max);
+    return aufg(mitMerk({kind:'fragen', q:`${titel}: Welcher Abschnitt ist am größten?`, lead:'Lies aus dem Kreisdiagramm ab!', teile,
+      bild:kreisSVG(teile,{legendeP:false}), gruppen:[{optionen:teile.map(([n])=>[n,n]), ans:gross[0]}],
+      why:`Der größte Winkel (${G_(max*3.6)}) ist der größte Anteil: ${gross[0]} mit ${P(max)}.`}, ctx));
+  },
+  // V2-A05 Passendes Kreisdiagramm wählen (drei Bilder)
+  kreis_waehlen(ctx){
+    return versuche(()=>{
+      const {titel, teile}=daten(rnd(2,4), {min:10, schritt:5}), ps=teile.map(x=>x[1]), k=ps.length;
+      const v=[];
+      if(k>2||ps[0]!==ps[1]){ const i=rnd(0,k-2); if(ps[i]!==ps[i+1]){ const q=[...ps]; [q[i],q[i+1]]=[q[i+1],q[i]]; v.push({grad:q.map(x=>x*3.6), warum:`${teile[i][0]} und ${teile[i+1][0]} sind vertauscht.`}); } }
+      v.push({grad:ps.map(x=>x), warum:'Die Winkel sind p° statt p · 3,6°: Der Kreis ist nicht voll.'});
+      { const j=rnd(0,k-1), q=ps.map(x=>x*3.6); q[j]+=pick([-36,-18]); if(q[j]>0) v.push({grad:q, warum:`Der Winkel für ${teile[j][0]} ist zu klein, zusammen sind es nicht 360°.`}); }
+      const falsch=mischen(v).slice(0,2); if(falsch.length<2) return null;
+      const alle=mischen([{grad:ps.map(x=>x*3.6), richtig:true}, ...falsch]).map((x,i)=>({...x, id:'ABC'[i]}));
+      const rest=teile[k-1][0];
+      return aufg(mitMerk({kind:'fragen', text:true, q:`${titel}: ${liste(teile.slice(0,-1))}, der Rest ist ${rest}. Welches Kreisdiagramm passt?`, teile, varianten:alle,
+        bild:legende(teile,false),
+        gruppen:[{optionen:alle.map(x=>[x.id, `<span class="wahlnr">${x.id}</span>${kreisSVG(teile,{grad:x.grad, winkel:false, legende:false})}`]), ans:alle.find(x=>x.richtig).id, klasse:'kreise'}],
+        why:`Richtig ist ${alle.find(x=>x.richtig).id}: ${rechnungen(teile)}. ${alle.filter(x=>!x.richtig).map(x=>`${x.id}: ${x.warum}`).join(' ')}`}, ctx));
+    });
+  },
+  // V2-A06 Kreisdiagramm zeichnen (Papier, Selbstkontrolle)
+  zeichnen_kreis(ctx){
+    const {titel, teile}=daten(rnd(2,5), {min:5}), r=pick([3,4,5]);
+    return aufg({kind:'zeichnen', text:true, zeug:'Du brauchst Papier, Zirkel, Geodreieck und Buntstifte.', teile,
+      q:`Zeichne das Kreisdiagramm (Radius ${r}${NB}cm), färbe und beschrifte die Abschnitte! ${titel}: ${liste(teile)}`,
+      lead:ctx&&ctx.leicht?`Rechne zuerst: ${rechnungen(teile)}`:undefined,
+      loesungBild:kreisSVG(teile),
+      pruefliste:[`Kreis mit Radius ${r}${NB}cm und Mittelpunkt`, `Winkel (± 2°): ${teile.map(([n,p])=>`${n} ${G_(p*3.6)}`).join(' · ')}`, 'alle Abschnitte beschriftet'],
+      why:`${rechnungen(teile)}. Wenn es nicht passt: Rechne p · 3,6 und miss vom letzten Schenkel weiter.`});
+  },
+  // V2-A02 (Plus) Grad in Prozent
+  grad_proz(){
+    const p=rnd(1,99), w=rund(p*3.6);
+    return aufg({kind:'zahlen', q:`Ein Abschnitt im Kreisdiagramm hat ${G_(w)}.`, lead:'Wie viel Prozent gehören zum Winkel?', felder:[{label:'Prozent', ans:p, ansText:P(p), einheit:'%'}],
+      why:`Winkel : 3,6: ${G_(w)} : 3,6 = ${P(p)}.`});
+  },
+  // V2-A07 (Plus) Kinder im Kreisdiagramm
+  kinder(){
+    const g=pick([360,200]), ps=teilung(3,{min:10,schritt:5}), namen=['Bus','zu Fuß','Rad'];
+    const felder=namen.flatMap((n,i)=>[{label:`${n}: Kinder`, ans:g*ps[i]/100, ansText:`${n}: ${Z(g*ps[i]/100)} Kinder`}, {label:`${n}: Winkel`, ans:rund(ps[i]*3.6), ansText:G_(ps[i]*3.6), einheit:'°'}]);
+    return aufg({kind:'zahlen', text:true, q:`Von ${g} Kindern fahren ${P(ps[0])} mit dem Bus, ${P(ps[1])} gehen zu Fuß, ${P(ps[2])} fahren mit dem Rad. Wie viele Kinder sind das, und wie groß sind die Winkel?`,
+      felder, why:`Kinder: ${g} · p : 100. Winkel: p · 3,6.${g===360?' Bei 360 Kindern ist der Winkel gleich der Kinderzahl.':''}`});
+  },
+  // V2-A08 (Plus) Zusammensetzung des Menschen
+  mensch(){
+    return versuche(()=>{
+      const m=rnd(40,90), teile=[['Wasser',60],['Eiweiß',20],['Fett',14],['andere Stoffe',6]];
+      const felder=teile.map(([n,p])=>({label:n, ans:rund(m*p/100), ansText:`${n}: ${Z(rund(m*p/100))} kg`, einheit:'kg'}));
+      return aufg({kind:'zahlen', text:true, q:`Ein Mensch wiegt ${m} kg. Davon sind ${liste(teile)}. Berechne die Massen!`, felder,
+        why:`W = G · p : 100: ${teile.map(([n,p])=>`${m} · ${p} : 100 = ${Z(rund(m*p/100))} kg`).join(' · ')}. Zusammen ${m} kg.`});
+    });
+  },
+  // V2-N01 (Plus) Streifen oder Kreis?
+  streifen_kreis(){
+    const [s,a,w]=pick(WAHL);
+    return aufg({kind:'fragen', q:`${s}: Welche Darstellung passt besser?`, gruppen:[{optionen:[['Kreisdiagramm','Kreisdiagramm'],['Prozentstreifen','Prozentstreifen']], ans:a, klasse:'lang'}], why:w});
+  }
+};
+
+/* ---------- Stationen (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Prozent in Grad', hint:'45 % → 45 · 3,6 = 162°', types:['grad']},
+  {id:'S2', name:'Winkel für alle Abschnitte', hint:'zusammen immer 360°', types:['winkel_alle']},
+  {id:'S3', name:'Kreisdiagramme lesen und wählen', hint:'36° = 10 %', types:['ablesen_kreis','kreis_waehlen']},
+  {id:'S4', name:'Kreisdiagramm zeichnen', hint:'zeichnen, vergleichen, selbst kontrollieren', types:['zeichnen_kreis']}
+];
+const kern = ['grad','winkel_alle','ablesen_kreis','kreis_waehlen','zeichnen_kreis'];
+const leicht = ['winkel_alle','ablesen_kreis','kreis_waehlen','zeichnen_kreis'];   // Merkkarte bzw. Winkel vorgerechnet
+const plus = ['grad_proz','kinder','mensch','streifen_kreis'];
+const plusHint = 'Grad in Prozent · Kinder im Kreisdiagramm · Zusammensetzung des Menschen · Streifen oder Kreis?';
+
+/* ---------- Erklärung ---------- */
+const erklaerung = {
+  beispiele: ()=>({b:{titel:'Körper', teile:[['Muskeln',45],['Knochen',15],['Fett',15],['Anderes',25]]}}),
+  neu(kind,E){ if(kind==='kreis') E.b=daten(rnd(3,4)); },
+  html: E => `<section class="sheet"><h2>Das Kreisdiagramm</h2>
+    <div class="rule"><h3>1. Warum 3,6°?</h3>${MERK}</div>
+    <div class="rule"><h3>2. Prozent in Grad</h3><p>${E.b.titel}: ${liste(E.b.teile)}</p>
+      <div class="ex">${rechnungen(E.b.teile)}</div><div class="bild">${kreisSVG(E.b.teile)}</div>
+      <p>Kontrolle: ${kontrolle(E.b.teile)}</p><button class="newex" data-newex="kreis">Neues Beispiel</button></div>
+    <div class="rule"><h3>3. Ablesen</h3><p>Winkel : 3,6 = Prozent. Der größte Winkel ist der größte Anteil.</p></div>
+    <div class="rule"><h3>4. Kreis oder Streifen?</h3><p>Wenige Teile eines Ganzen: Kreisdiagramm. Viele Teile, genau vergleichen oder schnell mit dem Lineal: Prozentstreifen.</p></div>
+    <div class="rule"><h3>5. Selbst zeichnen</h3><p>Zeichne mit Zirkel und Geodreieck, tippe „Fertig gezeichnet“ und vergleiche mit dem Lösungsbild. Dann sagst du selbst, ob es richtig ist.</p></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How Prozentrechnung.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
+};
+
+const lzk = {merkmal:{grad:'grad', winkel_alle:'winkel_alle', ablesen_kreis:'ablesen_kreis', kreis_waehlen:'kreis_waehlen', zeichnen_kreis:'zeichnen'}};
+UR.kompetenzAnmelden({id:'M-Proz-V2', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
 })(window.UR = window.UR || {});
 </script>
 <script>
