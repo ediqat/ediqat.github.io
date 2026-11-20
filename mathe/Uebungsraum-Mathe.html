@@ -375,6 +375,24 @@ svg.kreisdia .st-t{fill:var(--text)} svg.kreisdia path+text,svg.kreisdia .st-t{p
 .zeug{background:var(--v-soft);border-radius:10px;padding:8px 12px;font-weight:700}
 .pruef{margin:0;padding-left:1.2em} .pruef li{margin:2px 0}
 [data-fertig-knopf][hidden],[data-vergleich][hidden]{display:none!important}
+/* Rationale Zahlen (M-RaZa, 20.11.2026): Zahlengerade zum Antippen, Vorzeichen (V, orange) und Rechenzeichen (R, blau)
+   in farbsicheren Farben mit Buchstaben, Feld „gemischte Zahl“, Tabelle Zahl/Gegenzahl/Betrag */
+.skala{max-width:560px;margin:0 auto}
+.zg-tipp{fill:transparent;cursor:pointer;pointer-events:all}
+.zg-tipp.sel{fill:var(--v);fill-opacity:.35}
+.luecke{display:inline-block;min-width:1.4em;text-align:center;border-bottom:2px solid var(--ink);color:var(--ink);font-weight:800}
+.vr{position:relative;display:inline-block;margin:0 .06em}
+.vr b{font-weight:800;padding:0 .18em;border-radius:5px}
+.vr i{position:absolute;left:50%;top:100%;transform:translateX(-50%);font-style:normal;font-size:.7em;font-weight:800;line-height:1;color:var(--muted)}
+.vr.vz b,.vr.vz i{color:var(--cop)} .vr.rz b,.vr.rz i{color:var(--c1)}
+.vr.vz b{background:var(--cop-soft)} .vr.rz b{background:var(--ink-soft)}
+.vrterm,.task:has(.vr){font-size:1.35rem;line-height:1.5;padding-bottom:1em}
+.mfeld{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0}
+.mfeld input.ganze{flex:0 0 5.5ch;width:5.5ch;text-align:center}
+.mfeld .bfeld{flex:0 1 9ch}
+.sign.an{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.zgtab td,.zgtab th{text-align:center}
+.vrblock{display:block;width:100%;text-align:center}
 </style>
 </head>
 <body>
@@ -701,7 +719,9 @@ UR.formAnmelden('fragen', {
     const stuecke = t.gruppen.length>1 ? t.gruppen.map((g,i)=>({text:beschriftung(g,norm(l[i],g)), ok:teile[i], soll:beschriftung(g,norm(g.ans,g))})) : null;
     return {ok:teile.every(Boolean), teile, stuecke, shown:t.gruppen.map((g,i)=>beschriftung(g,norm(l[i],g))).join(' · ')};
   },
-  loesung: t => t.gruppen.map(g=>beschriftung(g,norm(g.ans,g))).join(' · ')
+  loesung: t => t.gruppen.map(g=>beschriftung(g,norm(g.ans,g))).join(' · '),
+  // als HTML (Beschriftung der Knöpfe, z. B. Brüche mit waagrechtem Strich); g.ansHTML, wenn es keine Knöpfe gibt (im Bild)
+  loesungHTML: t => t.gruppen.map(g=>g.ansHTML || String(norm(g.ans,g)).split(',').map(w=>{ const o=(g.optionen||[]).find(o=>o[0]===w); return o?o[1]:esc(w); }).join(', ')).join(' · ')
 });
 
 /* ---------- 'reihenfolge' ---------- */
@@ -816,7 +836,8 @@ UR.formAnmelden('zahlen', {
     const stuecke=UR.zahlStuecke(t.felder, erg);
     return {ok:zus&&erg.every(x=>x.zahlOk&&x.einheitOk), shown:stuecke.map(s=>s.text).join(' | '), stuecke:t.felder.length>1?stuecke:null};
   },
-  loesung: t => t.felder.map(f=>f.ansText).join(' | ')
+  loesung: t => t.felder.map(f=>f.ansText).join(' | '),
+  loesungHTML: t => t.felder.map(f=>f.ansHTML||esc(f.ansText)).join(' | ')   // f.ansHTML: z. B. Bruch mit waagrechtem Strich
 });
 
 /* ---------- Papierfassungen für die LZK (kern/lzk.js) ----------
@@ -852,7 +873,7 @@ UR.formen.zuordnen.papier = t => {
 };
 UR.formen.zahlen.papier = t => ({
   aufgabe:P().mitBild(`${P().angabe(t)}${P().platz(t.papierPlatz||(t.felder.length>1&&!t.bild?2:1))}${t.felder.map(f=>P().linie(f.label, f.einheit||'')).join('')}`, t.bild),
-  loesung:t.felder.map(f=>f.ansText+(f.tol>=0.1&&f.einheit?` (± ${String(f.tol).replace('.',',')} ${f.einheit})`:'')).join('<br>'), lead:t.lead||undefined, aufwand:t.felder.length>1||t.bild?2:1});
+  loesung:t.felder.map(f=>(f.ansHTML||f.ansText)+(f.tol>=0.1&&f.einheit?` (± ${String(f.tol).replace('.',',')} ${f.einheit})`:'')).join('<br>'), lead:t.lead||undefined, aufwand:t.felder.length>1||t.bild?2:1});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -904,7 +925,7 @@ const stationVon = (id,t) => B(id).stationen.find(s=>!s.extra&&s.types.includes(
 // Üben: Typen mit Fehlern im letzten Check kommen dreimal so oft
 const gewichtet = (types,fehler) => types.flatMap(t=>(fehler||[]).includes(t)?[t,t,t]:[t]);
 /* Generatoren bekommen den Zusammenhang (fachneutral, Entscheidung der Lehrkraft 19.11.2026):
-   modus 'check' | 'station' | 'plus'; einstieg = Station noch im Einstieg mit Hilfe; leicht = Einstieg mit der leichteren Fassung (Typen in k.leicht, die ersten
+   modus 'check' | 'station' | 'plus'; nr = im Check die wievielte Aufgabe dieses Typs (jeTyp); einstieg = Station noch im Einstieg mit Hilfe; leicht = Einstieg mit der leichteren Fassung (Typen in k.leicht, die ersten
    SCAFF richtigen Aufgaben einer Station); folge = richtige Aufgaben hintereinander in der Station (z. B. Hilfen
    im Bild abbauen). Ohne Zusammenhang (LZK, Tests) gilt: wie im Check. */
 function make(id,type,ctx){const t=B(id).typen[type](ctx||{modus:'check'});t.type=type;if(!t.kind)t.kind='num';return t}
@@ -917,9 +938,11 @@ const stueckHTML = s => s.ok ? `<b class="rv-ok">${esc(s.text)}</b>${s.tipp?` <s
 function antwortHTML(a){
   if(a.ok) return `<b class="rv-ok">${T.richtig}</b>${a.t.tipp?` <span class="small muted">${T.ohneEinheit}</span>`:''}`;
   if(a.stuecke&&a.stuecke.length) return a.stuecke.map(stueckHTML).join(' · ');
-  return `<b class="${a.halb?'rv-halb':'rv-no'}">${esc(a.shown)}</b> → ${esc(correctText(a.t))}`;
+  return `<b class="${a.halb?'rv-halb':'rv-no'}">${esc(a.shown)}</b> → ${correctHTML(a.t)}`;
 }
 const correctText = t => form(t).loesung(t);
+// Lösung zum Anzeigen: als HTML, wenn die Form das kann (z. B. Brüche mit waagrechtem Strich), sonst der Text
+const correctHTML = t => form(t).loesungHTML ? form(t).loesungHTML(t) : esc(correctText(t));
 
 function meterPct(id,c){
   const lf=UR.lastFinal(c); if(lf&&lf.rating==='ganz')return 100;
@@ -1026,8 +1049,10 @@ function renderHistory(c){
 }
 
 /* ---------- Check (Eingang / Abschluss) ---------- */
+// nr: die wievielte Aufgabe dieses Typs im Check (0, 1, …), z. B. je Richtung eine Aufgabe (M-RaZa-G1, 20.11.2026)
 function startCheck(kind){
-  const items = checkPlan(view.id).map(t=>Object.assign(make(view.id,t,{modus:'check'}),{station:stationVon(view.id,t)})).sort(()=>Math.random()-.5);
+  const plan = checkPlan(view.id);
+  const items = plan.map((t,i)=>Object.assign(make(view.id,t,{modus:'check',nr:plan.slice(0,i).filter(x=>x===t).length}),{station:stationVon(view.id,t)})).sort(()=>Math.random()-.5);
   go({name:'check',id:view.id,kind,items,i:0,answers:[]});
 }
 function renderCheck(){
@@ -1105,7 +1130,7 @@ function renderStation(){
     const parts = gef&&!view.leicht ? `<span>${t.schritt}: ${f.preOk?T.richtig:T.falsch} · ${T.ergebnis}: ${f.valOk?T.richtig:T.falsch}</span>` : '';
     body=`<div class="task ${t.text?'text':''}">${t.qh||esc(t.q)}</div>
       <div class="fb ${f.ok?'ok':'no'} pop"><b class="t">${f.ok?UR.pick(T.lob):T.nochNicht}</b>${parts}
-      ${f.ok?'':`<span>${T.richtigIst(esc(correctText(t)))}</span>`}
+      ${f.ok?'':`<span>${T.richtigIst(correctHTML(t))}</span>`}
       ${t.tipp?`<span><b>${t.tipp}</b></span>`:''}<span>${t.why}</span>${t.stepsh?`<span class="steps">${t.stepsh}</span>`:t.steps?`<span class="steps">${esc(t.steps)}</span>`:''}</div>
       ${t.zusatzRueckmeldung?t.zusatzRueckmeldung(f):''}
       ${f.nowSelf?`<div class="fb ok pop"><b class="t">${T.abJetztAllein}</b><span>${t.alleinText||T.abJetztVoll}</span></div>`:''}
@@ -1543,7 +1568,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-20.52","datum":"20.11.2026","pruefsumme":"03c431fff132a92d"};
+UR.version = {"nummer":"2026-11-20.65","datum":"20.11.2026","pruefsumme":"6ebd024d4f85982c"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -1624,7 +1649,76 @@ function miniMove(face,dir,label){  // face/dir: 1 = rechts, -1 = links
     <defs><marker id="avm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--cop)"/></marker><marker id="ahm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--c2)"/></marker></defs></svg><figcaption>${cap}</figcaption></figure>`;
 }
 
-Object.assign(UR.mathe, {walkSVG, miniMove});
+/* ---------- Zahlengerade mit Skala (M-RaZa-G1, 20.11.2026): ablesen, antippen, beschriften ----------
+   o.start (ganze Zahl), o.schritt [Zähler, Nenner] je Strich, o.n Striche nach dem ersten (Strich k = start + k · schritt);
+   o.beschriftet [k …]: diese Striche tragen ihre Zahl; o.tipp 'q0': jeder Strich ist antippbar (Form 'fragen', data-wert = k);
+   o.marke k: Pfeil mit „?“ (ablesen); o.loesung [{k, text, farbe}]: X mit Beschriftung; o.pfeil: „größer →“ unter der Geraden;
+   o.null: der Nullpunkt wird hervorgehoben. Punkte als X wie im Leitfaden, Pfeilspitzen links und rechts. */
+// gemischte Zahl im Bild mit waagrechtem Bruchstrich (Leitfaden): Ganze links, Bruch rechts daneben; cx Mitte, y Grundlinie
+function svgBruch(cx, y, q, farbe, klein){
+  const neg=q[0]<0, a=Math.abs(q[0]), g=Math.floor(a/q[1]), r=a%q[1], vorne=(neg?UR.M:'')+(g?g:''), wv=vorne.length*8.5, wb=Math.max(String(r).length,String(q[1]).length)*7.5+4;
+  const x0=cx-(wv+wb+2)/2, xb=x0+wv+2+wb/2;
+  return `<g fill="${farbe}" font-weight="${klein?600:800}"${klein?' class="zg-blab"':''}>${vorne?`<text x="${x0+wv}" y="${y}" font-size="15" text-anchor="end">${vorne}</text>`:''}
+    <text x="${xb}" y="${y-8}" font-size="12" text-anchor="middle">${r}</text><line x1="${xb-wb/2}" x2="${xb+wb/2}" y1="${y-5}" y2="${y-5}" stroke="${farbe}" stroke-width="1.6"/>
+    <text x="${xb}" y="${y+6}" font-size="12" text-anchor="middle">${q[1]}</text></g>`;
+}
+function skalaSVG(o){
+  const W=440, L0=34, L1=W-34, N=o.n, x=k=>L0+k*(L1-L0)/N, Y=58, [sz,sn]=o.schritt;
+  const wert=k=>(o.start*sn+k*sz)/sn, ganz=k=>(o.start*sn+k*sz)%sn===0, halb=k=>((o.start*sn+k*sz)*2)%sn===0;
+  const lab=new Set(o.beschriftet||[]);
+  let s=`<defs><marker id="zgax" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text)"/></marker></defs>
+    <line x1="${L0-22}" x2="${L1+22}" y1="${Y}" y2="${Y}" stroke="var(--text)" stroke-width="2" marker-start="url(#zgax)" marker-end="url(#zgax)"/>`;
+  for(let k=0;k<=N;k++){
+    const h=ganz(k)?11:halb(k)&&sn>2?8:6, nul=o.null&&wert(k)===0;
+    s+=`<line x1="${x(k)}" x2="${x(k)}" y1="${Y-h}" y2="${Y+h}" stroke="${nul?'var(--ink)':'var(--muted)'}" stroke-width="${ganz(k)?2:1.3}"/>`;
+    // Beschriftung: ganze Zahlen und Dezimalzahlen als Text, Bruchteile (z. B. Halbe auf einer Viertel-Skala) mit waagrechtem Strich
+    if(lab.has(k)){ const qk=[o.start*sn+k*sz, sn];
+      if(sn!==10&&!ganz(k)) s+=svgBruch(x(k), Y+32, UR.raza.Q(...qk), 'var(--text)', true);
+      else s+=`<text x="${x(k)}" y="${Y+31}" font-size="16" font-weight="${nul?800:600}" text-anchor="middle" fill="${nul?'var(--ink)':'var(--text)'}">${UR.raza.Z(wert(k))}</text>`; }
+  }
+  if(o.marke!==undefined){ const mx=x(o.marke);
+    s+=`<path d="M${mx} ${Y-14} L${mx-7} ${Y-27} L${mx+7} ${Y-27} Z" fill="var(--cop)"/><line x1="${mx}" x2="${mx}" y1="${Y-27}" y2="${Y-44}" stroke="var(--cop)" stroke-width="3"/>`; }
+  // Beschriftung der Lösung: p.q (Bruch) mit waagrechtem Bruchstrich, sonst p.text
+  for(const p of o.loesung||[]){ const px=x(p.k), c=p.farbe||'var(--g)', cx=Math.min(W-24,Math.max(24,px));
+    s+=`<path d="M${px-7} ${Y-7} L${px+7} ${Y+7} M${px+7} ${Y-7} L${px-7} ${Y+7}" stroke="${c}" stroke-width="3.2" stroke-linecap="round"/>`;
+    if(p.q&&p.q[1]!==1) s+=svgBruch(cx, Y-22, p.q, c);
+    else if(p.text) s+=`<text x="${cx}" y="${Y-20}" font-size="14" font-weight="800" text-anchor="middle" fill="${c}">${p.text}</text>`; }
+  if(o.pfeil) s+=`<text x="${W/2-48}" y="${Y+57}" font-size="13" font-weight="700" text-anchor="end" fill="var(--ink)">größer</text>
+    <line x1="${W/2-40}" x2="${W/2+30}" y1="${Y+52}" y2="${Y+52}" stroke="var(--ink)" stroke-width="2.5" marker-end="url(#zgax)"/>`;
+  if(o.tipp){ const d=(L1-L0)/N;
+    for(let k=0;k<=N;k++) s+=`<rect class="zg-tipp" data-wg="${o.tipp}" data-wert="${k}" x="${x(k)-d/2}" y="${Y-30}" width="${d}" height="60" rx="4"/>`; }
+  return `<svg class="numline skala" viewBox="0 0 ${W} ${o.pfeil?Y+62:Y+40}" role="img" aria-label="Zahlengerade">${s}</svg>`;
+}
+
+/* ---------- Zahlen als Punkte auf einer Geraden (Rückmeldungen: ordnen, vergleichen, Betrag, Gegenzahl) ----------
+   werte [{v, text}]: v Zahl (Dezimal), text Beschriftung (ohne: die Zahl). Beschriftungen in Reihen abwechselnd, damit sie
+   sich nicht überlappen. o.abstand v: Klammer von 0 bis v mit „Abstand“; o.spiegel v: Bogen von v zu −v. */
+function punkteSVG(werte, o={}){
+  const W=440, L0=30, L1=W-30, Y=64, vs=werte.map(p=>p.v).concat([0, o.spiegel!==undefined?-o.spiegel:0]);
+  let lo=Math.min(...vs), hi=Math.max(...vs); const rand=(hi-lo||2)*0.12; lo-=rand; hi+=rand;
+  const x=v=>L0+(v-lo)*(L1-L0)/(hi-lo);
+  let s=`<defs><marker id="zgpx" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text)"/></marker>
+    <marker id="zgsp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--c2)"/></marker></defs>
+    <line x1="${L0-16}" x2="${L1+16}" y1="${Y}" y2="${Y}" stroke="var(--text)" stroke-width="2" marker-start="url(#zgpx)" marker-end="url(#zgpx)"/>
+    <line x1="${x(0)}" x2="${x(0)}" y1="${Y-10}" y2="${Y+10}" stroke="var(--ink)" stroke-width="2.4"/><text x="${x(0)}" y="${Y+28}" font-size="15" font-weight="800" text-anchor="middle" fill="var(--ink)">0</text>`;
+  if(o.abstand!==undefined){ const a=x(0), b=x(o.abstand), yy=Y+44;
+    s+=`<path d="M${a} ${yy-6} V${yy} H${b} V${yy-6}" fill="none" stroke="var(--c2)" stroke-width="2"/><text x="${(a+b)/2}" y="${yy+17}" font-size="15" font-weight="700" text-anchor="middle" fill="var(--c2)">Abstand ${UR.raza.Z(Math.abs(o.abstand))}</text>`; }
+  if(o.spiegel!==undefined&&o.spiegel!==0){ const a=x(o.spiegel), b=x(-o.spiegel), m=(a+b)/2, h=Math.min(40,Math.abs(b-a)/2+10);
+    s+=`<path d="M${a} ${Y-12} Q${m} ${Y-12-2*h} ${b} ${Y-12}" fill="none" stroke="var(--c2)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#zgsp)"/>`; }
+  // Beschriftungen: nach Lage sortiert, abwechselnd zwei Reihen über der Geraden
+  const sort=werte.map((p,i)=>({...p,i})).sort((a,b)=>a.v-b.v);
+  let letzte=[-1e9,-1e9];
+  sort.forEach((p,j)=>{ const px=x(p.v), t=p.text||UR.raza.Z(p.v), w=t.length*9+8;
+    let r=j%2; if(px-letzte[r]<w&&px-letzte[1-r]>=w) r=1-r; letzte[r]=px+0;
+    const ty=Y-20-r*18;
+    s+=`<path d="M${px-6} ${Y-6} L${px+6} ${Y+6} M${px+6} ${Y-6} L${px-6} ${Y+6}" stroke="${p.farbe||'var(--cop)'}" stroke-width="3" stroke-linecap="round"/>
+      <line x1="${px}" x2="${px}" y1="${ty+3}" y2="${Y-8}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="2 2"/>
+      <text x="${Math.min(W-16,Math.max(16,px))}" y="${ty}" font-size="15" font-weight="700" text-anchor="middle" fill="${p.farbe||'var(--cop)'}">${t}</text>`; });
+  const unten=o.abstand!==undefined?Y+70:Y+38, oben=o.spiegel!==undefined?-10:4;
+  return `<svg class="numline" viewBox="0 ${oben} ${W} ${unten-oben}" role="img" aria-label="Zahlengerade mit Punkten">${s}</svg>`;
+}
+
+Object.assign(UR.mathe, {walkSVG, miniMove, skalaSVG, punkteSVG});
 // Schritte 1, 2, 3 antippen: Zahlengerade baut sich auf
 UR.bindungen.push(app=>app.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>b.closest('.walkbox').classList.toggle('s'+b.dataset.step)));
 })(window.UR = window.UR || {});
@@ -2288,6 +2382,8 @@ function versuche(fn){ for(let n=0;n<2000;n++){ const r=fn(); if(r) return r; } 
 const bereich = (a,b) => Array.from({length:b-a+1},(_,i)=>a+i);
 const bruch = (z,n) => `<span class="bruch"><span>${z}</span><span>${n}</span></span>`;
 const sub = (h,x) => `${h}<sub>${x}</sub>`;
+// Wurzel aus einer Zahl oder einem Buchstaben (√3, √75, √a) mit Strich darüber; nur für HTML-Anzeige
+const wurzelStrich = s => String(s).replace(/√(\d+(?:,\d+)?|[a-z](?![a-zα-ω]))/g, '<span class="wurzel">√<span>$1</span></span>');
 const GR = {A:'α',B:'β',C:'γ'}, KL = {A:'a',B:'b',C:'c'};
 const NAMEN = ['Lea','Tom','Mia','Jonas','Emil','Sara','Ben','Anna','Paul','Lena'];
 
@@ -2620,7 +2716,7 @@ function aufg(t){
 // drei Auswahlmöglichkeiten für Schritt 1: richtige zuerst übergeben, gemischt zurück
 const vorschlaege = (richtig, ...falsch) => { const l=[...new Set([richtig,...falsch])]; return mischen(l.map(x=>[x,x])); };
 
-UR.dreiecke = {felder2, rund, D, Df, stellen, mischen, versuche, bereich, bruch, sub, GR, KL, NAMEN, rad, grad, dist, plus, minus, mal, schwer,
+UR.dreiecke = {felder2, rund, D, Df, stellen, mischen, versuche, bereich, bruch, sub, wurzelStrich, GR, KL, NAMEN, rad, grad, dist, plus, minus, mal, schwer,
   winkelBei, winkel, seiten, gegen, merkwuerdig, ausWinkeln, ausSeiten, drehen, lage, lot, heron, zeichne, koordSVG, liesRechnung, gleicheZahlen,
   LAENGE, FLAECHE, EINHEITEN, FAKTOR, umrechnen, einheitHinweis, hilfe, aufg, vorschlaege};
 })(window.UR = window.UR || {});
@@ -3076,6 +3172,444 @@ UR.bindungen.push(app=>{ if(!app.querySelector) return;
 UR.prozent = {ggT, kuerzen, rund, nachkomma, Z, E, P, br, NB, PUNKT, mischen, versuche, dezimal, prozentText, lesePeriode, leseBruch,
   istGekuerzt, bruchFeld, periodeFeld, figur, gefaerbt, RASTER, kommaBild, kommaSchritt, rasterSVG, aufg, G, Pz, W, merk, ohneTags,
   farbig, srWert, srProz, srOk, srRechnung, srBild, schlussAufgabe, wahlSchritt1, nahe, legende, streifenSVG, kreisSVG};
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/bausteine/rationale.js */
+/* Mathe-Baustein Rationale Zahlen (M-RaZa-G1 bis V3, Entscheidungen der Lehrkraft 20.11.2026, Mathe/1.1 Rationale-Zahlen/):
+   - exakte Bruchrechnung (Q), Zahlen schreiben mit Komma, echtem Minus und Tausender-Leerzeichen
+   - Brüche immer mit waagrechtem Strich (HTML); in reinem Text (Kärtchen, Liste nach dem Check) als ¼, ½, ¾ …
+   - Zahlfeld mit Vorzeichen-Taste (die Zahlentastatur am Handy hat kein Minus) für die Form 'zahlen'
+   - Feld „gemischte Zahl“: Ganze, Zähler, Nenner, dazu die Vorzeichen-Taste. Ganze leer = Bruch. Auf Wunsch zählt nur
+     vollständig gekürzt bzw. nur die gemischte Zahl (unechter Bruch: Wert stimmt, Form nicht → Hinweis). */
+(function(UR){
+const M = UR.M, NB = String.fromCharCode(160);
+
+/* ---------- exakte Brüche [Zähler, Nenner] ---------- */
+const ggT = (a,b) => { a=Math.abs(a); b=Math.abs(b); while(b) [a,b]=[b,a%b]; return a; };
+const Q = (z,n=1) => { if(n<0){ z=-z; n=-n; } const g=ggT(z,n)||1; return [z/g, n/g]; };
+const qadd = (a,b) => Q(a[0]*b[1]+b[0]*a[1], a[1]*b[1]);
+const qsub = (a,b) => qadd(a, [-b[0], b[1]]);
+const qmul = (a,b) => Q(a[0]*b[0], a[1]*b[1]);
+const qdiv = (a,b) => Q(a[0]*b[1], a[1]*b[0]);
+const qvgl = (a,b) => a[0]*b[1] - b[0]*a[1];          // < 0: a kleiner
+const qwert = q => q[0]/q[1];
+const rund = x => Number(Number(x).toPrecision(12));
+
+/* ---------- Zahlen schreiben ---------- */
+// Zahl mit Komma, echtem Minus und Tausender-Leerzeichen (2 476); plus: positive mit „+“
+function Z(x, plus){
+  const r=rund(x); let [g,d]=String(Math.abs(r)).split('.');
+  if(g.length>=4) g=g.replace(/\B(?=(\d{3})+(?!\d))/g, NB);
+  return (r<0?M:plus&&r>0?'+':'')+g+(d?','+d:'');
+}
+const BRUCH_TEXT = {'1/2':'½','1/3':'⅓','2/3':'⅔','1/4':'¼','3/4':'¾','1/5':'⅕','2/5':'⅖','3/5':'⅗','4/5':'⅘','1/8':'⅛','3/8':'⅜','5/8':'⅝','7/8':'⅞'};
+const br = (z,n) => `<span class="bruch"><span>${z}</span><span>${n}</span></span>`;
+// Bruch als gemischte Zahl, HTML (−1 ¾ mit waagrechtem Strich); plus: positive mit „+“
+function gemHTML(q, plus){
+  q=Q(...q); const s=q[0]<0?M:plus&&q[0]>0?'+':'', a=Math.abs(q[0]), g=Math.floor(a/q[1]), r=a%q[1];
+  if(!r) return s+Z(g);
+  return `${s}${g?Z(g)+NB:''}${br(r,q[1])}`;
+}
+// dasselbe als reiner Text (Kärtchen, Liste nach dem Check): nur Nenner mit eigenem Zeichen, sonst Zähler über Nenner in Worten
+function gemText(q, plus){
+  q=Q(...q); const s=q[0]<0?M:plus&&q[0]>0?'+':'', a=Math.abs(q[0]), g=Math.floor(a/q[1]), r=a%q[1];
+  if(!r) return s+Z(g);
+  const b=BRUCH_TEXT[`${r}/${q[1]}`] || `${r} durch ${q[1]}`;
+  return `${s}${g?Z(g)+NB:''}${b}`;
+}
+// Zahl als Bruch-Wert (Dezimalzahl exakt): 1,25 → [5,4]
+function alsQ(x){ const s=String(rund(x)); if(!s.includes('.')) return [Number(s),1]; const k=s.split('.')[1].length; return Q(Math.round(x*10**k), 10**k); }
+
+/* ---------- Felder für die Form 'zahlen' ---------- */
+// Vorzeichen-Taste: setzt bzw. entfernt das Minus vor dem Feld (data-vz = ID des Felds)
+const vzTaste = id => `<button type="button" class="sign" data-vz="${id}" aria-label="${UR.TEXTE.minusSetzen}">${M}</button>`;
+// Zahl mit Vorzeichen; plus: positive Lösung mit „+“ zeigen. Ein „+“ beim Eintippen zählt wie ohne.
+const vzFeldHTML = id => `${vzTaste(id)}<input id="${id}" class="zahl" data-feld inputmode="decimal" placeholder="?">`;
+const vzFeld = (label, ans, o={}) => ({label, ans, ansText:Z(ans,o.plus), eingabe:String(rund(ans)).replace('.',','), feldHTML:vzFeldHTML, lesen:UR.leseZahl,
+  auch:o.auch, einheit:o.einheit});
+
+// gemischte Zahl: id_g (Ganze), id_z, id_n (Bruch); das versteckte Feld bekommt „[-]Ganze Zähler/Nenner“
+const mischFeldHTML = id => `<div class="mfeld">${vzTaste(id)}<input id="${id}_g" class="term ganze" data-mteil="${id}" inputmode="numeric" placeholder="Ganze" aria-label="Ganze">
+  <div class="bfeld"><input id="${id}_z" class="term" data-mteil="${id}" inputmode="numeric" placeholder="Zähler" aria-label="Zähler"><span class="bstrich" aria-hidden="true"></span><input id="${id}_n" class="term" data-mteil="${id}" inputmode="numeric" placeholder="Nenner" aria-label="Nenner"></div></div>
+  <input type="hidden" id="${id}" data-feld>`;
+// Eingabe zerlegen: {neg, g, z, n} (leere Teile null) oder null bei Unsinn
+function mischTeile(roh){
+  let s=String(roh??'').trim().replace(/[−–]/g,'-').replace(/\s+/g,' ');
+  if(s==='') return {leer:true};
+  let neg=false; if(s[0]==='-'){ neg=true; s=s.slice(1).trim(); } else if(s[0]==='+') s=s.slice(1).trim();
+  // „Ganze“, „Zähler/Nenner“ oder „Ganze Zähler/Nenner“ (Ganze und Bruch durch ein Leerzeichen getrennt)
+  const nur=s.match(/^(\d+(?:[.,]\d+)?)$/), m=s.match(/^(?:(\d+) )?(-?\d+)\/(-?\d+)$/);
+  if(!nur&&!m) return null;
+  const g=nur?Number(nur[1].replace(',','.')):m[1]!==undefined?Number(m[1]):null, z=m?Number(m[2]):null, n=m?Number(m[3]):null;
+  if(z!==null&&z<0){ if(neg||g!==null) return null; neg=true; }
+  if(n!==null&&n<=0) return null;
+  return {neg, g, z:z===null?null:Math.abs(z), n};
+}
+function leseMisch(roh){
+  const t=mischTeile(roh); if(!t) return NaN; if(t.leer) return null;
+  if(t.g!==null&&!Number.isInteger(t.g)&&t.z!==null) return NaN;
+  const v=(t.g||0)+(t.z!==null?t.z/t.n:0);
+  return t.neg?-v:v;
+}
+// Form: gemischt = Betrag über 1 als gemischte Zahl (echter Bruchteil), gekürzt = Bruchteil vollständig gekürzt
+function mischFormOk(roh, o){
+  const t=mischTeile(roh); if(!t||t.leer) return true;
+  if(t.z===null) return true;                                     // ganze Zahl
+  if(o.gekuerzt && ggT(t.z,t.n)!==1) return false;
+  if(o.gemischt && t.z>=t.n) return false;
+  return true;
+}
+// Feld für einen Bruch bzw. eine gemischte Zahl; Lösung als gemischte Zahl
+function mischFeld(label, q, o={}){
+  q=Q(...q); const a=Math.abs(q[0]), g=Math.floor(a/q[1]), r=a%q[1];
+  const eingabe=(q[0]<0?'-':'')+(r?`${g?g+' ':''}${r}/${q[1]}`:String(g));
+  return {label, ans:qwert(q), ansText:gemText(q), ansHTML:gemHTML(q), eingabe, feldHTML:mischFeldHTML, lesen:leseMisch, bruch:true, misch:true,
+    formOk:(o.gekuerzt||o.gemischt)?(roh=>mischFormOk(roh,o)):undefined};
+}
+// Hinweis, wenn der Wert stimmt, die Form aber nicht (Lehrkraft 20.11.2026: zählt falsch, mit Hinweis)
+function formHinweis(roh){
+  const t=mischTeile(roh); if(!t||t.leer||t.z===null) return '';
+  if(ggT(t.z,t.n)!==1) return 'Der Wert stimmt, aber du musst noch vollständig kürzen.';
+  if(t.z>=t.n) return 'Der Wert stimmt. Schreibe ihn noch als gemischte Zahl.';
+  return '';
+}
+
+UR.bindungen.push(app=>{ if(!app.querySelectorAll) return;   // Testumgebung ohne DOM
+  // gemischte Zahl: Teile ins versteckte Feld übernehmen
+  const ids=[...new Set([...app.querySelectorAll('[data-mteil]')].map(e=>e.dataset.mteil))];
+  for(const id of ids){
+    const g=document.getElementById(id+'_g'), z=document.getElementById(id+'_z'), n=document.getElementById(id+'_n'), h=document.getElementById(id);
+    const vz=app.querySelector(`[data-vz="${id}"]`);
+    const sync=()=>{ const gg=g.value.trim(), zz=z.value.trim(), nn=n.value.trim(), neg=vz&&vz.classList.contains('an');
+      const teil=zz||nn?`${zz}/${nn}`:''; const s=[gg,teil].filter(Boolean).join(' '); h.value=s?(neg?'-':'')+s:''; };
+    [g,z,n].forEach(x=>x.addEventListener('input',sync));
+    if(vz) vz.addEventListener('click',()=>{ vz.classList.toggle('an'); vz.setAttribute('aria-pressed', vz.classList.contains('an')); sync(); });
+    const f=h.form; if(f) f.addEventListener('submit',sync,true);
+  }
+  // Vorzeichen-Taste bei einem einfachen Zahlfeld: Minus davor setzen oder wegnehmen
+  app.querySelectorAll('[data-vz]').forEach(b=>{ const inp=document.getElementById(b.dataset.vz); if(!inp||inp.type==='hidden') return;
+    b.addEventListener('click',()=>{ const s=inp.value.trim(); inp.value=s.startsWith('-')||s.startsWith(M)?s.slice(1):'-'+s.replace(/^\+/,''); inp.focus(); }); });
+});
+
+UR.raza = {ggT, Q, qadd, qsub, qmul, qdiv, qvgl, qwert, rund, alsQ, Z, br, gemHTML, gemText, NB,
+  vzFeld, vzFeldHTML, mischFeld, mischFeldHTML, leseMisch, mischTeile, formHinweis};
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.1 Rationale-Zahlen/M-RaZa-G1.js */
+/* Baustein M-RaZa-G1: „Ich kenne wichtige Begriffe und Eigenschaften betreffend Rationale Zahlen und kann sie erklären.“
+   Steckbrief: M-RaZa-G1.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026). Entscheidungen der Lehrkraft 20.11.2026:
+   - Vorzeichen und Rechenzeichen in zwei farbsicheren Farben (Vorzeichen orange, Rechenzeichen blau), immer mit „V“ bzw. „R“
+   - G1-A03 „größer und kleiner“: zufällig aufsteigend oder absteigend, im Check je Richtung eine Aufgabe (ctx.nr)
+   Zahlengerade zum Antippen: Form 'fragen' mit Antippen im Bild (jeder Strich trägt data-wert = seine Nummer). */
+(function(UR){
+const {rnd, pick} = UR, M = UR.M;
+const {Q, qvgl, qwert, alsQ, Z, br, gemHTML, gemText, vzFeld, mischFeld, NB} = UR.raza;
+const {skalaSVG, punkteSVG} = UR.mathe;
+const mischen = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; };
+function versuche(fn){ for(let n=0;n<3000;n++){ const r=fn(); if(r) return r; } throw new Error('Generator findet keine passende Aufgabe'); }
+const merk = html => `<div class="merk">${html}</div>`;
+const KREIS = ['①','②','③','④','⑤','⑥'];
+// Rückmeldung: Hinweis bei Fehlern und das Lösungsbild
+function aufg(t){
+  t.zusatzRueckmeldung = f => `${!f.ok&&t.hinweis?`<div class="fb no pop"><span>${t.hinweis}</span></div>`:''}${t.loesungBild?`<div class="bild">${t.loesungBild}</div>`:''}`;
+  return t;
+}
+const RECHTS = 'Rechts von 0 liegen die positiven, links die negativen Zahlen. Je weiter rechts eine Zahl liegt, desto größer ist sie.';
+
+/* ---------- Skala der Zahlengeraden: ganze Zahlen (1 oder 2 je Strich), Dezimalzahlen (0,1), Brüche ---------- */
+// liefert {start, schritt, n, beschriftet, ziele (Striche, die gefragt werden dürfen), art}; leicht: mehr Beschriftung
+function skala(art, leicht){
+  const s={art};
+  if(art==='ganz'){ const zwei=Math.random()<.4; s.schritt=[zwei?2:1,1]; s.n=20;
+    s.start=zwei?-2*rnd(4,16):-rnd(4,16); }
+  else if(art==='dez'){ s.schritt=[1,10]; s.n=20; s.start=pick([-2,-1,-2]); }
+  else { const d=pick([2,3,4,4,5,8]), einh=d>=5?2:4; s.schritt=[1,d]; s.n=einh*d; s.start=einh===4?-pick([2,3]):-pick([1,2]); }
+  const q=k=>Q(s.start*s.schritt[1]+k*s.schritt[0], s.schritt[1]);
+  const istGanz=k=>q(k)[1]===1, v=k=>qwert(q(k));
+  const alle=[...Array(s.n+1).keys()];
+  if(art==='ganz'){ const b=s.schritt[0]===1?5:10, bl=s.schritt[0]===1?2:4;   // Beschriftung alle 5 bzw. 10, leicht alle 2 bzw. 4
+    s.beschriftet=alle.filter(k=>v(k)%(leicht?bl:b)===0); }
+  else s.beschriftet=alle.filter(k=>istGanz(k)||(leicht&&s.schritt[1]%2===0&&s.schritt[1]>2&&q(k)[1]===2));
+  s.ziele=alle.filter(k=>!s.beschriftet.includes(k)&&v(k)!==0&&!(art!=='ganz'&&istGanz(k)));
+  s.q=q; s.v=v;
+  return s;
+}
+const skalaArt = ctx => pick(['ganz','dez','bruch']);
+// Anzeige eines Strichs: Dezimal-Skala mit Komma, sonst gemischte Zahl mit waagrechtem Bruchstrich (Text: ¼, ½ …)
+const zahlHTML = (s,q) => s.art==='dez' ? Z(qwert(q)) : gemHTML(q);
+const zahlText = (s,q) => s.art==='dez' ? Z(qwert(q)) : gemText(q);
+const schrittText = s => s.schritt[1]===1 ? (s.schritt[0]===1?'1':'2') : s.schritt[1]===10 ? '0,1' : `${br(1,s.schritt[1])}`;
+const schrittWort = s => `Ein Strich bedeutet ${schrittText(s)}.`;
+
+/* ---------- Vorzeichen und Rechenzeichen: Term aus Zahlen, Klammern und Zeichen ---------- */
+// Teile: {z:'…'} Zahl/Klammer, {c:'+'|'−', art:'V'|'R'} Zeichen. Rechenzeichen stehen zwischen zwei Zahlen,
+// Vorzeichen direkt vor einer Zahl (am Anfang oder nach einer öffnenden Klammer).
+function zeichenTerm(anzahlGlieder){
+  const teile=[], vz=()=>pick(['+',M]), n=()=>String(rnd(1,12));
+  const glied=(erstes)=>{
+    const art=pick(erstes?['vz','klammer','klammer','teil']:['zahl','klammer','klammer','teil']);
+    if(art==='zahl') teile.push({z:n()});
+    else if(art==='vz'){ teile.push({c:M, art:'V'}); teile.push({z:n()}); }
+    else if(art==='klammer'){ teile.push({z:'('}); teile.push({c:vz(), art:'V'}); teile.push({z:n()+')'}); }
+    else { teile.push({z:'('+n()}); teile.push({c:vz(), art:'R'}); teile.push({z:n()+')'}); }
+  };
+  glied(true);
+  for(let i=1;i<anzahlGlieder;i++){ teile.push({c:vz(), art:'R'}); glied(false); }
+  return teile;
+}
+// als Text: Klammern und Zeichen ohne Leerzeichen innen, Rechenzeichen mit Leerzeichen
+function termText(teile){
+  let s='';
+  teile.forEach((t,i)=>{ const vor=teile[i-1];
+    if(t.z!==undefined) s+=t.z;
+    else if(t.art==='V') s+=(vor&&vor.z!=='('&&s?' ':'')+t.c;
+    else s+=` ${t.c} `; });
+  return s.replace(/\s+/g,' ').trim();
+}
+// als HTML: jedes Zeichen mit Nummer (Aufgabe) bzw. Farbe und V/R (Lösung)
+function termHTML(teile, loesung){
+  let s='', nr=0;
+  teile.forEach((t,i)=>{ const vor=teile[i-1];
+    if(t.z!==undefined){ s+=t.z; return; }
+    const zeichen = loesung ? `<span class="vr ${t.art==='V'?'vz':'rz'}"><b>${t.c}</b><i>${t.art}</i></span>` : `<span class="vr"><b>${t.c}</b><i>${KREIS[nr]}</i></span>`;
+    nr++;
+    s+= t.art==='V' ? (vor&&vor.z!=='('&&i>0?' ':'')+zeichen : ` ${zeichen} `; });
+  return s.trim();
+}
+const VR_REGEL = 'Ein <b>Rechenzeichen</b> steht zwischen zwei Zahlen. Ein <b>Vorzeichen</b> steht direkt vor einer Zahl, am Anfang oder gleich nach einer Klammer auf.';
+
+/* ---------- Lückensätze (Wörter wie im Mathe Know How; je Satz eigene Ablenker, die sicher falsch sind) ---------- */
+const LUECKEN = [
+  ['Auf der Zahlengeraden sind die Zahlen nach ihrer … geordnet.', 'Größe', ['Farbe','Länge','Anzahl']],
+  ['Der Betrag einer Zahl gibt deren … zum Nullpunkt an.', 'Abstand', ['Vorzeichen','Gegenzahl','Richtung']],
+  ['Zahlen mit gleichem Betrag, aber verschiedenem Vorzeichen heißen ….', 'Gegenzahlen', ['Rechenzeichen','Nullpunkte','Brüche']],
+  ['Ein + oder − direkt vor einer Zahl heißt ….', 'Vorzeichen', ['Rechenzeichen','Betrag','Abstand']],
+  ['Ein + oder − zwischen zwei Zahlen heißt ….', 'Rechenzeichen', ['Vorzeichen','Betrag','Gegenzahl']],
+  ['Je weiter rechts eine Zahl auf der Zahlengeraden liegt, desto … ist sie.', 'größer', ['kleiner','negativer','kürzer']],
+  ['Links vom Nullpunkt liegen die … Zahlen.', 'negativen', ['positiven','größeren','geraden']],
+  ['Der Betrag einer Zahl ist nie ….', 'negativ', ['positiv','null','ganz']],
+  ['Eine Zahl und ihre Gegenzahl sind gleich weit vom … entfernt.', 'Nullpunkt', ['Rechenzeichen','Vorzeichen','Bruchstrich']],
+  ['Die Zahl 0 ist weder positiv noch ….', 'negativ', ['ganz','gerade','rational']]
+];
+const satzHTML = s => s.replace(/[+−](?= oder| direkt| zwischen)/g, c=>`<span class="sgn">${c}</span>`);
+
+/* ---------- Stimmt das? (Plus) ---------- */
+const AUSSAGEN = [
+  ['Je größer der Betrag einer negativen Zahl, desto größer ist die Zahl.', 'falsch', '−9 hat den größeren Betrag als −2, liegt aber weiter links: −9 ist kleiner.'],
+  ['Der Betrag einer Zahl ist nie negativ.', 'wahr', 'Der Betrag ist ein Abstand, also nie negativ.'],
+  ['Die Gegenzahl von 0 ist 0.', 'wahr', '0 liegt im Nullpunkt; gespiegelt bleibt sie dort.'],
+  ['Jede negative Zahl ist kleiner als jede positive Zahl.', 'wahr', 'Negative Zahlen liegen links von 0, positive rechts.'],
+  ['−1 ist größer als −0,5.', 'falsch', '−1 liegt weiter links als −0,5, ist also kleiner.'],
+  ['Eine Zahl und ihre Gegenzahl haben denselben Betrag.', 'wahr', 'Beide sind gleich weit von 0 entfernt.'],
+  ['Die Gegenzahl einer Zahl ist immer negativ.', 'falsch', 'Die Gegenzahl von −5 ist +5, also positiv.'],
+  ['Der Betrag von −7 ist −7.', 'falsch', 'Der Betrag von −7 ist 7.'],
+  ['0 ist eine positive Zahl.', 'falsch', '0 ist weder positiv noch negativ.'],
+  ['7,8 und 7,80 sind gleich groß.', 'wahr', 'Eine Null am Ende nach dem Komma ändert nichts.'],
+  ['In (−3) ist das Minus ein Rechenzeichen.', 'falsch', 'Das Minus steht direkt vor der 3: Es ist ein Vorzeichen.'],
+  ['Von zwei negativen Zahlen ist die mit dem kleineren Betrag die größere.', 'wahr', 'Sie liegt näher bei 0, also weiter rechts.']
+];
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // G1-A01 Zahl auf der Zahlengeraden markieren (Strich antippen)
+  markieren(ctx){
+    const leicht=!!(ctx&&ctx.leicht), s=skala(skalaArt(ctx), leicht), k=pick(s.ziele), q=s.q(k);
+    const bild=skalaSVG({start:s.start, schritt:s.schritt, n:s.n, beschriftet:s.beschriftet, tipp:'q0', null:true, pfeil:leicht});
+    const loesungBild=skalaSVG({start:s.start, schritt:s.schritt, n:s.n, beschriftet:s.beschriftet, null:true, loesung:[{k, text:zahlText(s,q), q:s.art==='dez'?null:q}]});
+    const ab=Math.round(Math.abs(qwert(q))/qwert(Q(...s.schritt))), seite=qwert(q)<0?'links':'rechts';
+    return aufg({kind:'fragen', q:`Markiere ${zahlText(s,q)} auf der Zahlengeraden!`, qh:`Markiere <b>${zahlHTML(s,q)}</b> auf der Zahlengeraden! Tippe den Strich an.`,
+      lead: leicht ? merk(`${schrittWort(s)} ${RECHTS}`) : '', bild, loesungBild, daten:{s:{start:s.start, schritt:s.schritt, n:s.n}, k},
+      gruppen:[{imBild:true, optionen:[...Array(s.n+1).keys()].map(i=>[String(i), zahlText(s,s.q(i))]), ans:String(k), ansHTML:zahlHTML(s,q)}],
+      why:`${schrittWort(s)} ${zahlHTML(s,q)} liegt ${ab} ${ab===1?'Strich':'Striche'} ${seite} von 0. ${RECHTS.split('. ')[0]}.`});
+  },
+  // G1-A02 markierte Zahl ablesen; leicht: aus vier Zahlen wählen
+  ablesen(ctx){
+    const leicht=!!(ctx&&ctx.leicht), s=skala(skalaArt(ctx), leicht), k=pick(s.ziele), q=s.q(k);
+    const bild=skalaSVG({start:s.start, schritt:s.schritt, n:s.n, beschriftet:s.beschriftet, marke:k, null:true, pfeil:leicht});
+    const loesungBild=skalaSVG({start:s.start, schritt:s.schritt, n:s.n, beschriftet:s.beschriftet, null:true, loesung:[{k, text:zahlText(s,q), q:s.art==='dez'?null:q}]});
+    const ab=Math.round(Math.abs(qwert(q))/qwert(Q(...s.schritt))), seite=qwert(q)<0?'links':'rechts';
+    const why=`${schrittWort(s)} Zähle die Striche von 0 aus: ${ab} ${ab===1?'Strich':'Striche'} nach ${seite}${qwert(q)<0?', also negativ':''}.`;
+    const basis={q:'Welche Zahl ist auf der Zahlengeraden markiert?', papierLead:'Lies ab!', bild, loesungBild, daten:{s:{start:s.start, schritt:s.schritt, n:s.n}, k}, why};
+    if(leicht){
+      const kand=[s.q(k-1>=0?k-1:k+2), s.q(k+1<=s.n?k+1:k-2), Q(-q[0],q[1]), Q(q[0]+q[1],q[1]), Q(q[0]-q[1],q[1])]
+        .filter(x=>qvgl(x,q)!==0);
+      const ab4=[]; for(const x of mischen(kand)) if(ab4.length<3&&!ab4.some(y=>qvgl(x,y)===0)) ab4.push(x);
+      const l=mischen([q,...ab4]);
+      return aufg(Object.assign(basis,{kind:'fragen', lead:merk(RECHTS), gruppen:[{optionen:l.map(x=>[zahlText(s,x), zahlHTML(s,x)]), ans:zahlText(s,q)}]}));
+    }
+    const feld = s.art==='bruch' ? mischFeld('Zahl', q) : vzFeld('Zahl', qwert(q));
+    return aufg(Object.assign(basis,{kind:'zahlen', felder:[feld]}));
+  },
+  // G1-A03 Zahlen der Größe nach ordnen; „größer und kleiner“: im Check Aufgabe 0 aufsteigend, Aufgabe 1 absteigend
+  ordnen(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const auf = ctx&&ctx.nr!==undefined ? ctx.nr%2===0 : Math.random()<.5;
+    const werte=versuche(()=>{
+      const art=leicht?'klein':pick(['klein','dez','gross']), anz=leicht?3:art==='gross'?5:4;
+      let l;
+      if(art==='klein') l=Array.from({length:anz},()=>rnd(-9,9));
+      else if(art==='gross') l=Array.from({length:anz},()=>rnd(10,999)*(Math.random()<.6?-1:1));
+      else { const a=rnd(-10,9); l=[a, a-0.5, ...Array.from({length:anz-2},()=>rnd(-99,99)/10)]; }
+      l=l.map(x=>Math.round(x*10)/10);
+      if(new Set(l).size<anz||l.filter(x=>x<0).length<2) return null;
+      return l;
+    });
+    const plus=Math.random()<.4, karten=werte.map((v,i)=>({id:'k'+i, text:Z(v,plus)}));
+    const sortiert=[...karten].sort((a,b)=>(werte[+a.id.slice(1)]-werte[+b.id.slice(1)])*(auf?1:-1));
+    const richtung = auf ? 'von der kleinsten bis zur größten' : 'von der größten bis zur kleinsten';
+    const zeichen = auf ? ' < ' : ' > ';
+    const negs=werte.filter(v=>v<0).sort((a,b)=>a-b);
+    return aufg({kind:'reihenfolge', qh:`Ordne die Zahlen <b>${richtung}</b>!`, q:`Ordne ${richtung}: ${karten.map(k=>k.text).join('; ')}`,
+      lead: leicht ? merk(RECHTS) : '', karten, loesungen:[sortiert.map(k=>k.id)], fest:leicht?1:0, auf,
+      loesungBild:punkteSVG(werte.map(v=>({v, text:Z(v,plus)}))),
+      why:`${RECHTS} Achtung bei negativen Zahlen: ${Z(negs[0])} ist kleiner als ${Z(negs[1])}, weil ${Z(negs[0])} weiter links liegt.`,
+      steps:sortiert.map(k=>k.text).join(zeichen)});
+  },
+  // G1-A04 <, = oder > setzen (Dezimalzahlen mit verschiedener Stellenzahl, negativ und positiv)
+  vergleichen(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const [a,b,art]=versuche(()=>{
+      const art=leicht?pick(['nah','vz']):pick(['nah','stellen','tausch','gleich','vz']);
+      const sg=Math.random()<.65?-1:1;
+      if(art==='nah'){ const x=rnd(-99,99)/10, y=Math.round((x+pick([-1,1])*rnd(1,3)/10)*10)/10; return [Z(x),Z(y),art]; }
+      if(art==='stellen'){ const g=rnd(0,12), d=rnd(1,9); return [Z(sg*(g+d/10)), Z(sg*(g+d/100)), art]; }        // −3,9 und −3,09
+      if(art==='tausch'){ const p=rnd(1,9), q=rnd(1,9); if(p===q) return null; return [Z(sg*(10+p+q/10)), Z(sg*(10+q+p/10)), art]; }   // −12,3 und −13,2
+      if(art==='gleich'){ const x=sg*rnd(1,199)/10; const t=Z(x), t0=t.includes(',')?t+'0':t+',0'; return Math.random()<.5 ? [t, t0, art] : [t0, t, art]; }
+      const x=rnd(1,99)/10, y=rnd(1,99)/10; return Math.random()<.5 ? [Z(-x),Z(y),art] : [Z(x),Z(-y),art];
+    });
+    const va=alsQ(Number(a.replace(M,'-').replace(',','.'))), vb=alsQ(Number(b.replace(M,'-').replace(',','.')));
+    const c=qvgl(va,vb), ans=c<0?'<':c>0?'>':'=';
+    const why = ans==='=' ? 'Eine Null am Ende nach dem Komma ändert nichts: Beide Zahlen sind gleich groß.'
+      : `Weiter links ist kleiner: ${ans==='<'?a:b} liegt weiter links als ${ans==='<'?b:a}.`;
+    return aufg({kind:'fragen', q:`${a} ☐ ${b}`, qh:`${a} <span class="luecke">☐</span> ${b}`, lead:leicht?merk('Weiter links auf der Zahlengeraden ist kleiner.'):'Setze das richtige Zeichen!', art,
+      gruppen:[{optionen:[['<','<'],['=','='],['>','>']], ans, klasse:'drei'}],
+      loesungBild: ans==='=' ? '' : punkteSVG([{v:qwert(va), text:a},{v:qwert(vb), text:b}]),
+      why, steps:`${a} ${ans} ${b}`});
+  },
+  // G1-A05 Betrag bestimmen
+  betrag(){
+    const v=rnd(1,999)*(Math.random()<.65?-1:1), plus=v>0&&Math.random()<.6;
+    return aufg({kind:'zahlen', q:`|${Z(v,plus)}| =`, felder:[vzFeld('Betrag', Math.abs(v))], wert:v, lead:'Bestimme den Betrag!',
+      loesungBild:punkteSVG([{v}], {abstand:v}),
+      why:'Der Betrag ist der Abstand von 0, also nie negativ.', steps:`|${Z(v,plus)}| = ${Z(Math.abs(v))}`});
+  },
+  // G1-A06 Gegenzahl angeben (ganze Zahlen bis 4 Stellen)
+  gegenzahl(){
+    const v=(Math.random()<.5?rnd(1,99):rnd(100,9999))*(Math.random()<.6?-1:1);
+    return aufg({kind:'zahlen', q:`Gegenzahl von ${Z(v,true)}`, felder:[vzFeld('Gegenzahl', -v, {plus:true})], wert:v, lead:'Gib die Gegenzahl an!',
+      loesungBild:punkteSVG([{v, text:Z(v,true)},{v:-v, text:Z(-v,true), farbe:'var(--c2)'}], {spiegel:v}),
+      why:'Gegenzahlen haben den gleichen Abstand von 0, aber verschiedene Vorzeichen.', steps:`Gegenzahl von ${Z(v,true)} = ${Z(-v,true)}`});
+  },
+  // G1-A07 Tabelle: Zahl, Gegenzahl, Betrag (je Zeile eine andere Spalte vorgegeben)
+  tabelle(){
+    const werte=versuche(()=>{ const l=[rnd(1,30),rnd(1,30),rnd(1,30)].map(x=>x*(Math.random()<.5?-1:1)); return new Set(l.map(Math.abs)).size===3 ? l : null; });
+    const arten=mischen(['zahl','gegen','betrag']), felder=[], zeilen=[];
+    arten.forEach((art,i)=>{ const z=werte[i], nr=i+1, P=x=>Z(x,true);
+      if(art==='zahl'){ zeilen.push([P(z),'?','?']); felder.push(vzFeld(`Zeile ${nr}: Gegenzahl`, -z, {plus:true}), vzFeld(`Zeile ${nr}: Betrag`, Math.abs(z))); }
+      else if(art==='gegen'){ zeilen.push(['?',P(-z),'?']); felder.push(vzFeld(`Zeile ${nr}: Zahl`, z, {plus:true}), vzFeld(`Zeile ${nr}: Betrag`, Math.abs(z))); }
+      else { zeilen.push(['?',P(-z),Z(Math.abs(z))]); felder.push(vzFeld(`Zeile ${nr}: Zahl`, z, {plus:true})); }
+    });
+    const tab=`<div class="tablewrap"><table class="mini zgtab"><thead><tr><th></th><th>Zahl</th><th>Gegenzahl</th><th>Betrag</th></tr></thead><tbody>${
+      zeilen.map((r,i)=>`<tr><th>${i+1}</th>${r.map(c=>`<td>${c==='?'?'<span class="luecke">?</span>':c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    return aufg({kind:'zahlen', qh:`Ergänze die Tabelle!${tab}`, q:`Ergänze die Tabelle: ${zeilen.map(r=>r.join(' | ')).join(' ; ')}`, felder, zeilen, arten, werte,
+      why:'Die Gegenzahl hat das andere Vorzeichen. Der Betrag ist der Abstand von 0, also nie negativ.',
+      steps:arten.map((a,i)=>`${Z(werte[i],true)} | ${Z(-werte[i],true)} | ${Z(Math.abs(werte[i]))}`).join(' · ')});
+  },
+  // G1-A08 Vorzeichen oder Rechenzeichen? Jedes Zeichen zuordnen
+  zeichen(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const teile=versuche(()=>{ const t=zeichenTerm(leicht?2:pick([2,3,3])), n=t.filter(x=>x.c).length;
+      return (leicht?n>=2&&n<=3:n>=3&&n<=5) && t.some(x=>x.art==='V') && t.some(x=>x.art==='R') ? t : null; });
+    const z=teile.filter(x=>x.c);
+    return aufg({kind:'fragen', q:termText(teile), qh:termHTML(teile,false), teile,
+      lead: leicht ? merk(VR_REGEL) : 'Ist das Zeichen ein Vorzeichen oder ein Rechenzeichen?',
+      gruppen:z.map((x,i)=>({frage:`Zeichen ${KREIS[i]} <span class="sgn">${x.c}</span>`, optionen:[['V','Vorzeichen'],['R','Rechenzeichen']], ans:x.art})),
+      loesungBild:`<div class="vrblock"><div class="task vrterm">${termHTML(teile,true)}</div><p class="small muted">V = Vorzeichen, R = Rechenzeichen</p></div>`,
+      why:VR_REGEL});
+  },
+  // G1-N01 Begriffe in Lücken (Auswahl je Lücke); leicht: ein Satz, drei Wörter
+  luecken(ctx){
+    const leicht=!!(ctx&&ctx.leicht), saetze=mischen(LUECKEN).slice(0,leicht?1:2);
+    return aufg({kind:'fragen', text:true, q:saetze.map(s=>s[0]).join(' '), qh:saetze.map((s,i)=>`${saetze.length>1?KREIS[i]+' ':''}${satzHTML(s[0])}`).join('<br>'), saetze,
+      lead:'Ergänze die Sätze mit den richtigen Begriffen!',
+      gruppen:saetze.map((s,i)=>({frage:saetze.length>1?`Lücke ${KREIS[i]}`:'', optionen:mischen([s[1],...mischen(s[2]).slice(0,leicht?2:3)]).map(x=>[x,x]), ans:s[1]})),
+      why:saetze.map(s=>satzHTML(s[0].replace('…',s[1]))).join(' ')});
+  },
+  /* ---------- Plus ---------- */
+  // G1-A09 zwei Zahlen mit gegebenem Betrag (Reihenfolge egal)
+  mitBetrag(){
+    const b=pick([rnd(1,20),rnd(21,999)]);
+    const felder=[vzFeld('1. Zahl', b, {auch:[-b], plus:true}), vzFeld('2. Zahl', -b, {auch:[b], plus:true})];
+    return aufg({kind:'zahlen', q:`Finde zwei Zahlen mit dem Betrag ${Z(b)}!`, felder, betrag:b,
+      zusammen:erg=>erg[0].v!==erg[1].v, zusammenHinweis:'Die beiden Zahlen müssen verschieden sein.',
+      why:'Zwei Zahlen haben den gleichen Betrag: die Zahl und ihre Gegenzahl.', steps:`|${Z(b,true)}| = |${Z(-b)}| = ${Z(b)}`});
+  },
+  // G1-A10 drei verschiedene Zahlen in einem Bereich finden
+  dreiZahlen(){
+    const art=pick(['kleiner','groesser','zwischen','zwischenDez']);
+    let text, drin, bsp;
+    if(art==='kleiner'){ const g=-rnd(2,50); text=`kleiner als ${Z(g)} sind`; drin=v=>v<g; bsp=[g-1,g-10,g-100]; }
+    else if(art==='groesser'){ const g=-rnd(2,80); text=`größer als ${Z(g)} sind`; drin=v=>v>g; bsp=[g+1,0,12]; }
+    else if(art==='zwischen'){ const a=-rnd(10,60), b=a-10; text=`zwischen ${Z(a)} und ${Z(b)} liegen`; drin=v=>v<a&&v>b; bsp=[a-1,a-5,b+1]; }
+    else { const a=-rnd(1,9); text=`zwischen ${Z(a)} und ${Z(a+1)} liegen (Dezimalzahlen)`; drin=v=>v>a&&v<a+1; bsp=[a+0.1,a+0.5,a+0.9].map(x=>Math.round(x*10)/10); }
+    const felder=bsp.map((x,i)=>({label:`${i+1}. Zahl`, ans:x, ansText:`z. B. ${Z(x)}`, eingabe:String(x).replace('.',','), bereich:true,
+      feldHTML:UR.raza.vzFeldHTML, lesen:roh=>{ const v=UR.leseZahl(roh); return v!==null&&!Number.isNaN(v)&&drin(v) ? x : v; }}));
+    return aufg({kind:'zahlen', q:`Finde drei verschiedene Zahlen, die ${text}!`, felder, art, drin,
+      zusammen:erg=>new Set(erg.map(e=>UR.leseZahl(e.roh))).size===3, zusammenHinweis:'Die drei Zahlen müssen verschieden sein.',
+      why:`Gesucht sind Zahlen, die ${text}. Auf der Zahlengeraden: weiter links ist kleiner.`, steps:`z. B. ${bsp.map(x=>Z(x)).join(', ')}`});
+  },
+  // G1-N02 Stimmt das? (wahr/falsch)
+  stimmt(){
+    const [satz,ans,warum]=pick(AUSSAGEN);
+    return aufg({kind:'fragen', text:true, q:satz, qh:satz, lead:'Stimmt die Aussage?', gruppen:[{optionen:[['wahr','stimmt'],['falsch','stimmt nicht']], ans}], why:warum});
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Begriffe und Vorzeichen', hint:`${M}2 + (${M}2) ${M} 4: Vorzeichen oder Rechenzeichen?`, types:['zeichen','luecken']},
+  {id:'S2', name:'Zahlengerade', hint:`${M}1,6 auf der Zahlengeraden markieren`, types:['markieren','ablesen']},
+  {id:'S3', name:'Ordnen und vergleichen', hint:`${M}8,5 < ${M}8 < 0,7`, types:['ordnen','vergleichen']},
+  {id:'S4', name:'Betrag und Gegenzahl', hint:`|${M}63| = 63, Gegenzahl von ${M}12 ist +12`, types:['betrag','gegenzahl','tabelle']}
+];
+const kern = ['markieren','ablesen','ordnen','vergleichen','betrag','gegenzahl','tabelle','zeichen','luecken'];
+const jeTyp = {ordnen:2};          // „größer und kleiner“: je Richtung eine Aufgabe
+const leicht = ['markieren','ablesen','ordnen','vergleichen','zeichen','luecken'];
+const plus = ['mitBetrag','dreiZahlen','stimmt'];
+const plusHint = 'Zahlen mit gegebenem Betrag · Zahlen in einem Bereich · Stimmt das?';
+
+/* ---------- Erklärung ---------- */
+function zgBeispiel(art){ const s=skala(art,false), k=pick(s.ziele), q=s.q(k);
+  return {s, k, q, svg:skalaSVG({start:s.start, schritt:s.schritt, n:s.n, beschriftet:s.beschriftet, null:true, pfeil:true, loesung:[{k, text:zahlText(s,q), q:s.art==='dez'?null:q}]})}; }
+const bgBeispiel = () => { const v=rnd(2,15)*(Math.random()<.5?-1:1); return {v, l:[v, -rnd(16,40), rnd(1,9)]}; };
+const erklaerung = {
+  beispiele: ()=>({zg:['ganz','dez','bruch'].map(zgBeispiel), t:zeichenTerm(3), b:bgBeispiel()}),
+  neu(kind,E){ if(kind==='zg') E.zg=['ganz','dez','bruch'].map(zgBeispiel); if(kind==='vr') E.t=zeichenTerm(3); if(kind==='bg') E.b=bgBeispiel(); },
+  html: E => `<section class="sheet"><h2>Rationale Zahlen: Begriffe</h2>
+    <div class="rule"><h3>1. Die Zahlengerade</h3>
+      <p>In der Mitte liegt der <b>Nullpunkt</b>. ${RECHTS}</p>
+      ${E.zg.map(b=>`<p class="exhead">${schrittWort(b.s)} Markiert: ${zahlHTML(b.s,b.q)}</p>${b.svg}`).join('')}
+      <button class="newex" data-newex="zg">Neue Beispiele</button></div>
+    <div class="rule"><h3>2. Vorzeichen und Rechenzeichen</h3>
+      <p>${VR_REGEL}</p>
+      <div class="ex vrterm">${termHTML(E.t,true)}</div><p class="small muted">V = Vorzeichen, R = Rechenzeichen</p>
+      <button class="newex" data-newex="vr">Neues Beispiel</button></div>
+    <div class="rule"><h3>3. Betrag und Gegenzahl</h3>
+      <p>Der <b>Betrag</b> einer Zahl ist ihr Abstand vom Nullpunkt, also nie negativ: |${Z(E.b.v,true)}| = ${Z(Math.abs(E.b.v))}.</p>
+      <p>Die <b>Gegenzahl</b> ist das Spiegelbild an 0: gleicher Abstand, anderes Vorzeichen. Die Gegenzahl von ${Z(E.b.v,true)} ist ${Z(-E.b.v,true)}.</p>
+      ${punkteSVG([{v:E.b.v, text:Z(E.b.v,true)},{v:-E.b.v, text:Z(-E.b.v,true), farbe:'var(--c2)'}], {spiegel:E.b.v})}
+      <div class="tablewrap"><table class="mini zgtab"><thead><tr><th>Zahl</th><th>Gegenzahl</th><th>Betrag</th></tr></thead><tbody>${
+        E.b.l.map(v=>`<tr><td>${Z(v,true)}</td><td>${Z(-v,true)}</td><td>${Z(Math.abs(v))}</td></tr>`).join('')}</tbody></table></div>
+      <button class="newex" data-newex="bg">Neues Beispiel</button></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
+};
+
+const lzk = {merkmal:{markieren:'zahlengerade', ablesen:'zahlengerade', ordnen:'ordnen', vergleichen:'ordnen', betrag:'betrag', gegenzahl:'betrag',
+  tabelle:'betrag', zeichen:'begriffe', luecken:'begriffe'}};
+UR.kompetenzAnmelden({id:'M-RaZa-G1', typen, stationen, kern, jeTyp, leicht, plus, plusHint, erklaerung, lzk});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -5262,13 +5796,13 @@ UR.kompetenzAnmelden({id:'M-Drei-V1', typen, stationen, kern, leicht, plus, plus
    genau über der Mitte (offene Frage an die Lehrkraft, KONZEPT.md 8.4). */
 (function(UR){
 const {rnd, pick} = UR;
-const {rund, D, mischen, versuche, bruch, sub, GR, NAMEN, ausWinkeln, lage, zeichne, EINHEITEN, aufg} = UR.dreiecke;
+const {rund, D, mischen, versuche, bruch, sub, wurzelStrich, GR, NAMEN, ausWinkeln, lage, zeichne, EINHEITEN, aufg} = UR.dreiecke;
 
 const merk = s => `<span class="merk">${s}</span>`;
 const zehntel = (a,b) => rnd(a*10,b*10)/10;
 const hc = sub('h','c');
-const wurzel = x => `√${x}`;
-const anz = s => String(s).replace(/h_c/g, hc);
+const wurzel = x => wurzelStrich(`√${x}`);
+const anz = s => wurzelStrich(String(s).replace(/h_c/g, hc));
 const SH = '­';
 const WART = [['spitz',`spitz${SH}winkelig`],['recht',`recht${SH}winkelig`],['stumpf',`stumpf${SH}winkelig`]];
 const WINKELSUMME = merk('Winkelsumme: α + β + γ = 180°');
@@ -5420,7 +5954,7 @@ const typen = {
     return aufg({kind:'zahlen', q:`Ein Bild hat oben zwei Ösen im Abstand von ${ab} cm. Die Schnur geht von Öse zu Öse über einen Haken, der genau über der Mitte ${hh} cm über der Oberkante des Bildes ist. Wie lang ist die Schnur? (eine Nachkommastelle)`, text:true,
       bild:svg.replace(/\s+/g,' '), pruef:'bild', felder:[{label:'Länge der Schnur', ans:rund(L,6), tol:.1, einheit:'cm', ansText:`${ungefaehr(L,1)} ${D(rund(L,1))} cm`}],
       why:'Der Haken und die Mitte der Oberkante teilen das Schnur-Dreieck in zwei rechtwinkelige Teildreiecke. Eine Hälfte der Schnur ist die längste Seite: √((Abstand : 2)² + Höhe²). Die Schnur ist doppelt so lang.',
-      steps:`${half}² + ${hh}² = ${half*half+hh*hh}, √${half*half+hh*hh} ${ungefaehr(s,2)} ${D(rund(s,2))} cm, Schnur = 2 · ${D(rund(s,2))} ${ungefaehr(L,1)} ${D(rund(L,1))} cm`});
+      stepsh:wurzelStrich(`${half}² + ${hh}² = ${half*half+hh*hh}, √${half*half+hh*hh} ${ungefaehr(s,2)} ${D(rund(s,2))} cm, Schnur = 2 · ${D(rund(s,2))} ${ungefaehr(L,1)} ${D(rund(L,1))} cm`)});
   },
   // V2-N02 (Plus) Fehler im Rechenweg: falsche Zeile antippen, dann ihr richtiges Ergebnis eintippen
   fehler_rechenweg(){
@@ -5445,7 +5979,7 @@ const typen = {
     return aufg({kind:'zahlen', q:`Ein Dach ist ${D(w)} m breit (Spannweite), die schrägen Sparren sind ${D(s)} m lang. Wie hoch ist der Giebel? (eine Nachkommastelle)`, text:true,
       bild:svg.replace(/\s+/g,' '), pruef:'dach', felder:[{label:'Höhe des Giebels', ans:rund(h,6), tol:.1, einheit:'m', ansText:`h ${ungefaehr(h,1)} ${D(rund(h,1))} m`}],
       why:'Die Höhe teilt den Giebel in zwei rechtwinkelige Dreiecke. Der Sparren ist die längste Seite, die halbe Spannweite eine Kathete: h = √(Sparren² − (Spannweite : 2)²).',
-      steps:`${D(w)} : 2 = ${D(w/2)}, h = √(${D(s)}² − ${D(w/2)}²) = √${D(rund(s*s-w*w/4))} ${ungefaehr(h,1)} ${D(rund(h,1))} m`});
+      stepsh:wurzelStrich(`${D(w)} : 2 = ${D(w/2)}, h = √(${D(s)}² − ${D(w/2)}²) = √${D(rund(s*s-w*w/4))} ${ungefaehr(h,1)} ${D(rund(h,1))} m`)});
   }
 };
 
@@ -5530,7 +6064,7 @@ const erklaerung = {
       <p class="ex">c : 2 = ${D(k)} cm<br>${hc} = √(${D(a)}² − ${D(k)}²) = ${wurzel(D(q))} ${ungefaehr(h,2)} ${D(rund(h,2))} cm</p>
       <button class="newex" data-newex="hoehe">Neues Beispiel</button>
       <p>Umgekehrt: Kennst du a und ${hc}, ist c : 2 = √(a² − ${hc}²); dann verdoppeln. Kennst du c und ${hc}, ist a = √((c : 2)² + ${hc}²).</p></div>
-    <div class="rule"><h3>Gleichseitig</h3><p>Alle Winkel sind 60°. Die Höhe halbiert die Seite: h = √(a² − (a : 2)²), z. B. a = 10 cm: h = √(100 − 25) = √75 ≈ 8,66 cm.</p></div>
+    <div class="rule"><h3>Gleichseitig</h3><p>Alle Winkel sind 60°. Die Höhe halbiert die Seite: h = √(a² − (a : 2)²), z. B. a = 10 cm: h = √(100 − 25) = ${wurzel(75)} ≈ 8,66 cm.</p></div>
     <div class="rule"><h3>Runden</h3><p>Runde auf zwei Nachkommastellen, wenn nichts anderes verlangt ist.</p></div>
     <p class="small muted">Das steht auch in deinem Mathe Know How Dreiecke.</p>
     <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`;
@@ -5833,7 +6367,7 @@ UR.kompetenzAnmelden({id:'M-Drei-X1', typen, stationen, kern, leicht, plus, plus
    Bruchstrich (UR.terme.bruchAnzeige). Lücken heißen im Text [1], [2], … Der Prüfer rechnet jede Zeile mit Zahlen nach. */
 (function(UR){
 const {rnd, pick} = UR;
-const {rund, D, Df, mischen, versuche, bruch, sub, plus: vplus, mal, ausSeiten, zeichne, EINHEITEN, aufg} = UR.dreiecke;
+const {rund, D, Df, mischen, versuche, bruch, sub, wurzelStrich, plus: vplus, mal, ausSeiten, zeichne, EINHEITEN, aufg} = UR.dreiecke;
 
 const NR = ['①','②','③'];
 const merk = s => `<span class="merk">${s}</span>`;
@@ -5844,7 +6378,9 @@ const ungefaehr = (x,n) => Math.abs(rund(x,n)-x)<1e-9 ? '=' : '≈';
 // Klammern um einen Bruch vor ² und nach √ bleiben stehen (❨ ❩ schützen sie vor bruchAnzeige); √(…) mit Strich darüber
 const F = s => UR.terme.bruchAnzeige(String(s).replace(/√\(([^()]*)\)/g,'√❨$1❩').replace(/\(([^()]*\/[^()]*)\)²/g,'❨$1❩²'))
   .replace(/√❨(.*?)❩/g,'<span class="wurzel">√<span>$1</span></span>').replace(/❨/g,'(').replace(/❩/g,')')
-  .replace(/hc/g, sub('h','c')).replace(/\[(\d)\]/g, (m,i)=>`<span class="luecke">${NR[i-1]}</span>`);
+  .replace(/hc/g, sub('h','c')).replace(/\[(\d)\]/g, (m,i)=>`<span class="luecke">${NR[i-1]}</span>`).replace(/[^]*/, wurzelStrich);
+// Aufgabe mit √3 usw. in Hinweis und Erklärung: Strich über die Zahl
+const aufgW = o => aufg(Object.assign(o, {lead:o.lead&&wurzelStrich(o.lead), why:o.why&&wurzelStrich(o.why)}));
 // Kurzfassung für die Rückmeldung (reiner Text): Bruch als „:“
 const kurzText = s => s.replace(/\//g,' : ');
 const zeilenListe = (l, cls='') => `<ol class="herleitung ${cls}">${l.map(z=>`<li>${F(z)}</li>`).join('')}</ol>`;
@@ -5984,7 +6520,7 @@ const typen = {
   formel_anwenden(ctx){
     const a=lang(ctx)?zehntel(2,20):rnd(2,20), u=pick(['cm','cm','m','dm']), h=a/2*Math.sqrt(3), H=rund(h,2);
     const halb=bruch('a','2');
-    return aufg({kind:'zahlen', q:`Gleichseitiges Dreieck: a = ${D(a)} ${u}. Berechne die Höhe h mit der Formel und mach die Probe mit dem Satz des Pythagoras.`, text:true,
+    return aufgW({kind:'zahlen', q:`Gleichseitiges Dreieck: a = ${D(a)} ${u}. Berechne die Höhe h mit der Formel und mach die Probe mit dem Satz des Pythagoras.`, text:true,
       lead:`Formel: h = ${halb} · √3. Probe: h² + (${halb})² muss ungefähr a² ergeben.`, bild:BILD.gs(), pruef:'x2_anwenden', a, u,
       felder:[{label:'h (auf zwei Nachkommastellen)', ans:rund(h,6), tol:.01, einheiten:EINHEITEN, einheitAns:u, ansText:`h ≈ ${Df(H,2)} ${u}`},
               {label:`Probe mit deinem h: h² + (${halb})² =`, ans:rund(a*a,6), tol:.3, einheit:`${u}²`, ansText:`${Df(H,2)}² + ${D(a/2)}² ≈ ${D(rund(H*H+a*a/4,2))} ${u}² (a² = ${D(rund(a*a,4))} ${u}²)`}],
@@ -5996,7 +6532,7 @@ const typen = {
   // X2-A04 Fläche des gleichseitigen Dreiecks
   flaeche_gleichseitig(ctx){
     const a=lang(ctx)?zehntel(2,20):rnd(2,20), u=pick(['cm','cm','m','dm']), A=a*a/4*Math.sqrt(3);
-    return aufg({kind:'zahlen', q:`Gleichseitiges Dreieck: a = ${D(a)} ${u}. Berechne die Fläche A (auf zwei Nachkommastellen).`, text:true,
+    return aufgW({kind:'zahlen', q:`Gleichseitiges Dreieck: a = ${D(a)} ${u}. Berechne die Fläche A (auf zwei Nachkommastellen).`, text:true,
       lead:`Formel: A = ${bruch('a²','4')} · √3`, bild:BILD.gs(), pruef:'x2_flaeche', a, u,
       felder:[{label:'A', ans:rund(A,6), tol:.01, einheiten:EINHEITEN, einheitAns:`${u}²`, ansText:`A ≈ ${Df(A,2)} ${u}²`}],
       why:`Die Formel kommt aus A = ${bruch('a · h','2')} mit h = ${bruch('a','2')} · √3. Hier: A = ${bruch(`${D(a)}²`,'4')} · √3 = ${D(rund(a*a/4,6))} · √3 ≈ ${Df(A,2)} ${u}².`});
@@ -6004,7 +6540,7 @@ const typen = {
   // X2-N01 (Kern) Seitenlänge aus der Höhe
   seite_aus_hoehe(){
     const h=rnd(2,20), u=pick(['cm','cm','m','dm']), a=2*h/Math.sqrt(3);
-    return aufg({kind:'zahlen', q:`Ein gleichseitiges Dreieck hat die Höhe h = ${h} ${u}. Berechne die Seitenlänge a (auf zwei Nachkommastellen).`, text:true,
+    return aufgW({kind:'zahlen', q:`Ein gleichseitiges Dreieck hat die Höhe h = ${h} ${u}. Berechne die Seitenlänge a (auf zwei Nachkommastellen).`, text:true,
       lead:`Forme h = ${bruch('a','2')} · √3 nach a um.`, bild:BILD.gs(), pruef:'x2_seite', h, u,
       felder:[{label:'a', ans:rund(a,6), tol:.01, einheiten:EINHEITEN, einheitAns:u, ansText:`a ≈ ${Df(a,2)} ${u}`}],
       why:`Aus h = ${bruch('a','2')} · √3 folgt a = ${bruch('2 · h','√3')} = ${bruch(`2 · ${h}`,'√3')} ≈ ${Df(a,2)} ${u}. Probe: ${Df(a,2)} : 2 · √3 ≈ ${D(rund(rund(a,2)/2*Math.sqrt(3),2))} ${u}.`});
@@ -6028,7 +6564,7 @@ const typen = {
   // X2-N03 (Plus) Selbst herleiten: auf Papier, dann Kernpunkte abhaken
   herleiten_frei(){
     const opt=mischen([['k1','Die Höhe teilt das Dreieck in zwei rechtwinkelige Hälften.'], ['k2',`Satz des Pythagoras im Teildreieck: h² + (a : 2)² = a².`],
-      ['k3','Umformen und die Wurzel ziehen: h = a : 2 · √3.'], ['x1','Die Winkelsumme 180° verwendet.'], ['x2','h und a einfach addiert.']]);
+      ['k3',wurzelStrich('Umformen und die Wurzel ziehen: h = a : 2 · √3.')], ['x1','Die Winkelsumme 180° verwendet.'], ['x2','h und a einfach addiert.']]);
     return aufg({kind:'fragen', q:'Leite die Formel für die Höhe im gleichseitigen Dreieck her!', text:true,
       lead:'Schreib die Herleitung auf Papier. Tippe dann an, was in deiner Herleitung vorkommt.', bild:BILD.gs(), pruef:'x2_frei',
       gruppen:[{frage:'Was kommt in deiner Herleitung vor?', optionen:opt, ans:'k1,k2,k3', mehrfach:true, klasse:'lang'}],
