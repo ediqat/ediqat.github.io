@@ -467,7 +467,7 @@ UR.TEXTE = {
   einheitWaehlen: 'Einheit',
   einheitFalsch: 'Die Zahl stimmt, aber die Einheit nicht.',
   einheitPasstNicht: e => `Die Zahl stimmt, aber die Einheit passt nicht. Hier gehört ${e} dazu.`,
-  einheitDazu: e => `Schreib oder wähle die Einheit dazu: ${e}.`,
+  einheitDazu: e => `Die Zahl stimmt. Hier ist auch die Einheit gefragt: ${e}.`,
   rfHinweis: 'Tippe die Kärtchen der Reihe nach an. Nochmal antippen nimmt eines zurück.',
   zoHinweis: 'Tippe ein Kärtchen an, dann das passende Feld. Antippen und hier ablegen nimmt es zurück.',
   zoAblage: 'Kärtchen',
@@ -599,7 +599,8 @@ UR.umbruchSetzen = el => { if(!el.querySelectorAll) return;
   el.querySelectorAll(RECHNUNG).forEach(box=>textKnoten(box, UR.umbruch));
   el.querySelectorAll(TEXT).forEach(box=>{ if(!box.closest(RECHNUNG)) textKnoten(box, UR.umbruchText); }); };
 /* Einheiten (Lehrkraft 20.11.2026): Eine dazugeschriebene Einheit zählt („43 %“, „7,20 €“, „4,2cm“, „90°“). Eine
-   fehlende Einheit macht eine richtige Zahl nicht falsch; die Rückmeldung erinnert dann daran (t.tipp). */
+   Wo die Einheit ausdrücklich gefragt ist (Einheiten-Tasten), ist eine fehlende Einheit falsch, mit Hinweis. Steht die
+   Einheit fest neben dem Feld, genügt die Zahl („43“ bei „… %“). */
 const EINHEIT_RE = /^(.*?[0-9̇])\s*(%|‰|€|°C|°|[A-Za-zÄÖÜäöüß*]{1,16}[²³]?)\s*$/;
 UR.einheitAbtrennen = raw => { const s=String(raw??'').trim(), m=s.match(EINHEIT_RE); return m ? {rest:m[1].trim(), e:m[2]} : {rest:s, e:''}; };
 UR.leseZahlEinheit = raw => { const {rest,e}=UR.einheitAbtrennen(raw); return {v:UR.leseZahl(rest), e}; };
@@ -782,7 +783,8 @@ UR.zahlFeldHTML = (f,i,platz) => `<label class="lbl" for="z${i}">${f.label}</lab
       <div class="answer${platz?' mitE':''}">${f.feldHTML?f.feldHTML('z'+i):`<input id="z${i}" class="zahl" data-feld inputmode="decimal" placeholder="?">`}${f.einheit?`<span class="einheit">${f.einheit}</span>`:platz?'<span class="einheit" aria-hidden="true"></span>':''}</div>${
       f.einheiten?`${UR.wahlFeld('e'+i)}${UR.wahlGruppe('e'+i,f.einheiten.map(e=>[e,e]),{klasse:'einheiten'})}`:''}`;
 // liest die Felder aus der Liste l (verbraucht sie von vorn) und bewertet jedes Feld
-// Einheit: gewählte Taste, sonst die dazugetippte. Fehlt sie, zählt die richtige Zahl trotzdem (fehltEinheit → Tipp);
+// Einheit: gewählte Taste, sonst die dazugetippte. Bei Einheiten-Tasten ist sie gefragt: fehlt sie, ist das Feld falsch
+// (fehltEinheit → Hinweis). Steht die Einheit fest daneben, genügt die Zahl;
 // eine andere Einheit zählt nur richtig umgerechnet (Umrechnung liefert das Fach: UR.umrechner).
 UR.zahlFelderBewerten = (felder,l) => felder.map(f=>{
   const roh0=l.shift(), wahl=f.einheiten?(l.shift()||''):null, {rest:roh, e:getippt}=UR.einheitAbtrennen(roh0);
@@ -792,13 +794,13 @@ UR.zahlFelderBewerten = (felder,l) => felder.map(f=>{
   const andere=!!e&&!!soll&&!UR.einheitGleich(e,soll);
   const um=andere&&UR.umrechner ? UR.umrechner(v,e,soll) : null, umOk=um!==null&&um!==undefined&&passt(um);
   const wertOk=passt(v)||umOk, formOk=!f.formOk||!wertOk||f.formOk(roh);
-  return {roh:zahlText(roh), v, e:f.einheiten?e:getippt, wertOk, formOk, zahlOk:wertOk&&formOk, einheitOk:!andere||umOk,
+  return {roh:zahlText(roh), v, e:f.einheiten?e:getippt, wertOk, formOk, zahlOk:wertOk&&formOk, einheitOk:(!andere||umOk)&&!(f.einheiten&&!e),
     fehltEinheit:!!f.einheiten&&!e&&passt(v)};
 });
 // Teile einer Antwort für die Liste nach dem Check: jedes Feld grün oder rot, bei Rot mit der Lösung
 UR.zahlStuecke = (felder,erg) => erg.map((x,i)=>({text:`${x.roh||'?'}${x.e?' '+x.e:felder[i].einheit?' '+felder[i].einheit:''}`,
-  ok:x.zahlOk&&x.einheitOk, soll:felder[i].ansText, tipp:x.fehltEinheit}));
-UR.einheitTipp = (felder,erg) => { const l=[...new Set(erg.map((x,i)=>x.fehltEinheit&&x.zahlOk?felder[i].einheitAns:null).filter(Boolean))];
+  ok:x.zahlOk&&x.einheitOk, soll:felder[i].ansText}));
+UR.einheitFehltHinweis = (felder,erg) => { const l=[...new Set(erg.map((x,i)=>x.fehltEinheit&&x.zahlOk?felder[i].einheitAns:null).filter(Boolean))];
   return l.length ? T.einheitDazu(l.join(', ')) : ''; };
 UR.formAnmelden('zahlen', {
   html: t => { const platz=t.felder.some(f=>f.einheit);
@@ -806,11 +808,11 @@ UR.formAnmelden('zahlen', {
   bewerten(t,pre,raw){
     const erg=UR.zahlFelderBewerten(t.felder, Array.isArray(raw)?[...raw]:[raw]);
     t.ergebnis=erg;
-    t.hinweis = t.hinweisNach ? t.hinweisNach(erg) : (erg.every(x=>x.zahlOk)&&erg.some(x=>!x.einheitOk) ? T.einheitFalsch : '');
+    t.hinweis = t.hinweisNach ? t.hinweisNach(erg) : (erg.every(x=>x.zahlOk)&&erg.some(x=>!x.einheitOk&&!x.fehltEinheit) ? T.einheitFalsch : '');
     // optional: Felder hängen zusammen (z. B. Probe mit dem eigenen Ergebnis); t.zusammen(erg) → true/false
     const zus = !t.zusammen || t.zusammen(erg);
     if(!zus && erg.every(x=>x.zahlOk&&x.einheitOk) && t.zusammenHinweis) t.hinweis=t.zusammenHinweis;
-    t.tipp = UR.einheitTipp(t.felder, erg);
+    if(!t.hinweis) t.hinweis = UR.einheitFehltHinweis(t.felder, erg);
     const stuecke=UR.zahlStuecke(t.felder, erg);
     return {ok:zus&&erg.every(x=>x.zahlOk&&x.einheitOk), shown:stuecke.map(s=>s.text).join(' | '), stuecke:t.felder.length>1?stuecke:null};
   },
@@ -1541,7 +1543,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-20.50","datum":"20.11.2026","pruefsumme":"137f1dcf94bf290f"};
+UR.version = {"nummer":"2026-11-20.51","datum":"20.11.2026","pruefsumme":"dbdfdc7d99048b12"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -2567,21 +2569,20 @@ UR.formAnmelden('schritte', {
     const preOk = self ? s1Ok(t,s1) : pre===t.pre.ans;
     const erg = felder2(t).map(f=>{
       if(f.wahl){ const w=l.shift()||''; return {ok:w===f.ans, zahlOk:true, einheitOk:true, text:(f.wahl.find(o=>o[0]===w)||[,w||'?'])[1]}; }
-      // Einheit: gewählte Taste, sonst dazugetippt; fehlt sie, zählt die richtige Zahl trotzdem (Tipp, Lehrkraft 20.11.2026)
+      // Einheit: gewählte Taste oder dazugetippt (Lehrkraft 20.11.2026); bei Einheiten-Tasten ist sie gefragt, fehlt sie, ist es falsch
       const roh0=l.shift(), {rest:roh, e:getippt}=UR.einheitAbtrennen(roh0), v=UR.leseZahl(roh), wahl=f.einheit?'':(l.shift()||'');
       const e = f.einheit ? (getippt||f.einheitAns) : (wahl||getippt||'');
       const passt = w => w!==null&&!Number.isNaN(w)&&[f.ans,...(f.auch||[])].some(a=>Math.abs(w-a)<=(f.tol||0)+1e-9*Math.max(1,Math.abs(a)));
       const um = !f.einheit&&e&&e!==f.einheitAns ? inEinheit(v,e,f.einheitAns) : null, umOk = um!==null&&passt(um);
-      const fehlt = !e&&passt(v), zahlOk = passt(v)||umOk, einheitOk = fehlt||UR.einheitGleich(e,f.einheitAns)||umOk;
+      const fehlt = !e&&passt(v), zahlOk = passt(v)||umOk, einheitOk = UR.einheitGleich(e,f.einheitAns)||umOk;
       return {f, v, e, zahlOk, einheitOk, fehlt, ok:zahlOk&&einheitOk, text:`${String(roh??'').trim()||'?'}${e?' '+e:''}`};
     });
     const x=erg[0], typisch = x.f&&!x.zahlOk&&x.v!==null ? (t.s2.fehler||[]).find(([w])=>Math.abs(x.v-w)<1e-9) : null, ohneE=erg.find(y=>y.f&&y.zahlOk&&!y.einheitOk);
     t.hinweis = typisch ? typisch[1] : erg.every(y=>y.zahlOk)&&ohneE ? einheitHinweis(ohneE.e,ohneE.f.einheitAns) : '';
     const s1Text = t.s1.art==='wahl' ? ((t.s1.wahl.find(o=>o[0]===s1)||[,s1||'?'])[1]) : String(s1??'').trim()||'?';
-    const valOk = erg.every(y=>y.ok), fehlt=erg.filter(y=>y.fehlt&&y.ok).map(y=>y.f.einheitAns);
-    t.tipp = fehlt.length ? T.einheitDazu([...new Set(fehlt)].join(', ')) : '';
+    const valOk = erg.every(y=>y.ok);
     const soll2 = felder2(t).length>1 ? felder2(t).map(f=>f.ansText||'') : [t.s2.ansText];
-    const stuecke = [{text:ohneTags(s1Text), ok:preOk, soll:ohneTags(t.s1.ansText)}, ...erg.map((y,i)=>({text:ohneTags(y.text), ok:y.ok, soll:ohneTags(soll2[i]||t.s2.ansText), tipp:y.fehlt}))];
+    const stuecke = [{text:ohneTags(s1Text), ok:preOk, soll:ohneTags(t.s1.ansText)}, ...erg.map((y,i)=>({text:ohneTags(y.text), ok:y.ok, soll:ohneTags(soll2[i]||t.s2.ansText)}))];
     return {ok:preOk&&valOk, preOk, valOk, stuecke, shown:ohneTags(`${s1Text} | ${erg.map(y=>y.text).join(' | ')}`)};
   },
   loesung: t => `${t.s1.ansText} | ${t.s2.ansText}`,
@@ -2801,7 +2802,7 @@ UR.formAnmelden('zweischritt', {
     const txt = e => e.map(x=>x.roh||'?').join(', ');
     const s1Text = self ? txt(e1) : ohneTags((t.pre.optionen.find(o=>o[0]===pre)||[,pre||'?'])[1]);
     const alleF=[...(self?t.s1.felder:[]),...t.s2.felder], alleE=[...(e1||[]),...e2];
-    t.tipp = UR.einheitTipp(alleF, alleE);
+    if(!t.hinweis) t.hinweis = UR.einheitFehltHinweis(alleF, alleE);
     const stuecke = self ? UR.zahlStuecke(alleF, alleE) : null;
     return {ok:preOk&&valOk, preOk, valOk, stuecke, shown:`${s1Text} | ${txt(e2)}`};
   },
