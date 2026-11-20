@@ -276,6 +276,15 @@ circle.tipp.sel{fill:var(--v);fill-opacity:.45}
 .choices.skizzen{grid-template-columns:1fr}
 .choices.skizzen button{padding:4px 6px;font-size:1rem}
 .choices.skizzen svg.dreieck{max-width:300px}
+/* Merkwürdige Punkte (M-Drei-X1) und Herleitungen (M-Drei-X2) */
+.dr-ml{stroke:var(--ink);stroke-width:1.8}
+.dr-kreis{fill:none;stroke:var(--cop);stroke-width:2.2}
+.dr-radius{stroke:var(--cop);stroke-width:2.2;stroke-dasharray:5 4}
+.wurzel{white-space:nowrap}
+.wurzel>span{border-top:2px solid currentColor;padding:0 .15em;margin-left:.05em}
+.herleitung{margin:6px 0;padding-left:1.6em;text-align:left;line-height:2.1}
+.herleitung.ohne{list-style:none;padding-left:0}
+.dr-bild-klein svg.dreieck{max-width:240px}
 </style>
 </head>
 <body>
@@ -670,7 +679,10 @@ UR.formAnmelden('zahlen', {
     });
     t.ergebnis=erg;
     t.hinweis = t.hinweisNach ? t.hinweisNach(erg) : (erg.every(x=>x.zahlOk)&&erg.some(x=>!x.einheitOk) ? T.einheitFalsch : '');
-    return {ok:erg.every(x=>x.zahlOk&&x.einheitOk), shown:erg.map((x,i)=>`${x.roh||'?'}${x.e?' '+x.e:t.felder[i].einheit?' '+t.felder[i].einheit:''}`).join(' | ')};
+    // optional: Felder hängen zusammen (z. B. Probe mit dem eigenen Ergebnis); t.zusammen(erg) → true/false
+    const zus = !t.zusammen || t.zusammen(erg);
+    if(!zus && erg.every(x=>x.zahlOk&&x.einheitOk) && t.zusammenHinweis) t.hinweis=t.zusammenHinweis;
+    return {ok:zus&&erg.every(x=>x.zahlOk&&x.einheitOk),shown:erg.map((x,i)=>`${x.roh||'?'}${x.e?' '+x.e:t.felder[i].einheit?' '+t.felder[i].einheit:''}`).join(' | ')};
   },
   loesung: t => t.felder.map(f=>f.ansText).join(' | ')
 });
@@ -1353,7 +1365,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-19.14","datum":"19.11.2026","pruefsumme":"39ceabcfd9aa3ba7"};
+UR.version = {"nummer":"2026-11-20.10","datum":"20.11.2026","pruefsumme":"26bb4b159fe524bb"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -1922,6 +1934,21 @@ UR.formAnmelden('felder', {
   },
   loesung: t => t.felder.map(f=>f.ans).join(' | ')
 });
+// 'luecken' (M-Drei-X2): Lücken in einer Herleitung, jede Lücke ein Bruchfeld (Nenner leer = kein Bruch).
+// t.qh zeigt die Zeilen mit nummerierten Lücken; t.felder [{label, ans (Term mit /), ansText, bruch:false = einfaches Feld
+// (nur ganze Zahlen)}]; jeder gleichwertige Term zählt.
+UR.formAnmelden('luecken', {
+  html: t => `${aufgabe(t)}${t.bild?`<div class="bild">${t.bild}</div>`:''}<form class="selfform" id="multiForm" autocomplete="off">${t.felder.map((f,i)=>`<p class="lbl">${f.label}</p><div class="answer">${
+    f.bruch===false ? feld('l'+i,`data-feld="${i}" inputmode="decimal" aria-label="${f.label}"`) : bruchFeld('l'+i,`data-feld="${i}"`)}</div>`).join('')}
+    <div class="answer">${okKnopf}</div></form>${tasten(t)}${eingabeHinweis(t)}`,
+  bewerten(t,pre,raw){
+    const l=Array.isArray(raw)?raw:[], teile=t.felder.map((f,i)=>bewerte('gleich',l[i],f.ans,t).ok);
+    t.falsch=teile.map(x=>!x);
+    return {ok:teile.every(Boolean), teile, shown:t.felder.map((f,i)=>String(l[i]??'').trim()||'?').join(' | ')};
+  },
+  loesung: t => t.felder.map(f=>f.ansText||f.ans).join(' | ')
+});
+UR.formen.luecken.papier = t => ({aufgabe:`<div class="pz-q text">${t.qh}</div>`, loesung:bruchAnzeige(t.felder.map(f=>f.ansText||f.ans).join(' | ')), aufwand:2});
 // Tasten unter dem Eingabefeld: fügen an der Schreibmarke des zuletzt benutzten Feldes ein
 UR.bindungen.push(app=>{
   let ziel=null;
@@ -2102,6 +2129,14 @@ const lage = P => drehen(P, Math.random()*2*Math.PI);
 function lot(X,Y,Z){ const d=minus(Z,Y), t=((X[0]-Y[0])*d[0]+(X[1]-Y[1])*d[1])/(d[0]*d[0]+d[1]*d[1]); return {F:plus(Y,mal(d,t)), t}; }
 // Heron: Fläche aus drei Seiten
 const heron = (a,b,c) => { const s=(a+b+c)/2; return Math.sqrt(Math.max(0,s*(s-a)*(s-b)*(s-c))); };
+// Merkwürdige Punkte (X1): Höhenschnittpunkt H, Schwerpunkt S, Umkreismittelpunkt U (Radius R), Inkreismittelpunkt I (Radius ρ)
+function merkwuerdig(P){
+  const {A,B,C}=P, L=seiten(P), d2=2*(A[0]*(B[1]-C[1])+B[0]*(C[1]-A[1])+C[0]*(A[1]-B[1])), q=p=>p[0]*p[0]+p[1]*p[1];
+  const U=[(q(A)*(B[1]-C[1])+q(B)*(C[1]-A[1])+q(C)*(A[1]-B[1]))/d2, (q(A)*(C[0]-B[0])+q(B)*(A[0]-C[0])+q(C)*(B[0]-A[0]))/d2];
+  const u=L.a+L.b+L.c, I=[(L.a*A[0]+L.b*B[0]+L.c*C[0])/u, (L.a*A[1]+L.b*B[1]+L.c*C[1])/u];
+  const S=schwer(P), H=minus(plus(plus(A,B),C),mal(U,2));
+  return {H, S, U, I, R:dist(U,A), rho:2*heron(L.a,L.b,L.c)/u};
+}
 
 /* ---------- Zeichnung (SVG) ----------
    P: Ecken {A,B,C} in Rechenkoordinaten. o:
@@ -2123,6 +2158,9 @@ function zeichne(P,o={}){
   const bogenPunkte = b => { const v=minus(b.durch,b.mitte), w0=Math.atan2(v[1],v[0]), sp=rad(b.spanne||22);
     return [-1,-.5,0,.5,1].map(f=>plus(b.mitte,[b.r*Math.cos(w0+f*sp), b.r*Math.sin(w0+f*sp)])); };
   for(const b of o.boegen||[]) alle.push(...bogenPunkte(b));
+  // ganze Kreise (X1: Umkreis, Inkreis): {mitte, r}
+  const kreisPunkte = c => Array.from({length:24},(_,i)=>plus(c.mitte,[c.r*Math.cos(i*Math.PI/12), c.r*Math.sin(i*Math.PI/12)]));
+  for(const c of o.kreise||[]) alle.push(...kreisPunkte(c));
   for(const s of o.strahlen||[]) alle.push(s.von,s.bis);
   const xs=alle.map(p=>p[0]), ys=alle.map(p=>p[1]), x0=Math.min(...xs), y1=Math.max(...ys);
   const bw=Math.max(...xs)-x0||1, bh=y1-Math.min(...ys)||1;
@@ -2140,6 +2178,7 @@ function zeichne(P,o={}){
   for(const s of o.strecken||[]) linien.push([S(s.von),S(s.bis)]);
   for(const s of o.strahlen||[]) linien.push([S(s.von),S(s.bis)]);
   for(const b of o.boegen||[]){ const pk=bogenPunkte(b).map(S); for(let i=0;i<4;i++) linien.push([pk[i],pk[i+1],1]); }
+  for(const c of o.kreise||[]){ const pk=kreisPunkte(c).map(S); pk.forEach((q,i)=>linien.push([q,pk[(i+1)%pk.length],1])); }
   const belegt=(p,r)=>kasten.push({x:p[0]-r,y:p[1]-r,w:2*r,h:2*r});
   const zb=(c,fs)=>fs*(c===' '?.28:/[0-9]/.test(c)?.57:/[,.]/.test(c)?.28:/[=≈]/.test(c)?.6:c==='°'?.4:c==='?'?.55:.62);
   const breite=(html,fs)=>{ let w=0; String(html).replace(/<sub>(.*?)<\/sub>|<[^>]+>|([^<]+)/g,(m,s,t)=>{ for(const c of s||'') w+=zb(c,fs*.7); for(const c of t||'') w+=zb(c,fs); return ''; }); return w; };
@@ -2170,6 +2209,7 @@ function zeichne(P,o={}){
       svg+=`<path class="dr-winkel" d="M${pt(Q[e])} L${pt(a)} A${r},${r} 0 0 ${kr>0?1:0} ${pt(b)} Z"/>`;
     }
   }
+  for(const c of o.kreise||[]){ const m=S(c.mitte); svg+=`<circle class="dr-kreis" cx="${m[0]}" cy="${m[1]}" r="${rund(c.r*k,2)}"/>`; }
   for(const v of o.verlaengern||[]) svg+=`<line class="dr-verl" x1="${S(v[0])[0]}" y1="${S(v[0])[1]}" x2="${S(v[1])[0]}" y2="${S(v[1])[1]}"/>`;
   svg+=`<polygon class="dr" data-ecken="${pt(Q.A)} ${pt(Q.B)} ${pt(Q.C)}" points="${pt(Q.A)} ${pt(Q.B)} ${pt(Q.C)}"${o.nurSeiten?' style="stroke:none"':''}/>`;
   for(const s of o.nurSeiten||[]){ const [p,q]=gegen[s.toUpperCase()].map(n=>Q[n]); svg+=`<line class="dr-seite" x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}"/>`; }
@@ -2211,7 +2251,7 @@ function zeichne(P,o={}){
     if(s.wg) svg+=`<line class="tipp" data-wg="${s.wg}" data-wert="${s.wert}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`;
   }
   for(const p of o.punkte||[]){ const q=S(p.p); svg+=`<circle class="dr-punkt" cx="${q[0]}" cy="${q[1]}" r="4.5"/>`; belegt(q,5);
-    if(p.text) spaeter.push(()=>{ svg+=setze(p.text,'dr-t',(w,h)=>[[1,-1],[1,1],[-1,-1],[-1,1],[0,-1],[0,1],[1,0],[-1,0]].map(r=>aussen(q,einheitV(r),w,h,6))); }); }
+    if(p.text) spaeter.push(()=>{ svg+=setze(p.text,'dr-t',(w,h)=>[6,13,20].flatMap(d=>[[1,-1],[1,1],[-1,-1],[-1,1],[0,-1],[0,1],[1,0],[-1,0]].map(r=>aussen(q,einheitV(r),w,h,d)))); }); }
   for(const f of spaeter) f();
   // Beschriftung: Ecken außen, Seiten außen neben der Mitte, Winkel innen; Seiten immer mit Namen („b = 5 cm“)
   for(const e of 'ABC'){
@@ -2386,7 +2426,7 @@ function aufg(t){
 const vorschlaege = (richtig, ...falsch) => { const l=[...new Set([richtig,...falsch])]; return mischen(l.map(x=>[x,x])); };
 
 UR.dreiecke = {felder2, rund, D, Df, stellen, mischen, versuche, bereich, bruch, sub, GR, KL, NAMEN, rad, grad, dist, plus, minus, mal, schwer,
-  winkelBei, winkel, seiten, gegen, ausWinkeln, ausSeiten, drehen, lage, lot, heron, zeichne, koordSVG, liesRechnung, gleicheZahlen,
+  winkelBei, winkel, seiten, gegen, merkwuerdig, ausWinkeln, ausSeiten, drehen, lage, lot, heron, zeichne, koordSVG, liesRechnung, gleicheZahlen,
   LAENGE, FLAECHE, EINHEITEN, FAKTOR, umrechnen, einheitHinweis, hilfe, aufg, vorschlaege};
 })(window.UR = window.UR || {});
 </script>
@@ -4850,6 +4890,545 @@ const erklaerung = {
 };
 
 UR.kompetenzAnmelden({id:'M-Drei-V2', typen, stationen, kern, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/2.2g Dreiecke/M-Drei-X1.js */
+/* Baustein M-Drei-X1: „Ich kenne wichtige Begriffe und Eigenschaften betreffend merkwürdige Punkte im Dreieck und kann
+   sie konstruieren.“ Steckbrief: M-Drei-X1.md, Auswahl der Lehrkraft: AUSWAHL.md (19.11.2026).
+   Entscheidungen (19.11.2026): X1-A01 als Bild mit einer Linienart und ihrem Schnittpunkt (das Kind benennt Linien und
+   Punkt); Konstruieren auf Papier mit Messwert ist Kern (fest in cm, ± 0,2 cm, wie V1-A04); antippen statt ziehen.
+   Fachbegriffe: Höhe, Schwerlinie (Seitenhalbierende), Streckensymmetrale, Winkelsymmetrale, Radien ρ (Inkreis) und r (Umkreis), bestätigt 20.11.2026 (KONZEPT 8.3).
+   Gerechnet wird in Rechenkoordinaten (y nach oben), gezeichnet mit A, B, C gegen den Uhrzeigersinn. */
+(function(UR){
+const {rnd, pick} = UR;
+const {rund, D, mischen, versuche, sub, GR, rad, plus: vplus, minus, mal, dist, ausWinkeln, ausSeiten, lage, lot, gegen, merkwuerdig, zeichne, hilfe, aufg} = UR.dreiecke;
+
+const ARTEN = ['H','S','U','I'];
+const LINIEN = {H:'Höhen', S:'Schwerlinien (Seitenhalbierende)', U:'Streckensymmetralen', I:'Winkelsymmetralen'};
+const LINIE1 = {H:'Höhe', S:'Schwerlinie', U:'Streckensymmetrale', I:'Winkelsymmetrale'};
+const PUNKT = {H:'Höhenschnittpunkt H', S:'Schwerpunkt S', U:'Umkreismittelpunkt U', I:'Inkreismittelpunkt I'};
+const LINIE_WAS = {
+  H:'Eine Höhe geht durch eine Ecke und steht normal auf die gegenüberliegende Seite.',
+  S:'Eine Schwerlinie verbindet eine Ecke mit der Mitte der gegenüberliegenden Seite.',
+  U:'Eine Streckensymmetrale steht in der Mitte einer Seite normal auf diese Seite.',
+  I:'Eine Winkelsymmetrale halbiert einen Winkel des Dreiecks.'
+};
+const PUNKT_WAS = {
+  H:'Der Höhenschnittpunkt H ist der Schnittpunkt der drei Höhen.',
+  S:'Der Schwerpunkt S ist der Schnittpunkt der drei Schwerlinien. Er teilt jede Schwerlinie im Verhältnis 2 : 1 (der längere Teil liegt bei der Ecke). Auf S lässt sich ein Dreieck aus Karton balancieren.',
+  U:'Der Umkreismittelpunkt U ist der Schnittpunkt der drei Streckensymmetralen. Er ist von allen drei Ecken gleich weit entfernt: Der Umkreis um U geht durch alle drei Ecken.',
+  I:'Der Inkreismittelpunkt I ist der Schnittpunkt der drei Winkelsymmetralen. Er ist von allen drei Seiten gleich weit entfernt: Der Inkreis um I berührt alle drei Seiten.'
+};
+const merk = s => `<span class="merk">${s}</span>`;
+const zehntel = (a,b) => rnd(a*10,b*10)/10;
+const cm = v => `${D(v)} cm`;
+const mitte = (p,q) => mal(vplus(p,q),.5);
+const kl = e => e.toLowerCase();
+
+/* ---------- Dreiecke ---------- */
+// spitzwinkelig und deutlich ungleichseitig (Winkel 42° bis 78°, je mindestens 12° verschieden), zufällige Lage
+function spitzDreieck(){
+  return versuche(()=>{ const a=rnd(42,78), b=rnd(42,78), c=180-a-b, w=[a,b,c].sort((x,y)=>x-y);
+    if(c<42||c>78||w[1]-w[0]<12||w[2]-w[1]<12) return null; return lage(ausWinkeln(a,b,c)); });
+}
+// für die Lage von U: spitz-, recht- oder stumpfwinkelig, der besondere Winkel an einer zufälligen Ecke
+function artDreieck(art){
+  if(art==='spitz') return spitzDreieck();
+  const w = versuche(()=>{
+    if(art==='recht'){ const b=rnd(30,60); return Math.abs(b-(90-b))>=12 ? [90,b,90-b] : null; }
+    const g=rnd(105,130), b=rnd(20,180-g-20), c=180-g-b; return c>=20&&Math.abs(b-c)>=10 ? [g,b,c] : null; });
+  const r=mischen(w); return lage(ausWinkeln(r[0],r[1],r[2]));
+}
+
+/* ---------- Linien und Bilder ---------- */
+// die drei Linien einer Art als Strecken (Rechenkoordinaten); rechte: rechte Winkel einzeichnen
+function linien(P, art, o={}){
+  const mp=merkwuerdig(P), l=[], gross=Math.max(...['a','b','c'].map(s=>{ const [p,q]=gegen[s.toUpperCase()]; return dist(P[p],P[q]); }));
+  for(const E of 'ABC'){
+    const [Y,Z]=gegen[E];
+    if(art==='H'){ const {F}=lot(P[E],P[Y],P[Z]); l.push({von:P[E], bis:F, art:'ml', fussRecht:o.rechte}); }
+    if(art==='S') l.push({von:P[E], bis:mitte(P[Y],P[Z]), art:'ml'});
+    if(art==='I'){ const y=dist(P[E],P[Y]), z=dist(P[E],P[Z]); l.push({von:P[E], bis:vplus(P[Y],mal(minus(P[Z],P[Y]),y/(y+z))), art:'ml'}); }
+    if(art==='U'){
+      // Normale in der Seitenmitte M, nach innen gerichtet; reicht über U und ein Stück über das Dreieck hinaus
+      const M=mitte(P[Y],P[Z]), d=minus(P[Z],P[Y]); let n=[-d[1],d[0]]; const ln=Math.hypot(...n); n=[n[0]/ln,n[1]/ln];
+      if((P[E][0]-M[0])*n[0]+(P[E][1]-M[1])*n[1]<0) n=mal(n,-1);
+      const tU=(mp.U[0]-M[0])*n[0]+(mp.U[1]-M[1])*n[1], tE=(P[E][0]-M[0])*n[0]+(P[E][1]-M[1])*n[1], e=.12*gross;
+      const t1=Math.max(tU,.75*tE)+e, t0=Math.min(0,tU)-.4*e;      // außen nur ein kurzes Stück (Platz für die Seitenbeschriftung)
+      l.push({von:vplus(M,mal(n,t1)), bis:M, art:'ml', fussRecht:o.rechte}, {von:M, bis:vplus(M,mal(n,t0)), art:'ml'});
+    }
+  }
+  return l;
+}
+// Bild mit Linien, Punkt (Name oder ?), wahlweise Kreis und Radius
+function punktBild(P, art, o={}){
+  const mp=merkwuerdig(P), opt={ecken:true, strecken:linien(P,art,{rechte:o.rechte!==false}), punkte:[{p:mp[art], text:o.name??art}], kreise:[]};
+  if(o.kreis&&art==='U') opt.kreise.push({mitte:mp.U, r:mp.R});
+  if(o.kreis&&art==='I') opt.kreise.push({mitte:mp.I, r:mp.rho});
+  if(o.radius){ const F=art==='U'?P[o.radius.ecke]:lot(mp.I,P[gegen[o.radius.ecke][0]],P[gegen[o.radius.ecke][1]]).F;
+    opt.strecken.push({von:mp[art], bis:F, art:'radius', text:o.radius.text}); }
+  return zeichne(P, Object.assign(opt, o.extra||{}));
+}
+
+/* ---------- Konstruktionsablauf je Punkt ---------- */
+// Kärtchen mit Voraussetzungen (nach); alle Reihenfolgen, die die Voraussetzungen einhalten, sind richtig
+function ablauf(art){
+  const [x,y]=mischen(['a','b','c']).slice(0,2), X=x.toUpperCase(), Y=y.toUpperCase(), z='abc'.replace(x,'').replace(y,'');
+  if(art==='S') return [
+    {id:'m'+x, text:`Konstruiere die Mitte ${sub('M',x)} der Seite ${x}.`, kurz:`Mitte von ${x}`, nach:[]},
+    {id:'v'+x, text:`Verbinde ${sub('M',x)} mit der Ecke ${X}.`, kurz:`Mitte von ${x} mit ${X} verbinden`, nach:['m'+x]},
+    {id:'m'+y, text:`Konstruiere die Mitte ${sub('M',y)} der Seite ${y}.`, kurz:`Mitte von ${y}`, nach:[]},
+    {id:'v'+y, text:`Verbinde ${sub('M',y)} mit der Ecke ${Y}.`, kurz:`Mitte von ${y} mit ${Y} verbinden`, nach:['m'+y]},
+    {id:'schnitt', text:'Der Schnittpunkt der zwei Schwerlinien ist S.', kurz:'Schnittpunkt S', nach:['v'+x,'v'+y]}];
+  if(art==='U') return [
+    {id:'s'+x, text:`Konstruiere die Streckensymmetrale der Seite ${x}.`, kurz:`Streckensymmetrale von ${x}`, nach:[]},
+    {id:'s'+y, text:`Konstruiere die Streckensymmetrale der Seite ${y}.`, kurz:`Streckensymmetrale von ${y}`, nach:[]},
+    {id:'schnitt', text:'Der Schnittpunkt der zwei Streckensymmetralen ist U.', kurz:'Schnittpunkt U', nach:['s'+x,'s'+y]},
+    {id:'zirkel', text:'Stich mit dem Zirkel in U ein und öffne ihn bis zu einer Ecke.', kurz:'Zirkel in U bis zu einer Ecke', nach:['schnitt']},
+    {id:'kreis', text:'Zeichne den Umkreis. Er geht durch alle drei Ecken.', kurz:'Umkreis zeichnen', nach:['zirkel']}];
+  if(art==='I') return [
+    {id:'w'+X, text:`Konstruiere die Winkelsymmetrale von ${GR[X]}.`, kurz:`Winkelsymmetrale von ${GR[X]}`, nach:[]},
+    {id:'w'+Y, text:`Konstruiere die Winkelsymmetrale von ${GR[Y]}.`, kurz:`Winkelsymmetrale von ${GR[Y]}`, nach:[]},
+    {id:'schnitt', text:'Der Schnittpunkt der zwei Winkelsymmetralen ist I.', kurz:'Schnittpunkt I', nach:['w'+X,'w'+Y]},
+    {id:'lot', text:`Fälle von I das Lot auf die Seite ${z}. Der Fußpunkt heißt F.`, kurz:`Lot von I auf ${z}`, nach:['schnitt']},
+    {id:'kreis', text:'Zeichne den Inkreis um I durch F. Er berührt alle drei Seiten.', kurz:'Inkreis zeichnen', nach:['lot']}];
+  return [
+    {id:'h'+x, text:`Zeichne die Höhe ${sub('h',x)}: Sie geht durch ${X} und steht normal auf ${x}.`, kurz:`Höhe auf ${x}`, nach:[]},
+    {id:'h'+y, text:`Zeichne die Höhe ${sub('h',y)}: Sie geht durch ${Y} und steht normal auf ${y}.`, kurz:`Höhe auf ${y}`, nach:[]},
+    {id:'schnitt', text:'Der Schnittpunkt der zwei Höhen ist H.', kurz:'Schnittpunkt H', nach:['h'+x,'h'+y]},
+    {id:'kontrolle', text:`Zur Kontrolle: Auch die dritte Höhe ${sub('h',z)} geht durch H.`, kurz:'Kontrolle mit der dritten Höhe', nach:['schnitt']}];
+}
+function reihenfolgen(karten){
+  const l=[], perm=(rest,weg)=>{ if(!rest.length){ l.push(weg); return; }
+    rest.forEach(k=>{ if(k.nach.every(n=>weg.includes(n))) perm(rest.filter(r=>r!==k),[...weg,k.id]); }); };
+  perm(karten,[]); return l;
+}
+
+/* ---------- Pools ---------- */
+const EIGENSCHAFTEN = [
+  ['Er ist der Mittelpunkt des Kreises, der durch alle drei Ecken geht.', 'U'],
+  ['Er ist von allen drei Ecken gleich weit entfernt.', 'U'],
+  ['Beim rechtwinkeligen Dreieck liegt er genau in der Mitte der längsten Seite.', 'U'],
+  ['Er entsteht aus den Geraden, die jede Seite in ihrer Mitte normal schneiden.', 'U'],
+  ['Er ist der Mittelpunkt des größten Kreises, der im Dreieck Platz hat.', 'I'],
+  ['Er ist von allen drei Seiten gleich weit entfernt.', 'I'],
+  ['Er entsteht aus den Linien, die die Winkel des Dreiecks halbieren.', 'I'],
+  ['Er teilt jede Schwerlinie im Verhältnis 2 : 1.', 'S'],
+  ['Auf ihm lässt sich ein Dreieck aus Karton auf einer Nadelspitze balancieren.', 'S'],
+  ['Er entsteht, wenn man jede Ecke mit der Mitte der gegenüberliegenden Seite verbindet.', 'S'],
+  ['Er entsteht aus den Linien, die durch eine Ecke gehen und normal auf die gegenüberliegende Seite stehen.', 'H'],
+  ['Beim rechtwinkeligen Dreieck liegt er genau in der Ecke mit dem rechten Winkel.', 'H']
+];
+const SACHE = [
+  ['Eine dreieckige Platte soll waagrecht auf einer Nadelspitze balancieren. Wo muss die Nadel hin?', 'S', 'Im Schwerpunkt ist das Gewicht nach allen Seiten gleich verteilt.'],
+  ['Ein dreieckiges Mobile aus Karton soll an einem Faden waagrecht hängen. Wo kommt der Faden hin?', 'S', 'Im Schwerpunkt ist das Gewicht nach allen Seiten gleich verteilt.'],
+  ['Ein Brunnen soll von drei Dörfern gleich weit entfernt sein. Wo wird er gebaut?', 'U', 'Der Umkreismittelpunkt ist von allen drei Ecken gleich weit entfernt.'],
+  ['Ein Handymast soll von drei Orten gleich weit entfernt stehen. Wo kommt er hin?', 'U', 'Der Umkreismittelpunkt ist von allen drei Ecken gleich weit entfernt.'],
+  ['Eine Lampe soll über einem dreieckigen Tisch hängen, gleich weit von allen drei Ecken. Wo hängt sie?', 'U', 'Der Umkreismittelpunkt ist von allen drei Ecken gleich weit entfernt.'],
+  ['In ein dreieckiges Beet soll ein möglichst großer runder Teich. Wo ist sein Mittelpunkt?', 'I', 'Der Inkreis ist der größte Kreis im Dreieck; sein Mittelpunkt ist der Inkreismittelpunkt.'],
+  ['In einem dreieckigen Park soll eine Bank stehen, die von allen drei Wegen am Rand gleich weit entfernt ist. Wo steht sie?', 'I', 'Der Inkreismittelpunkt ist von allen drei Seiten gleich weit entfernt.'],
+  ['Aus einem dreieckigen Brett soll eine möglichst große runde Scheibe gesägt werden. Wo ist ihr Mittelpunkt?', 'I', 'Der Inkreis ist der größte Kreis im Dreieck; sein Mittelpunkt ist der Inkreismittelpunkt.']
+];
+const MEMORY = [
+  ['Höhenschnittpunkt H', 'Schnittpunkt der drei Höhen'],
+  ['Schwerpunkt S', 'Schnittpunkt der drei Schwerlinien'],
+  ['Umkreismittelpunkt U', 'Schnittpunkt der drei Streckensymmetralen'],
+  ['Inkreismittelpunkt I', 'Schnittpunkt der drei Winkelsymmetralen'],
+  ['Umkreis', 'Kreis durch alle drei Ecken'],
+  ['Inkreis', 'Kreis, der alle drei Seiten berührt'],
+  ['Höhe', 'geht durch eine Ecke und steht normal auf die gegenüberliegende Seite'],
+  ['Schwerlinie', 'verbindet eine Ecke mit der Mitte der gegenüberliegenden Seite'],
+  ['Streckensymmetrale', 'steht in der Mitte einer Seite normal auf die Seite'],
+  ['Winkelsymmetrale', 'halbiert einen Winkel']
+];
+const LAGE = {innen:'innerhalb des Dreiecks', seite:'genau in der Mitte der längsten Seite', aussen:'außerhalb des Dreiecks'};
+const LAGE_ART = {spitz:'innen', recht:'seite', stumpf:'aussen'};
+const LAGE_WARUM = {
+  spitz:'Im spitzwinkeligen Dreieck liegt U innerhalb des Dreiecks.',
+  recht:'Im rechtwinkeligen Dreieck liegt U genau in der Mitte der längsten Seite (Hypotenuse). Das ist der Satz des Thales: Der Umkreis ist dann der Thaleskreis über der Hypotenuse.',
+  stumpf:'Im stumpfwinkeligen Dreieck liegt U außerhalb des Dreiecks, gegenüber dem stumpfen Winkel hinter der längsten Seite.'
+};
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // X1-A01 Punkt und Linien zuordnen: eine Linienart im Bild, das Kind benennt die Linien und den Schnittpunkt
+  punkte_linien(ctx){
+    const leicht=ctx&&ctx.leicht, h=hilfe(ctx), art=leicht?pick(['H','S']):pick(ARTEN), P=spitzDreieck();
+    const arten=leicht?mischen(['H','S']):mischen(ARTEN);
+    return aufg({kind:'fragen', q:'Welche Linien sind eingezeichnet, und wie heißt ihr Schnittpunkt?', text:true, pruef:'x1_linien',
+      lead:leicht?merk(`${LINIE_WAS.H}<br>${LINIE_WAS.S}`):'',
+      bild:punktBild(P,art,{name:'?', rechte:h!=='nackt'}),
+      gruppen:[{frage:'Welche Linien sind das?', optionen:arten.map(k=>[k,LINIEN[k]]), ans:art, klasse:'lang'},
+               {frage:'Wie heißt ihr Schnittpunkt?', optionen:arten.map(k=>[k,PUNKT[k]]), ans:art, klasse:'lang'}],
+      why:`${LINIE_WAS[art]} ${PUNKT_WAS[art]}`, loesungBild:punktBild(P,art,{kreis:true})});
+  },
+  // X1-A02 Eigenschaft des Punktes
+  eigenschaft(ctx){
+    const leicht=ctx&&ctx.leicht, [satz,ans]=pick(EIGENSCHAFTEN), andere=mischen(ARTEN.filter(k=>k!==ans)).slice(0,leicht?1:2);
+    return aufg({kind:'fragen', q:`Welcher Punkt ist gemeint? ${satz}`, text:true, pruef:'x1_eigenschaft', satz,
+      gruppen:[{frage:'Welcher Punkt ist das?', optionen:mischen([ans,...andere]).map(k=>[k,PUNKT[k]]), ans, klasse:'lang'}],
+      why:PUNKT_WAS[ans], loesungBild:punktBild(spitzDreieck(),ans,{kreis:true})});
+  },
+  // X1-A03 Konstruktionsablauf ordnen
+  konstruktionsablauf(ctx){
+    const art=pick(ARTEN), karten=ablauf(art), l=reihenfolgen(karten), P=spitzDreieck();
+    return aufg({kind:'reihenfolge', q:`Konstruiere den ${PUNKT[art]}. Bring die Schritte in die richtige Reihenfolge.`, text:true,
+      bild:zeichne(P,{ecken:true, seitenNamen:true}), karten:mischen(karten.map(({id,text,kurz})=>({id,text,kurz}))), loesungen:l, fest:ctx&&ctx.leicht?1:0,
+      pruef:'x1_ablauf', art,
+      why:`${PUNKT_WAS[art]} Zwei Linien genügen für den Schnittpunkt.${l.length>1?' Schritte, die nicht aufeinander aufbauen, dürfen auch vertauscht sein.':''}`,
+      loesungBild:punktBild(P,art,{kreis:true})});
+  },
+  // X1-A04 Lage des Umkreismittelpunkts
+  lage_U(ctx){
+    const leicht=ctx&&ctx.leicht, art=pick(['spitz','recht','stumpf']), P=artDreieck(art), ans=LAGE_ART[art];
+    const opts=leicht?mischen([ans,pick(Object.keys(LAGE).filter(k=>k!==ans))]):mischen(Object.keys(LAGE));
+    return aufg({kind:'fragen', q:'Wo liegt der Umkreismittelpunkt U dieses Dreiecks?', text:true, pruef:'x1_lage',
+      lead:leicht?merk('Schau dir den größten Winkel an: Ist er spitz, recht oder stumpf?'):'',
+      bild:zeichne(P,{ecken:true, hilfe:hilfe(ctx)}),
+      gruppen:[{frage:'U liegt …', optionen:opts.map(k=>[k,LAGE[k]]), ans, klasse:'lang'}],
+      why:LAGE_WARUM[art], loesungBild:punktBild(P,'U',{kreis:true})});
+  },
+  // X1-A05 Konstruieren auf Papier, Messwert eintippen (Inkreisradius ρ oder Umkreisradius r)
+  messwert_punkt(ctx){
+    const leicht=ctx&&ctx.leicht, art=pick(['I','U']);
+    const [a,b,c]=versuche(()=>{ const s=leicht?[rnd(5,9),rnd(5,9),rnd(5,9)]:[zehntel(5,9),zehntel(5,9),zehntel(5,9)];
+      if(!(s[0]+s[1]>s[2]&&s[0]+s[2]>s[1]&&s[1]+s[2]>s[0])) return null;
+      const w=Object.values(UR.dreiecke.winkel(ausSeiten(...s)));
+      // spitzwinkelig und nicht fast gleichschenkelig (sonst fallen die Linien im Bild fast zusammen)
+      const ws=[...w].sort((x,y)=>x-y);
+      return w.every(x=>x>=35&&x<=80)&&ws[1]-ws[0]>=8&&ws[2]-ws[1]>=8 ? s : null; });
+    const P=ausSeiten(a,b,c), mp=merkwuerdig(P), wert=art==='I'?mp.rho:mp.R, name=art==='I'?'ρ':'r';
+    const soll=`${name} ≈ ${cm(rund(wert,1))}`, kreis=art==='I'?'Inkreis':'Umkreis';
+    const schritte=ablauf(art).map(k=>k.text);
+    return aufg({kind:'zahlen', q:`Konstruiere das Dreieck: a = ${cm(a)}, b = ${cm(b)}, c = ${cm(c)}. Konstruiere den ${PUNKT[art]} und den ${kreis}. Miss den Radius ${name} des ${kreis}es.`, text:true,
+      lead:`Du brauchst Papier, Zirkel und Geodreieck.${leicht?`<br>${merk(`So geht es: Zuerst das Dreieck aus den drei Seiten (SSS), dann<ol class="kon-liste">${schritte.map(s=>`<li>${s}</li>`).join('')}</ol>`)}`:''}`,
+      pruef:'x1_messwert', art,
+      felder:[{label:`Gemessen: ${name} =`, ans:rund(wert,6), tol:.2, einheit:'cm', ansText:soll}],
+      why:`Gerechnet ist ${soll}. ${art==='I'?'ρ ist der Abstand von I zu einer Seite (Lot von I auf die Seite).':'r ist der Abstand von U zu einer Ecke.'} Kleine Messfehler sind normal: Bis 2 mm daneben zählt als richtig. Vergleiche deine Konstruktion mit dem Bild.`,
+      loesungBild:punktBild(P,art,{kreis:true, radius:{ecke:art==='I'?'C':'A', text:soll}, extra:{seitenText:{a:cm(a), b:cm(b), c:cm(c)}}})});
+  },
+  // X1-N01 (Plus) Welcher Punkt hilft hier?
+  welcher_punkt(){
+    const [satz,ans,warum]=pick(SACHE), andere=mischen(ARTEN.filter(k=>k!==ans)).slice(0,2);
+    return aufg({kind:'fragen', q:satz, text:true, pruef:'x1_sache', satz,
+      gruppen:[{frage:'Welcher Punkt hilft?', optionen:mischen([ans,...andere]).map(k=>[k,PUNKT[k]]), ans, klasse:'lang'}],
+      why:warum, loesungBild:punktBild(spitzDreieck(),ans,{kreis:true})});
+  },
+  // X1-N02 (Plus) Schwerpunkt im Koordinatensystem
+  schwerpunkt_koordinaten(){
+    const E=versuche(()=>{ const p=()=>[rnd(-5,10),rnd(-5,10)], A=p(), B=p(), C=p();
+      const f=Math.abs((B[0]-A[0])*(C[1]-A[1])-(C[0]-A[0])*(B[1]-A[1]))/2;
+      return f>=6&&(A[0]+B[0]+C[0])%3===0&&(A[1]+B[1]+C[1])%3===0 ? {A,B,C} : null; });
+    const z=x=>D(x), pt=p=>`(${z(p[0])}|${z(p[1])})`, sx=(E.A[0]+E.B[0]+E.C[0])/3, sy=(E.A[1]+E.B[1]+E.C[1])/3;
+    const k=v=>v<0?`(${z(v)})`:z(v), summe=i=>`${k(E.A[i])} + ${k(E.B[i])} + ${k(E.C[i])}`;
+    return aufg({kind:'zahlen', q:`A${pt(E.A)}, B${pt(E.B)}, C${pt(E.C)}. Berechne den Schwerpunkt S.`, text:true, pruef:'x1_koordinaten',
+      lead:'Die Koordinaten von S sind die Mittelwerte der Koordinaten der drei Ecken.',
+      felder:[{label:'x-Koordinate von S', ans:sx, ansText:`x = ${z(sx)}`}, {label:'y-Koordinate von S', ans:sy, ansText:`y = ${z(sy)}`}],
+      why:'Der Schwerpunkt hat als x-Koordinate den Mittelwert der drei x-Koordinaten und als y-Koordinate den Mittelwert der drei y-Koordinaten.',
+      stepsh:`x = ${UR.dreiecke.bruch(summe(0),'3')} = ${z(sx)}<br>y = ${UR.dreiecke.bruch(summe(1),'3')} = ${z(sy)}<br>S${pt([sx,sy])}`});
+  },
+  // X1-N03 (Plus) Memory: Begriff und Erklärung
+  memory(){
+    const paare=mischen(MEMORY).slice(0,4), dinge=paare.map((p,i)=>({id:'d'+i, html:p[0], kurz:p[0]})), ziele=mischen(paare.map((p,i)=>({id:'z'+i, text:p[1]})));
+    return aufg({kind:'zuordnen', q:'Finde zu jedem Begriff die passende Erklärung.', text:true, pruef:'x1_memory',
+      dinge, ziele, ans:Object.fromEntries(paare.map((p,i)=>['d'+i,'z'+i])),
+      why:paare.map(p=>`${p[0]}: ${p[1]}`).join('. ')+'.'});
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Vier Punkte, vier Linien', hint:'H, S, U, I und ihre Linien', types:['punkte_linien']},
+  {id:'S2', name:'Eigenschaften der Punkte', hint:'U ist der Mittelpunkt des Umkreises', types:['eigenschaft','lage_U']},
+  {id:'S3', name:'Konstruktion', hint:'Papier, Zirkel und Geodreieck', types:['konstruktionsablauf','messwert_punkt']}
+];
+const kern = ['punkte_linien','eigenschaft','lage_U','konstruktionsablauf','messwert_punkt'];
+const leicht = ['punkte_linien','eigenschaft','lage_U','konstruktionsablauf','messwert_punkt'];
+const plus = ['welcher_punkt','schwerpunkt_koordinaten','memory'];
+const plusHint = 'Welcher Punkt hilft hier? · Schwerpunkt im Koordinatensystem · Memory';
+const lzk = {aufwand:{messwert_punkt:3}};
+
+/* ---------- Erklärung ---------- */
+const erklaerung = {
+  beispiele: ()=>({i:0, P:spitzDreieck()}),
+  neu(kind,E){
+    if(kind==='punkt') E.i=(E.i+1)%ARTEN.length;
+    if(kind==='neu') E.P=spitzDreieck();
+  },
+  html(E){
+    const art=ARTEN[E.i], mini=a=>`<div class="mini-dr">${artBild(a)}<p class="small" style="text-align:center">${{spitz:'spitzwinkelig: innen',recht:'rechtwinkelig: Mitte der längsten Seite',stumpf:'stumpfwinkelig: außen'}[a]}</p></div>`;
+    const artBild=a=>punktBild(artDreieck(a),'U',{kreis:true, rechte:false, extra:{breite:180, pad:20, hoeheMax:130}});
+    return `<section class="sheet"><h2>Merkwürdige Punkte im Dreieck</h2>
+    <div class="rule"><h3>Vier Punkte, vier Arten von Linien</h3><p>Zu jeder Art von Linie gibt es im Dreieck drei Stück, eine je Ecke bzw. Seite. Die drei Linien schneiden sich immer in <b>einem</b> Punkt:</p>
+      <ul class="kon-liste">${ARTEN.map(a=>`<li><b>${PUNKT[a]}</b>: Schnittpunkt der drei ${LINIEN[a]}</li>`).join('')}</ul></div>
+    <div class="rule"><h3>${PUNKT[art]}</h3><p>${LINIE_WAS[art]}</p><p>${PUNKT_WAS[art]}</p>
+      ${punktBild(E.P,art,{kreis:true})}
+      <div class="row"><button class="newex" data-newex="punkt">Nächster Punkt</button><button class="newex" data-newex="neu">Neues Dreieck</button></div></div>
+    <div class="rule"><h3>Wo liegt U?</h3><div class="row">${['spitz','recht','stumpf'].map(mini).join('')}</div>
+      <p class="small muted">Beim rechtwinkeligen Dreieck ist der Umkreis der Thaleskreis über der längsten Seite.</p></div>
+    <div class="rule"><h3>Konstruieren</h3><p>Für den Schnittpunkt genügen zwei Linien; die dritte geht zur Kontrolle auch durch den Punkt. Für den Inkreis fällst du von I das Lot auf eine Seite: Der Fußpunkt liegt auf dem Inkreis. Der Umkreis geht durch alle drei Ecken.</p></div>
+    <p class="small muted">Informiere dich auch in deinem Mathe Know How Dreiecke.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`;
+  }
+};
+
+UR.kompetenzAnmelden({id:'M-Drei-X1', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/2.2g Dreiecke/M-Drei-X2.js */
+/* Baustein M-Drei-X2: „Ich kann Formeln für Berechnungen im Dreieck herleiten und begründen.“
+   Steckbrief: M-Drei-X2.md, Auswahl der Lehrkraft: AUSWAHL.md (19.11.2026). X2-N03 (freie Herleitung) ist Plus, weil
+   nicht automatisch auswertbar (Selbstkontrolle mit Kernpunkten).
+   Zeilen der Herleitungen stehen als Text mit / (Bruch), √(…), ², · und hc (= h mit Index c); angezeigt mit waagrechtem
+   Bruchstrich (UR.terme.bruchAnzeige). Lücken heißen im Text [1], [2], … Der Prüfer rechnet jede Zeile mit Zahlen nach. */
+(function(UR){
+const {rnd, pick} = UR;
+const {rund, D, Df, mischen, versuche, bruch, sub, plus: vplus, mal, ausSeiten, zeichne, EINHEITEN, aufg} = UR.dreiecke;
+
+const NR = ['①','②','③'];
+const merk = s => `<span class="merk">${s}</span>`;
+const zehntel = (a,b) => rnd(a*10,b*10)/10;
+const mitte = (p,q) => mal(vplus(p,q),.5);
+const ungefaehr = (x,n) => Math.abs(rund(x,n)-x)<1e-9 ? '=' : '≈';
+// Text → Anzeige: Brüche waagrecht, hc mit Index, Lücken als Kästchen
+// Klammern um einen Bruch vor ² und nach √ bleiben stehen (❨ ❩ schützen sie vor bruchAnzeige); √(…) mit Strich darüber
+const F = s => UR.terme.bruchAnzeige(String(s).replace(/√\(([^()]*)\)/g,'√❨$1❩').replace(/\(([^()]*\/[^()]*)\)²/g,'❨$1❩²'))
+  .replace(/√❨(.*?)❩/g,'<span class="wurzel">√<span>$1</span></span>').replace(/❨/g,'(').replace(/❩/g,')')
+  .replace(/hc/g, sub('h','c')).replace(/\[(\d)\]/g, (m,i)=>`<span class="luecke">${NR[i-1]}</span>`);
+// Kurzfassung für die Rückmeldung (reiner Text): Bruch als „:“
+const kurzText = s => s.replace(/\//g,' : ');
+const zeilenListe = (l, cls='') => `<ol class="herleitung ${cls}">${l.map(z=>`<li>${F(z)}</li>`).join('')}</ol>`;
+
+/* ---------- Bilder ---------- */
+function gsBild(){ const P=ausSeiten(1,1,1);
+  return zeichne(P,{ecken:true, ohneNamen:true, seitenText:{a:'a', b:'a', c:'a'}, strecken:[{von:P.C, bis:mitte(P.A,P.B), art:'hoehe', fussRecht:true, text:'h'}], breite:260, hoeheMax:190}); }
+function gkBild(){ const P=ausSeiten(5,5,6);
+  return zeichne(P,{ecken:true, ohneNamen:true, seitenText:{a:'a', b:'a', c:'c'}, strecken:[{von:P.C, bis:mitte(P.A,P.B), art:'hoehe', fussRecht:true, text:sub('h','c')}], breite:260, hoeheMax:170}); }
+// in Aufgaben etwas kleiner (das Bild ist nur eine Erinnerung an die Bezeichnungen)
+const klein = f => () => `<div class="dr-bild-klein">${f()}</div>`;
+const BILD = {gs:klein(gsBild), gk:klein(gkBild)};
+const DREIECK = {gs:'gleichseitigen Dreieck (Seite a, Höhe h)', gk:'gleichschenkeligen Dreieck (Schenkel a = b, Basis c, Höhe hc)'};
+
+/* ---------- Herleitungen zum Ordnen (X2-A01) ---------- */
+// zeilen: [Text, Kurzfassung]; loesungen: Reihenfolgen als Indizes (mehr als eine, wo die Logik es zulässt)
+const ORDNEN = [
+  {titel:'Höhe im gleichseitigen Dreieck', k:'gs', zeilen:[
+    ['Die Höhe h teilt das Dreieck in zwei gleiche rechtwinkelige Dreiecke.', 'Höhe teilt in zwei Hälften'],
+    ['Im Teildreieck ist a die Hypotenuse, a/2 und h sind die Katheten.', 'a/2 und h sind Katheten'],
+    ['h² + (a/2)² = a²', 'h² + (a/2)² = a²'],
+    ['h² = a² − a²/4 = 3a²/4', 'h² = a² − a²/4 = 3a²/4'],
+    ['h = √(3a²/4) = a/2 · √3', 'h = √(3a²/4) = a/2 · √3']], loesungen:[[0,1,2,3,4]]},
+  {titel:'Fläche des gleichseitigen Dreiecks', k:'gs', zeilen:[
+    ['Flächenformel: A = (a · h)/2', 'A = (a · h)/2'],
+    ['Für h setzt man a/2 · √3 ein.', 'h = a/2 · √3 einsetzen'],
+    ['A = (a · a)/(2 · 2) · √3', 'A = (a · a)/(2 · 2) · √3'],
+    ['A = a²/4 · √3', 'A = a²/4 · √3']], loesungen:[[0,1,2,3]]},
+  {titel:'Höhe im gleichschenkeligen Dreieck', k:'gk', zeilen:[
+    ['Die Höhe hc teilt das Dreieck in zwei gleiche rechtwinkelige Dreiecke und halbiert die Basis c.', 'hc teilt in zwei Hälften'],
+    ['Im Teildreieck ist a die Hypotenuse, c/2 und hc sind die Katheten.', 'c/2 und hc sind Katheten'],
+    ['hc² + (c/2)² = a²', 'hc² + (c/2)² = a²'],
+    ['hc² = a² − c²/4', 'hc² = a² − c²/4'],
+    ['hc = √(a² − c²/4)', 'hc = √(a² − c²/4)']], loesungen:[[0,1,2,3,4]]},
+  {titel:'Fläche des gleichschenkeligen Dreiecks', k:'gk', zeilen:[
+    ['Flächenformel: A = (c · hc)/2', 'A = (c · hc)/2'],
+    ['Im Teildreieck gilt hc² + (c/2)² = a².', 'hc² + (c/2)² = a²'],
+    ['Also ist hc = √(a² − c²/4).', 'hc = √(a² − c²/4)'],
+    ['A = c/2 · √(a² − c²/4)', 'A = c/2 · √(a² − c²/4)']], loesungen:[[0,1,2,3],[1,2,0,3]]}
+];
+
+/* ---------- Herleitungen mit Lücken (X2-A02) ---------- */
+// zeilen: Text; luecken: je Zeile höchstens eine mögliche Lücke {z: Zeile, text: Zeile mit [#], ans}
+function lueckenPool(){
+  const a=2*rnd(2,10), k=a/2, q=a*a-k*k, h=Math.sqrt(q);
+  const A=rnd(5,20), c=2*rnd(2,A-1), kc=c/2, qc=A*A-kc*kc, hc=Math.sqrt(qc);
+  return [
+    {titel:'Höhe im gleichseitigen Dreieck', k:'gs', angabe:'', tasten:['a'], zeilen:['h² + (a/2)² = a²', 'h² = a² − a²/4 = 3a²/4', 'h = √(3a²/4) = a/2 · √3'],
+      luecken:[[{z:0, text:'h² + ([#])² = a²', ans:'a/2'}], [{z:1, text:'h² = a² − [#] = 3a²/4', ans:'a²/4'}, {z:1, text:'h² = a² − a²/4 = [#]', ans:'3a²/4'}],
+               [{z:2, text:'h = √([#]) = a/2 · √3', ans:'3a²/4'}, {z:2, text:'h = √(3a²/4) = [#] · √3', ans:'a/2'}, {z:2, text:'h = √(3a²/4) = a/2 · √([#])', ans:'3'}]]},
+    {titel:'Fläche des gleichseitigen Dreiecks', k:'gs', angabe:'', tasten:['a','h'], zeilen:['A = (a · h)/2', 'h = a/2 · √3', 'A = (a · a)/(2 · 2) · √3', 'A = a²/4 · √3'],
+      luecken:[[{z:0, text:'A = (a · [#])/2', ans:'h'}], [{z:1, text:'h = [#] · √3', ans:'a/2'}], [], [{z:3, text:'A = [#] · √3', ans:'a²/4'}]]},
+    {titel:'Höhe im gleichschenkeligen Dreieck', k:'gk', angabe:'', tasten:['a','c'], zeilen:['hc² + (c/2)² = a²', 'hc² = a² − c²/4', 'hc = √(a² − c²/4)'],
+      luecken:[[{z:0, text:'hc² + ([#])² = a²', ans:'c/2'}], [{z:1, text:'hc² = a² − [#]', ans:'c²/4'}], [{z:2, text:'hc = √(a² − [#])', ans:'c²/4'}]]},
+    {titel:'Fläche des gleichschenkeligen Dreiecks', k:'gk', angabe:'', tasten:['a','c'], zeilen:['A = (c · hc)/2', 'hc = √(a² − c²/4)', 'A = c/2 · √(a² − c²/4)'],
+      luecken:[[], [{z:1, text:'hc = √(a² − [#])', ans:'c²/4'}], [{z:2, text:'A = [#] · √(a² − c²/4)', ans:'c/2'}]]},
+    {titel:'Höhe im gleichseitigen Dreieck mit Zahlen', k:'gs', angabe:`a = ${a} cm`, tasten:[], zeilen:[`h² + ${k}² = ${a}²`, `h² = ${a*a} − ${k*k} = ${q}`, `h = √${q} ${ungefaehr(h,2)} ${Df(h,2)}`],
+      luecken:[[{z:0, text:`h² + [#]² = ${a}²`, ans:String(k)}], [{z:1, text:`h² = ${a*a} − [#] = ${q}`, ans:String(k*k)}, {z:1, text:`h² = ${a*a} − ${k*k} = [#]`, ans:String(q)}],
+               [{z:2, text:`h = √([#]) ${ungefaehr(h,2)} ${Df(h,2)}`, ans:String(q)}]]},
+    {titel:'Höhe im gleichschenkeligen Dreieck mit Zahlen', k:'gk', angabe:`a = b = ${A} cm, c = ${c} cm`, tasten:[], zeilen:[`hc² + ${kc}² = ${A}²`, `hc² = ${A*A} − ${kc*kc} = ${qc}`, `hc = √${qc} ${ungefaehr(hc,2)} ${Df(hc,2)}`],
+      luecken:[[{z:0, text:`hc² + [#]² = ${A}²`, ans:String(kc)}], [{z:1, text:`hc² = ${A*A} − [#] = ${qc}`, ans:String(kc*kc)}, {z:1, text:`hc² = ${A*A} − ${kc*kc} = [#]`, ans:String(qc)}],
+               [{z:2, text:`hc = √([#]) ${ungefaehr(hc,2)} ${Df(hc,2)}`, ans:String(qc)}]]}
+  ];
+}
+// Lösung einer Lücke lesbar (mit / für den waagrechten Bruchstrich in der Anzeige)
+const ansText = (i,ans) => `${NR[i]} ${ans}`;
+
+/* ---------- Begründungen (X2-A05) ---------- */
+const BEGRUENDUNG = [
+  {q:'Warum halbiert die Höhe h im gleichseitigen Dreieck die Seite a?', k:'gs',
+    r:'Die zwei Teildreiecke haben dieselbe Hypotenuse a und dieselbe Kathete h. Darum sind sie kongruent, und die zwei Teile von a sind gleich lang.',
+    f:['Weil jede Höhe in jedem Dreieck die gegenüberliegende Seite halbiert.', 'Weil die Höhe immer genau in der Mitte des Dreiecks liegt, egal wie es aussieht.']},
+  {q:'Warum ist die Höhe h im gleichseitigen Dreieck kürzer als die Seite a?', k:'gs',
+    r:'Im rechtwinkeligen Teildreieck ist h eine Kathete und a die Hypotenuse. Die Hypotenuse ist die längste Seite.',
+    f:['Weil h genau halb so lang ist wie a.', 'Weil im Dreieck alle Linien kürzer sind als die Seiten.']},
+  {q:'Warum darf man im Teildreieck den Satz des Pythagoras verwenden?', k:'gs',
+    r:'Die Höhe steht normal auf die Seite. Darum hat jedes Teildreieck einen rechten Winkel.',
+    f:['Weil das Dreieck gleichseitig ist und alle Winkel 60° haben.', 'Weil man den Satz des Pythagoras in jedem Dreieck verwenden darf.']},
+  {q:'Warum steht in der Herleitung die halbe Seite zum Quadrat und nicht a²?', qt:'Warum steht in der Herleitung (a/2)² und nicht a²?', k:'gs',
+    r:'Die Höhe teilt a in zwei gleiche Teile. Die Kathete im Teildreieck ist nur die halbe Seite.',
+    f:['Weil man die Seite immer durch 2 teilt, damit die Zahl kleiner wird.', 'Weil es zwei Teildreiecke gibt und man ihre Flächen zusammenzählt.']},
+  {q:'Warum rechnet man bei der Höhe mit Minus?', qt:'Warum rechnet man h² = a² − (a/2)² mit Minus?', k:'gs',
+    r:'Gesucht ist eine Kathete: Kathete zum Quadrat = Hypotenuse zum Quadrat minus die andere Kathete zum Quadrat.',
+    f:['Weil man beim Satz des Pythagoras immer subtrahiert.', 'Weil die Höhe innerhalb des Dreiecks liegt.']},
+  {q:'Woher kommt die Flächenformel des gleichseitigen Dreiecks?', qt:'Warum gilt im gleichseitigen Dreieck A = a²/4 · √3?', k:'gs',
+    r:'Man setzt die Höhe h aus der Herleitung in die Flächenformel A = a · h : 2 ein und vereinfacht.',
+    f:['Weil man a² auf die vier Ecken und Seiten aufteilt.', 'Weil das gleichseitige Dreieck genau ein Viertel eines Quadrats ist.']},
+  {q:'Warum halbiert im gleichschenkeligen Dreieck die Höhe auf die Basis die Basis c?', qt:'Warum halbiert im gleichschenkeligen Dreieck die Höhe hc die Basis c?', k:'gk',
+    r:'Die zwei Teildreiecke haben gleich lange Hypotenusen (die Schenkel a = b) und dieselbe Kathete hc. Darum sind sie kongruent.',
+    f:['Weil die Basis c immer die längste Seite ist.', 'Weil eine Höhe immer durch die Mitte jeder Seite geht.']}
+];
+
+/* ---------- Fehlerhafte Herleitungen (X2-N02) ---------- */
+function fehlerPool(){
+  const a=2*rnd(2,10);
+  return [
+    {k:'gs', angabe:'', zeilen:['h² + (a/2)² = a²', 'h² = a² − a²/2', 'h² = a²/2', 'h = √(a²/2)'], f:1, grund:'(a/2)² = a²/4, nicht a²/2: Auch der Nenner 2 wird quadriert.'},
+    {k:'gs', angabe:`a = ${a} cm`, zeilen:[`a = ${a} cm`, 'h = a/2 · √3', `h = ${a} · √3 ≈ ${Df(a*Math.sqrt(3),2)} cm`], f:2, grund:`a wurde nicht durch 2 geteilt: h = ${a/2} · √3 ≈ ${Df(a/2*Math.sqrt(3),2)} cm. Die Höhe kann nicht länger als die Seite sein.`},
+    {k:'gs', angabe:'', zeilen:['h² + (a/2)² = a²', 'h² = a² + a²/4', 'h² = 5a²/4', 'h = √(5a²/4)'], f:1, grund:'Gesucht ist eine Kathete, also minus: h² = a² − a²/4.'},
+    {k:'gs', angabe:'', zeilen:['h² + (a/2)² = a²', 'h² = 3a²/4', 'h = 3a²/4'], f:2, grund:'Die Wurzel fehlt: Aus h² = 3a²/4 folgt h = √(3a²/4) = a/2 · √3.'},
+    {k:'gs', angabe:'', zeilen:['h² = a² − a²/4', 'h² = 3a²/4', 'h = 3a/2'], f:2, grund:'√(3a²/4) = a/2 · √3: Die Wurzel aus a² ist a, die Wurzel aus 4 ist 2, die Wurzel aus 3 bleibt stehen.'},
+    {k:'gs', angabe:'', zeilen:['A = (a · h)/2', 'h = a/2 · √3', 'A = a · a/2 · √3', 'A = a²/2 · √3'], f:2, grund:'Das „durch 2“ der Flächenformel fehlt: A = (a · a/2 · √3)/2 = a²/4 · √3.'},
+    {k:'gk', angabe:'', zeilen:['hc² + c² = a²', 'hc² = a² − c²', 'hc = √(a² − c²)'], f:0, grund:'Im Teildreieck ist die Kathete nur die halbe Basis c/2: hc² + (c/2)² = a².'},
+    {k:'gk', angabe:'', zeilen:['hc² + (c/2)² = a²', 'hc² = a² − c²/4', 'hc = a − c/2'], f:2, grund:'Die Wurzel aus einer Differenz ist nicht die Differenz der Wurzeln: hc = √(a² − c²/4).'}
+  ];
+}
+
+/* ---------- Aufgabentypen ---------- */
+const lang = (ctx) => !(ctx&&(ctx.leicht||ctx.einstieg)) && Math.random()<.5;   // später auch eine Nachkommastelle
+const typen = {
+  // X2-A01 Herleitung ordnen
+  herleitung_ordnen(ctx){
+    const h=pick(ORDNEN), karten=h.zeilen.map(([text,kurz],i)=>({id:'z'+i, text:F(text), kurz:kurzText(kurz)}));
+    return aufg({kind:'reihenfolge', q:`Herleitung: ${h.titel}. Bring die Zeilen in die richtige Reihenfolge.`, text:true,
+      bild:BILD[h.k](), karten:mischen(karten), loesungen:h.loesungen.map(l=>l.map(i=>'z'+i)), fest:ctx&&ctx.leicht?1:0,
+      pruef:'x2_ordnen', titel:h.titel,
+      why:`So geht die Herleitung (${h.titel}):${zeilenListe(h.zeilen.map(z=>z[0]))}${h.loesungen.length>1?'Die Flächenformel darf auch erst nach der Höhe stehen.':''}`});
+  },
+  // X2-A02 Lücken in der Herleitung: jede Lücke ein Bruchfeld, jeder gleichwertige Term zählt
+  herleitung_luecken(ctx){
+    const leicht=ctx&&ctx.leicht;
+    return versuche(()=>{
+      const h=pick(lueckenPool()), moegl=h.luecken.map(l=>l.length?pick(l):null).filter(Boolean);
+      const n=leicht?1:Math.min(moegl.length,rnd(2,3)); if(moegl.length<n||n<1) return null;
+      const gew=mischen(moegl).slice(0,n).sort((x,y)=>x.z-y.z), zeilen=[...h.zeilen];
+      gew.forEach((l,i)=>{ zeilen[l.z]=l.text.replace('[#]',`[${i+1}]`); });
+      return aufg({kind:'luecken', q:`Lücken in der Herleitung: ${h.titel}${h.angabe?` (${h.angabe})`:''}`, text:true,
+        qh:`<b>${h.titel}</b>${h.angabe?`: ${h.angabe}`:''}. Ergänze die Lücken.${zeilenListe(zeilen)}`,
+        lead:leicht?merk('Schau ins Bild: Die Höhe teilt das Dreieck in zwei rechtwinkelige Hälften.'):'',
+        bild:BILD[h.k](), tasten:h.tasten, pruef:'x2_luecken', k:h.k, angabe:h.angabe, zeilenText:zeilen, ganz:h.zeilen,
+        felder:gew.map((l,i)=>({label:`Lücke ${NR[i]}`, ans:l.ans, ansText:ansText(i,l.ans), bruch:!h.angabe})),
+        eingabeHinweis:h.angabe?'':'Brüche: oben der Zähler, unten der Nenner. Ohne Bruch bleibt der Nenner leer.',
+        why:`Die ganze Herleitung:${zeilenListe(h.zeilen)}`});
+    });
+  },
+  // X2-A03 Formel anwenden und mit dem Satz des Pythagoras prüfen
+  formel_anwenden(ctx){
+    const a=lang(ctx)?zehntel(2,20):rnd(2,20), u=pick(['cm','cm','m','dm']), h=a/2*Math.sqrt(3), H=rund(h,2);
+    const halb=bruch('a','2');
+    return aufg({kind:'zahlen', q:`Gleichseitiges Dreieck: a = ${D(a)} ${u}. Berechne die Höhe h mit der Formel und mach die Probe mit dem Satz des Pythagoras.`, text:true,
+      lead:`Formel: h = ${halb} · √3. Probe: h² + (${halb})² muss ungefähr a² ergeben.`, bild:BILD.gs(), pruef:'x2_anwenden', a, u,
+      felder:[{label:'h (auf zwei Nachkommastellen)', ans:rund(h,6), tol:.01, einheiten:EINHEITEN, einheitAns:u, ansText:`h ≈ ${Df(H,2)} ${u}`},
+              {label:`Probe mit deinem h: h² + (${halb})² =`, ans:rund(a*a,6), tol:.3, einheit:`${u}²`, ansText:`${Df(H,2)}² + ${D(a/2)}² ≈ ${D(rund(H*H+a*a/4,2))} ${u}² (a² = ${D(rund(a*a,4))} ${u}²)`}],
+      // die Probe muss zum eigenen h passen (gerechnet mit dem eingetippten h, in der Einheit der Angabe)
+      zusammen:erg=>{ const v=erg[0].e&&erg[0].e!==u?UR.umrechner(erg[0].v,erg[0].e,u):erg[0].v; return v!==null&&erg[1].v!==null&&Math.abs(erg[1].v-(v*v+a*a/4))<=.06; },
+      zusammenHinweis:'Rechne die Probe mit deinem eigenen h: h² + (a : 2)².',
+      why:`h = ${halb} · √3 = ${D(a)} : 2 · √3 ≈ ${Df(H,2)} ${u}. Probe: ${Df(H,2)}² + ${D(a/2)}² ≈ ${D(rund(H*H+a*a/4,2))}, also ungefähr a² = ${D(rund(a*a,4))}. Wegen der Rundung von h stimmt die Probe nur ungefähr.`});
+  },
+  // X2-A04 Fläche des gleichseitigen Dreiecks
+  flaeche_gleichseitig(ctx){
+    const a=lang(ctx)?zehntel(2,20):rnd(2,20), u=pick(['cm','cm','m','dm']), A=a*a/4*Math.sqrt(3);
+    return aufg({kind:'zahlen', q:`Gleichseitiges Dreieck: a = ${D(a)} ${u}. Berechne die Fläche A (auf zwei Nachkommastellen).`, text:true,
+      lead:`Formel: A = ${bruch('a²','4')} · √3`, bild:BILD.gs(), pruef:'x2_flaeche', a, u,
+      felder:[{label:'A', ans:rund(A,6), tol:.01, einheiten:EINHEITEN, einheitAns:`${u}²`, ansText:`A ≈ ${Df(A,2)} ${u}²`}],
+      why:`Die Formel kommt aus A = ${bruch('a · h','2')} mit h = ${bruch('a','2')} · √3. Hier: A = ${bruch(`${D(a)}²`,'4')} · √3 = ${D(rund(a*a/4,6))} · √3 ≈ ${Df(A,2)} ${u}².`});
+  },
+  // X2-N01 (Kern) Seitenlänge aus der Höhe
+  seite_aus_hoehe(){
+    const h=rnd(2,20), u=pick(['cm','cm','m','dm']), a=2*h/Math.sqrt(3);
+    return aufg({kind:'zahlen', q:`Ein gleichseitiges Dreieck hat die Höhe h = ${h} ${u}. Berechne die Seitenlänge a (auf zwei Nachkommastellen).`, text:true,
+      lead:`Forme h = ${bruch('a','2')} · √3 nach a um.`, bild:BILD.gs(), pruef:'x2_seite', h, u,
+      felder:[{label:'a', ans:rund(a,6), tol:.01, einheiten:EINHEITEN, einheitAns:u, ansText:`a ≈ ${Df(a,2)} ${u}`}],
+      why:`Aus h = ${bruch('a','2')} · √3 folgt a = ${bruch('2 · h','√3')} = ${bruch(`2 · ${h}`,'√3')} ≈ ${Df(a,2)} ${u}. Probe: ${Df(a,2)} : 2 · √3 ≈ ${D(rund(rund(a,2)/2*Math.sqrt(3),2))} ${u}.`});
+  },
+  // X2-A05 Begründung wählen
+  begruendung(ctx){
+    const b=pick(BEGRUENDUNG), falsch=mischen(b.f).slice(0,ctx&&ctx.leicht?1:2);
+    return aufg({kind:'fragen', q:b.q, qh:F(b.qt||b.q), text:true, bild:BILD[b.k](), pruef:'x2_begruendung', frage:b.q,
+      gruppen:[{frage:'Welche Begründung stimmt?', optionen:mischen([['r',b.r],...falsch.map((f,i)=>['f'+i,f])]), ans:'r', klasse:'lang'}],
+      why:b.r});
+  },
+  // X2-N02 (Kern) Fehler finden: die erste falsche Zeile antippen
+  fehler_herleitung(){
+    const v=pick(fehlerPool()), name=pick(UR.dreiecke.NAMEN), rz=richtigeZeile(v);
+    return aufg({kind:'fragen', q:`${name} hat hergeleitet. Wo steckt der Fehler?`, text:true,
+      qh:`${name} hat hergeleitet${v.angabe?` (${v.angabe})`:''} im ${F(DREIECK[v.k])}:${zeilenListe(v.zeilen)}In welcher Zeile ist der erste Fehler?`,
+      bild:BILD[v.k](), pruef:'x2_fehler', k:v.k, angabe:v.angabe, zeilen:v.zeilen,
+      gruppen:[{frage:'Tippe die Zeile an.', optionen:v.zeilen.map((_,i)=>[String(i+1),`Zeile ${i+1}`]), ans:String(v.f+1)}],
+      why:`Zeile ${v.f+1} ist falsch. ${F(v.grund)}${rz?` Richtig wäre: ${F(rz)}`:''}`});
+  },
+  // X2-N03 (Plus) Selbst herleiten: auf Papier, dann Kernpunkte abhaken
+  herleiten_frei(){
+    const opt=mischen([['k1','Die Höhe teilt das Dreieck in zwei rechtwinkelige Hälften.'], ['k2',`Satz des Pythagoras im Teildreieck: h² + (a : 2)² = a².`],
+      ['k3','Umformen und die Wurzel ziehen: h = a : 2 · √3.'], ['x1','Die Winkelsumme 180° verwendet.'], ['x2','h und a einfach addiert.']]);
+    return aufg({kind:'fragen', q:'Leite die Formel für die Höhe im gleichseitigen Dreieck her!', text:true,
+      lead:'Schreib die Herleitung auf Papier. Tippe dann an, was in deiner Herleitung vorkommt.', bild:BILD.gs(), pruef:'x2_frei',
+      gruppen:[{frage:'Was kommt in deiner Herleitung vor?', optionen:opt, ans:'k1,k2,k3', mehrfach:true, klasse:'lang'}],
+      why:`Kernpunkte: Höhe teilt das Dreieck, Pythagoras, Wurzel ziehen.${zeilenListe(ORDNEN[0].zeilen.map(z=>z[0]))}`});
+  }
+};
+// richtige Fassung der fehlerhaften Zeile (aus der passenden fehlerfreien Herleitung)
+function richtigeZeile(v){
+  const z=v.zeilen[v.f];
+  const R = {'h² = a² − a²/2':'h² = a² − a²/4', 'h² = a² + a²/4':'h² = a² − a²/4', 'h = 3a²/4':'h = √(3a²/4) = a/2 · √3', 'h = 3a/2':'h = a/2 · √3',
+    'A = a · a/2 · √3':'A = (a · a/2 · √3)/2 = a²/4 · √3', 'hc² + c² = a²':'hc² + (c/2)² = a²', 'hc = a − c/2':'hc = √(a² − c²/4)'};
+  if(R[z]) return R[z];
+  const m=z.match(/^h = (\d+) · √3/); return m ? `h = ${Number(m[1])/2} · √3` : '';
+}
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Herleitung ordnen und ergänzen', hint:'h² + (a : 2)² = a²', types:['herleitung_ordnen','herleitung_luecken']},
+  {id:'S2', name:'Formeln anwenden', hint:'h, A und a im gleichseitigen Dreieck', types:['formel_anwenden','flaeche_gleichseitig','seite_aus_hoehe']},
+  {id:'S3', name:'Begründen und Fehler finden', hint:'Warum gilt die Formel?', types:['begruendung','fehler_herleitung']}
+];
+const kern = ['herleitung_ordnen','herleitung_luecken','formel_anwenden','flaeche_gleichseitig','seite_aus_hoehe','begruendung','fehler_herleitung'];
+const leicht = ['herleitung_ordnen','herleitung_luecken','begruendung'];
+const plus = ['herleiten_frei'];
+const plusHint = 'Selbst herleiten (auf Papier, dann selbst kontrollieren)';
+
+/* ---------- Erklärung ---------- */
+const erklaerung = {
+  beispiele: ()=>({a:8}),
+  neu(kind,E){ if(kind==='probe') E.a=2*rnd(2,10); },
+  html(E){
+    const a=E.a, h=a/2*Math.sqrt(3), H=rund(h,2);
+    return `<section class="sheet"><h2>Formeln im Dreieck herleiten</h2>
+    <div class="rule"><h3>Höhe im gleichseitigen Dreieck</h3><div class="bild dr-bild-klein">${gsBild()}</div>
+      <p>Die Höhe h teilt das Dreieck in zwei gleiche rechtwinkelige Dreiecke. Im Teildreieck ist a die Hypotenuse, die halbe Seite und h sind die Katheten:</p>
+      ${zeilenListe(ORDNEN[0].zeilen.slice(2).map(z=>z[0]))}</div>
+    <div class="rule"><h3>Fläche des gleichseitigen Dreiecks</h3><p>In die Flächenformel setzt man die Höhe ein:</p>${zeilenListe(['A = (a · h)/2 = (a · a/2 · √3)/2', 'A = a²/4 · √3'])}</div>
+    <div class="rule"><h3>Gleichschenkeliges Dreieck</h3><div class="bild dr-bild-klein">${gkBild()}</div>
+      <p>Die Höhe auf die Basis halbiert die Basis c, Hypotenuse ist der Schenkel a:</p>${zeilenListe(['hc² + (c/2)² = a²', 'hc = √(a² − c²/4)', 'A = c/2 · √(a² − c²/4)'])}</div>
+    <div class="rule"><h3>Probe mit Zahlen</h3><p class="ex">a = ${a} cm: h = ${a} : 2 · √3 ≈ ${Df(H,2)} cm. Probe: ${Df(H,2)}² + ${a/2}² ≈ ${D(rund(H*H+a*a/4,2))} ≈ ${a}² = ${a*a}</p>
+      <div class="row"><button class="newex" data-newex="probe">Neues Beispiel</button></div></div>
+    <div class="rule"><h3>Begründen</h3><p>Warum halbiert die Höhe die Seite? Die zwei Teildreiecke haben dieselbe Hypotenuse und dieselbe Kathete h, also sind sie kongruent (deckungsgleich).</p></div>
+    <p class="small muted">Informiere dich auch in deinem Mathe Know How Dreiecke.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`;
+  }
+};
+
+UR.kompetenzAnmelden({id:'M-Drei-X2', typen, stationen, kern, leicht, plus, plusHint, erklaerung});
 })(window.UR = window.UR || {});
 </script>
 <script>UR.start(document.getElementById('app'));</script>
