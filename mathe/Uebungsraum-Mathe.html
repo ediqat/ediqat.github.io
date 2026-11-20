@@ -309,6 +309,47 @@ svg.kommabild{width:100%;max-width:260px;height:auto;display:block;margin:0 auto
 .leucht.zeigt{background:var(--ink-soft)} .leucht.zeigt .rolle{display:inline}
 .merktab{display:flex;flex-direction:column;gap:4px}
 .answer .taste.per{order:3}
+/* Schlussrechnung (prozent.js, Lehrkraft 20.11.2026): Dreisatz wie im Mathe Know How (Werte links, Prozente rechts,
+   dazwischen Punkte, gebogene Pfeile links und rechts), darunter die Formel; Umschalter Dreisatz/Formel */
+.ds{display:grid;grid-template-columns:auto 18px auto auto auto 18px auto;justify-content:center;grid-auto-rows:minmax(26px,1fr);column-gap:clamp(6px,1.8vw,10px);
+  align-items:center;font-size:clamp(1rem,4.2vw,1.3rem);font-weight:700;font-variant-numeric:tabular-nums;margin:4px auto;max-width:100%}
+.ds .w,.ds .p{display:flex;flex-wrap:wrap;align-items:center;gap:2px 5px} .ds .w{text-align:right;justify-content:flex-end}
+.ds .w{grid-column:3;justify-self:end} .ds .pk{grid-column:4;color:var(--muted);letter-spacing:.1em} .ds .p{grid-column:5;justify-self:start}
+.ds .bg{position:relative;align-self:stretch} .ds .bg.l{grid-column:2} .ds .bg.r{grid-column:6}
+.ds .bg i{position:absolute;top:4px;bottom:4px;width:16px;border:2.5px solid var(--ink)}
+.ds .bg.l i{right:0;border-right:none;border-radius:16px 0 0 16px}
+.ds .bg.r i{left:0;border-left:none;border-radius:0 16px 16px 0}
+.ds .bg i::after{content:"";position:absolute;bottom:-7px;border:6px solid transparent}
+.ds .bg.l i::after{right:-6px;border-left:9px solid var(--ink);border-right:none}
+.ds .bg.r i::after{left:-6px;border-right:9px solid var(--ink);border-left:none}
+.ds .bg.leer i{border-color:var(--line)} .ds .bg.leer.l i::after{border-left-color:var(--line)} .ds .bg.leer.r i::after{border-right-color:var(--line)}
+.ds .op{font-size:clamp(.78rem,3.4vw,.9rem);color:var(--ink);white-space:nowrap} .ds .op.l{grid-column:1;text-align:right} .ds .op.r{grid-column:7}
+.ds input.zahl{width:6.5ch;font-size:1.05rem;padding:6px 4px}
+.ds .bfeld{flex:0 0 6.5ch} .ds .bfeld input{font-size:1rem;padding:4px}
+.ds .wahl{color:var(--muted);border:2px dashed var(--line);border-radius:8px;padding:0 10px}
+.ds .se{font-size:1rem}
+.fz{display:flex;flex-direction:column;gap:6px;border-top:2px dashed var(--line);padding-top:10px;margin-top:4px}
+.fz .z{display:grid;grid-template-columns:4.8em 1fr;align-items:center;gap:8px;font-size:1.1rem;font-weight:700}
+.fz .z .k{font-size:.85rem;color:var(--ink)}
+.fz .z.allg{background:var(--ink-soft);border-radius:8px;padding:4px 8px}
+.sr{display:flex;flex-direction:column;gap:6px}
+.sr.erk [data-ab]:not(.da){visibility:hidden}
+.srknoepfe{display:flex;gap:10px;justify-content:center}
+.srknoepfe button{font:inherit;font-weight:800;width:44px;height:44px;border-radius:50%;border:2px solid var(--ink);background:var(--paper);color:var(--ink);cursor:pointer}
+.srknoepfe button.an{background:var(--ink);color:var(--paper)}
+.schalter{display:flex;justify-content:center}
+.schalter button{font:inherit;font-weight:700;padding:8px 18px;min-height:44px;border:2px solid var(--ink);background:var(--paper);color:var(--ink);cursor:pointer}
+.schalter button:first-child{border-radius:10px 0 0 10px} .schalter button:last-child{border-radius:0 10px 10px 0;border-left:none}
+.schalter button.an{background:var(--ink);color:var(--paper)}
+.fe{display:flex;align-items:center;justify-content:center;gap:10px;font-size:1.3rem;font-weight:700}
+.fe .bfeld{flex:0 0 auto} .fe .zl{display:flex;align-items:center;justify-content:center;gap:6px}
+.fe input.zahl{width:6.5ch;font-size:1.05rem}
+.answer input.zahl.breit{width:8ch}
+.mitte{text-align:center}
+.choices.formeln{grid-template-columns:repeat(auto-fit,minmax(9.5em,1fr))}
+.choices.formeln button{font-size:1.05rem;padding:8px 4px}
+.pz-loesung .ds,.pz-mitbild .ds{font-size:1rem}
+[data-panel]:not([hidden]){display:flex;flex-direction:column;gap:12px}
 </style>
 </head>
 <body>
@@ -1439,7 +1480,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-20.22","datum":"20.11.2026","pruefsumme":"288425367dfe4a9d"};
+UR.version = {"nummer":"2026-11-20.33","datum":"20.11.2026","pruefsumme":"b5d354998611991e"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -2697,7 +2738,7 @@ UR.formAnmelden('zweischritt', {
 });
 // Schritt 1 als Auswahl (t.s1.wahl = [[Wert, HTML]], t.s1.ans): allein antippen, mit Hilfe dieselben Knöpfe
 const wahlSchritt1 = t => { if(!t.s1.wahl) return t;
-  t.s1.felder=[{label:t.s1.label, ans:0, ansText:t.s1.ansText, wahl:true, feldHTML:()=>`${UR.wahlFeld('s1')}${UR.wahlGruppe('s1', t.s1.wahl, {klasse:'drei'})}`,
+  t.s1.felder=[{label:t.s1.label, ans:0, ansText:t.s1.ansText, wahl:true, eingabe:t.s1.ans, feldHTML:()=>`${UR.wahlFeld('s1')}${UR.wahlGruppe('s1', t.s1.wahl, {klasse:'drei'})}`,
     lesen:v=>v===t.s1.ans?0:v?1:null}];
   t.s1.felder[0].label=''; t.pre={ans:t.s1.ans, optionen:t.s1.wahl}; return t; };
 const ohneTags = h => String(h).replace(/<[^>]+>/g,'').replace(/&shy;|­/g,'').trim();
@@ -2721,8 +2762,189 @@ function aufg(t){
 const G = x => `<span class="pg">${x}</span>`, Pz = x => `<span class="pp">${x}</span>`, W = x => `<span class="pw">${x}</span>`;
 const merk = html => `<div class="merk">${html}</div>`;
 
+/* ---------- Schlussrechnung: Dreisatz wie im Mathe Know How, darunter die Formel (Lehrkraft 20.11.2026) ----------
+   sr = {gesucht:'W'|'p'|'G', G, p, W, basis:100|1000, zeichen:'%'|'‰', einheit, eins (Text „1 …“, wenn p gesucht ist),
+         namen:{G,p,W} (Zinsrechnung K, p, Z), begriffe:{G,p,W}}.
+   Werte links, Prozente rechts, dazwischen Punkte; gebogene Pfeile links und rechts mit derselben Rechnung.
+   Prozentwert: : 100, dann · p. Prozentsatz: : G, dann · W (Zwischenzeile als Bruch). Grundwert: : p, dann · 100.
+   Unter dem Dreisatz baut sich die Formel Pfeil für Pfeil auf (p = 100/35, p = 100 · 28/35 = 80 %, p = W · 100/G). */
+const ROLLE = {G:'pg', p:'pp', W:'pw'};
+const farbig = (r,x) => `<span class="${ROLLE[r]}">${x}</span>`;
+const srNamen = sr => sr.namen || {G:'G', p:'p', W:'W'};
+const srBegriffe = sr => sr.begriffe || {G:'Grundwert G', p:'Prozentsatz p', W:'Prozentwert W'};
+// lange Einheiten (Personen, Mitglieder) dürfen am Handy unter die Zahl rutschen
+const srWert = (sr,x) => sr.einheit==='€' ? E(x) : `${Z(x)}${sr.einheit?(sr.einheit.length>3?' ':NB)+sr.einheit:''}`;
+const srProz = (sr,x) => `${Z(x)}${NB}${sr.zeichen}`;
+const nahe = (v,a) => v!==null&&v!==undefined&&!Number.isNaN(v)&&Math.abs(v-a)<=1e-9*Math.max(1,Math.abs(a));
+// gleiche Zahlen dürfen nicht doppelt vorkommen (sonst wären Formel-Vorschläge gleich)
+const srOk = sr => new Set([sr.G,sr.p,sr.W,sr.basis].map(rund)).size===4;
+function srRechnung(sr){
+  const {G:g, p, W:w, basis:b} = sr, n=srNamen(sr), z=sr.zeichen;
+  const fz=(r,x)=>farbig(r,Z(x)), fn=r=>farbig(r,n[r]);
+  if(sr.gesucht==='W') return {
+    zeilen:[[farbig('G',srWert(sr,g)), srProz(sr,b)], [srWert(sr,rund(g/b)), srProz(sr,1)], [farbig('W',srWert(sr,w)), farbig('p',srProz(sr,p))]],
+    ops:[`:${NB}${Z(b)}`, `·${NB}${Z(p)}`], zw:{wert:rund(g/b), seite:0, text:srWert(sr,rund(g/b))}, erg:{wert:w, seite:0, text:srWert(sr,w)},
+    zaehler:[g,p], nenner:b, falsch:[[g*b/p, `Du hast durch ${Z(p)} dividiert. Im Dreisatz heißt es: erst :${NB}${Z(b)} (das ist 1${NB}${z}), dann ·${NB}${Z(p)}.`]],
+    f1:`${fn('W')} = ${br(fz('G',g), Z(b))}`, f2:`${fn('W')} = ${br(`${fz('G',g)} · ${fz('p',p)}`, Z(b))} = ${farbig('W',srWert(sr,w))}`,
+    allg:`${fn('W')} = ${br(`${fn('G')} · ${fn('p')}`, Z(b))}`,
+    weg:`zuerst :${NB}${Z(b)} (das ist 1${NB}${z}), dann ·${NB}${Z(p)}`};
+  if(sr.gesucht==='p') return {
+    zeilen:[[farbig('G',srWert(sr,g)), srProz(sr,b)], [sr.eins||srWert(sr,1), `${br(Z(b),Z(g))}${NB}${z}`], [farbig('W',srWert(sr,w)), farbig('p',srProz(sr,p))]],
+    ops:[`:${NB}${Z(g)}`, `·${NB}${Z(w)}`], zw:{wert:b/g, seite:1, bruch:true, text:`${Z(b)} : ${Z(g)}${NB}${z}`}, erg:{wert:p, seite:1, text:srProz(sr,p)},
+    zaehler:[w,b], nenner:g, falsch:[[g*b/w, `Du hast ${n.G} und ${n.W} vertauscht. Das Ganze (${n.G}, ${Z(b)}${NB}${z}) ist ${srWert(sr,g)}.`]],
+    f1:`${fn('p')} = ${br(Z(b), fz('G',g))}`, f2:`${fn('p')} = ${br(`${Z(b)} · ${fz('W',w)}`, fz('G',g))} = ${farbig('p',srProz(sr,p))}`,
+    allg:`${fn('p')} = ${br(`${fn('W')} · ${Z(b)}`, fn('G'))}`,
+    weg:`zuerst :${NB}${Z(g)} (das ist ${sr.eins||srWert(sr,1)}), dann ·${NB}${Z(w)}`};
+  return {
+    zeilen:[[farbig('W',srWert(sr,w)), farbig('p',srProz(sr,p))], [srWert(sr,rund(w/p)), srProz(sr,1)], [farbig('G',srWert(sr,g)), srProz(sr,b)]],
+    ops:[`:${NB}${Z(p)}`, `·${NB}${Z(b)}`], zw:{wert:rund(w/p), seite:0, text:srWert(sr,rund(w/p))}, erg:{wert:g, seite:0, text:srWert(sr,g)},
+    zaehler:[w,b], nenner:p, falsch:[[w*p/b, `Das Ganze ist größer als der Teil (wenn ${n.p} unter ${Z(b)}${NB}${z} ist): erst :${NB}${Z(p)}, dann ·${NB}${Z(b)}.`]],
+    f1:`${fn('G')} = ${br(fz('W',w), fz('p',p))}`, f2:`${fn('G')} = ${br(`${fz('W',w)} · ${Z(b)}`, fz('p',p))} = ${farbig('G',srWert(sr,g))}`,
+    allg:`${fn('G')} = ${br(`${fn('W')} · ${Z(b)}`, fn('p'))}`,
+    weg:`zuerst :${NB}${Z(p)} (das ist 1${NB}${z}), dann ·${NB}${Z(b)}`};
+}
+// Dreisatz als Gitter: zeilen [[links, rechts] × 3], ops [Pfeil 1, Pfeil 2] oder null (Pfeile ohne Rechnung);
+// ab: Zeilen und Pfeile erscheinen Schritt für Schritt (Erklärung)
+function dsGitter(zeilen, ops, ab){
+  const a = k => ab&&k ? ` data-ab="${k}"` : '';
+  let h='';
+  zeilen.forEach(([w,p],k)=>{ const r=`style="grid-row:${2*k+1}/span 2"`;
+    h+=`<span class="w" ${r}${a(k)}>${w}</span><span class="pk" ${r}${a(k)}>…</span><span class="p" ${r}${a(k)}>${p}</span>`; });
+  for(let k=0;k<2;k++){ const r=`style="grid-row:${2*k+2}/span 2"`, op=ops?ops[k]:'', le=ops?'':' leer';
+    h+=`<span class="op l" ${r}${a(k+1)}>${op}</span><span class="bg l${le}" ${r}${a(k+1)}><i></i></span><span class="bg r${le}" ${r}${a(k+1)}><i></i></span><span class="op r" ${r}${a(k+1)}>${op}</span>`; }
+  return `<div class="ds" role="group" aria-label="Dreisatz">${h}</div>`;
+}
+const fzHTML = (r, ab) => { const a=k=>ab?` data-ab="${k}"`:'';
+  return `<div class="fz"><div class="z"${a(1)}><span class="k">①${NB}${r.ops[0]}</span><span>${r.f1}</span></div>
+    <div class="z"${a(2)}><span class="k">②${NB}${r.ops[1]}</span><span>${r.f2}</span></div>
+    <div class="z allg"${a(3)}><span class="k">allgemein</span><span>${r.allg}</span></div></div>`; };
+// ganzes Lösungsbild (Rückmeldung, LZK-Lösung); erklaerung: mit Knöpfen ① ② ③
+function srBild(sr, erklaerung){
+  const r=srRechnung(sr);
+  if(!erklaerung) return `<div class="sr">${dsGitter(r.zeilen, r.ops)}${fzHTML(r)}</div>`;
+  return `<div class="sr erk" data-sr>${dsGitter(r.zeilen, r.ops, true)}${fzHTML(r, true)}
+    <div class="srknoepfe">${[1,2,3].map(k=>`<button type="button" data-sr-schritt="${k}" aria-label="Schritt ${k} zeigen">${'①②③'[k-1]}</button>`).join('')}</div></div>`;
+}
+UR.bindungen.push(app=>{ if(!app.querySelector) return;
+  app.querySelectorAll('[data-sr-schritt]').forEach(b=>b.onclick=()=>{ const box=b.closest('[data-sr]'), k=Number(b.dataset.srSchritt);
+    box.querySelectorAll('[data-ab]').forEach(e=>e.classList.toggle('da', Number(e.dataset.ab)<=k));
+    box.querySelectorAll('[data-sr-schritt]').forEach(x=>x.classList.toggle('an', Number(x.dataset.srSchritt)<=k)); });
+});
+
+/* ---------- Antwortform 'schluss': Umschalter Dreisatz/Formel, beides zählt gleich ----------
+   allein: Dreisatz = Zwischenzeile (Schritt 1) und Ergebniszeile (Schritt 2); Formel = Zahlen in „… · … über …“ (Schritt 1,
+   jede Reihenfolge oben) und Ergebnis (Schritt 2). Einstieg mit Hilfe: Pfeile und Rechnungen stehen da, das Kind wählt
+   die Zwischenzeile (bzw. die eingesetzte Formel) aus drei Vorschlägen und tippt dann das Ergebnis.
+   Felder in dieser Reihenfolge: Modus, Dreisatz 1, Dreisatz 2, Formel a, b, c, Formel-Ergebnis. */
+const SR_KEY = 'uebungsraeume-schlussrechnung';
+let srModus = null;   // gewählte Form bleibt für die nächsten Aufgaben
+const aktModus = () => { if(!srModus){ try{ srModus=localStorage.getItem(SR_KEY); }catch(e){} } return srModus==='f'?'f':'d'; };
+const zahlInput = (id, breit) => `<input id="${id}" class="zahl${breit?' breit':''}" data-feld inputmode="decimal" placeholder="?" aria-label="Zahl">`;
+const ergEinheit = t => t.sr.gesucht==='p' ? t.sr.zeichen : t.sr.einheit;
+const schalter = m => `<div class="schalter" role="group" aria-label="Rechenweg wählen">${[['d','Dreisatz'],['f','Formel']].map(([k,l])=>
+  `<button type="button" data-sm="${k}" class="${m===k?'an':''}" aria-pressed="${m===k}">${l}</button>`).join('')}</div>`;
+// Zeilen des Dreisatzes mit Inhalt für Zwischen- und Ergebniszeile
+function zeilenMit(t, zw, erg){
+  const z=t.r.zeilen.map(x=>[...x]);
+  z[1][t.r.zw.seite]=zw; z[2][t.r.erg.seite]=erg; return z;
+}
+const einheitNach = (t, seite) => seite ? t.sr.zeichen : (t.sr.einheit==='€'?'€':t.sr.einheit||'');
+const mitEinheit = (feld, e) => `${feld}${e?`<span class="se">${e}</span>`:''}`;
+function formelFelder(t){
+  const n=srNamen(t.sr)[t.sr.gesucht];
+  return `<p class="lbl">Schritt 1: Setze in die Formel ein</p><div class="fe"><span>${n} =</span><div class="bfeld"><div class="zl">${zahlInput('sfa')} · ${zahlInput('sfb')}</div><span class="bstrich" aria-hidden="true"></span><div class="zl">${zahlInput('sfc')}</div></div></div>
+    <p class="lbl">Schritt 2: Ergebnis</p><div class="answer">${zahlInput('sf2',true)}<span class="einheit">${ergEinheit(t)}</span></div>`;
+}
+const formelText = (n, a, b, c) => `${n} = ${br(`${a} · ${b}`, c)}`;
+UR.formAnmelden('schluss', {
+  gefuehrt: true,
+  html(t,st){
+    const kopf=UR.aufgabeKopf(t), r=t.r, m=aktModus();
+    const panel = (k, inhalt) => `<div data-panel="${k}"${k!==m?' hidden':''}>${inhalt}</div>`;
+    if(st.self){
+      const zw = r.zw.bruch ? mitEinheit(bruchFeldHTML('sd1'), einheitNach(t,r.zw.seite)) : mitEinheit(zahlInput('sd1'), einheitNach(t,r.zw.seite));
+      const erg = mitEinheit(zahlInput('sd2'), einheitNach(t,r.erg.seite));
+      return `${kopf}<form class="selfform" id="multiForm" autocomplete="off"><input type="hidden" data-feld data-sm-wert value="${m}">${schalter(m)}
+        ${panel('d', `${dsGitter(zeilenMit(t,zw,erg), null)}<p class="small muted mitte">Schritt 1: Zeile mit 1${NB}${t.sr.zeichen} · Schritt 2: Ergebnis</p>`)}
+        ${panel('f', formelFelder(t))}${okKnopf}</form>`;
+    }
+    const W_ = `<span class="wahl">?</span>`;
+    if(!st.stage) return `${kopf}${schalter(m)}
+      ${panel('d', `${dsGitter(zeilenMit(t,W_,W_), r.ops)}<p class="lbl">Welche Zahl gehört in die Zeile mit 1${NB}${t.sr.zeichen}?</p>
+        <div class="choices drei">${t.wahl.d.map(([v,l])=>`<button data-pre="${v}">${l}</button>`).join('')}</div>`)}
+      ${panel('f', `<p class="lbl">Welche Formel passt?</p><div class="choices drei formeln">${t.wahl.f.map(([v,l])=>`<button data-pre="${v}">${l}</button>`).join('')}</div>`)}`;
+    const mod = String(st.pre||'d')[0]==='f'?'f':'d', preOk = st.pre===t.wahl.ans[mod];
+    const s = st.coach && !preOk ? t.wahl.ans[mod] : st.pre, txt=(t.wahl[mod].find(o=>o[0]===s)||[s,'?'])[1];
+    const note = !st.coach ? '' : preOk ? `<div class="fb ok"><span><b class="t">${T.richtig}!</b></span></div>`
+      : `<div class="fb no"><span><b class="t">Achtung:</b> Richtig ist <b>${txt}</b>. Rechne damit weiter.</span></div>`;
+    const erg = mitEinheit(zahlInput('sg2'), einheitNach(t,r.erg.seite));
+    const inhalt = mod==='d' ? `${dsGitter(zeilenMit(t,txt,erg), r.ops)}`
+      : `<div class="ex mitte">${txt}</div><p class="lbl">Ergebnis</p><div class="answer">${zahlInput('sg2',true)}<span class="einheit">${ergEinheit(t)}</span></div>`;
+    return `${kopf}${note}<form class="selfform" id="multiForm" autocomplete="off">${inhalt}${okKnopf}</form>`;
+  },
+  bewerten(t,pre,raw,self){
+    const r=t.r, l=Array.isArray(raw)?[...raw]:[raw], txt=x=>String(x??'').trim()||'?';
+    let modus, ok1, s1Text, roh2;
+    if(self){
+      modus = l[0]==='f' ? 'f' : 'd'; const [, d1, d2, fa, fb, fc, f2] = l;
+      if(modus==='f'){
+        const [a,b,c]=[fa,fb,fc].map(UR.leseZahl), [x,y]=r.zaehler;
+        ok1 = nahe(c,r.nenner) && ((nahe(a,x)&&nahe(b,y)) || (nahe(a,y)&&nahe(b,x)));
+        s1Text=`${txt(fa)} · ${txt(fb)} : ${txt(fc)}`; roh2=f2;
+        const satz=[a,b,c].map(v=>v===null?NaN:rund(v)).sort().join(), soll=[x,y,r.nenner].map(rund).sort().join();
+        t.formelFalsch = !ok1 && satz===soll;
+      } else {
+        ok1 = nahe(r.zw.bruch ? leseBruch(d1) : UR.leseZahl(d1), r.zw.wert);
+        s1Text=txt(d1).replace('/',' : '); roh2=d2; t.formelFalsch=false;
+      }
+    } else {
+      modus = String(pre||'d')[0]==='f' ? 'f' : 'd'; ok1 = pre===t.wahl.ans[modus];
+      s1Text = ohneTags((t.wahl[modus].find(o=>o[0]===pre)||[,'?'])[1]).replace(/\s+/g,' '); roh2=l[0]; t.formelFalsch=false;
+    }
+    const v=UR.leseZahl(roh2), valOk=nahe(v, r.erg.wert);
+    t.modusLetzt = modus;
+    const typisch = !valOk ? r.falsch.find(([w])=>nahe(v,w)) : null;
+    t.hinweis = typisch ? typisch[1] : t.formelFalsch ? `Die Zahlen stimmen, stehen aber an der falschen Stelle. Die Formel heißt ${r.allg}.` : '';
+    return {ok:ok1&&valOk, preOk:ok1, valOk, shown:`${s1Text} | ${txt(roh2)}`};
+  },
+  loesung: t => { const r=t.r;
+    if(t.modusLetzt==='f') return ohneTags(`${Z(r.zaehler[0])} · ${Z(r.zaehler[1])} : ${Z(r.nenner)} = ${r.erg.text}`);
+    const zeile = k => ohneTags(r.zeilen[k].map((x,i)=>k===1&&i===r.zw.seite?r.zw.text:x).join(' … ').replace(/<span class="bruch"><span>([^<]*)<\/span><span>([^<]*)<\/span><\/span>/g,'$1 : $2'));
+    return `${zeile(1)} | ${zeile(2)}`; },
+  papier: t => { const P=UR.papier;
+    return {aufgabe:`${P.angabe(t)}<div class="pz-frage">Rechne mit Dreisatz oder Formel.</div>${P.platz(2)}${P.linie(T.lzkErgebnis||'', ergEinheit(t))}`,
+      loesung:srBild(t.sr), lead:t.papierLead||t.lead||undefined, aufwand:2}; }
+});
+UR.bindungen.push(app=>{ if(!app.querySelector) return;
+  const knoepfe=[...app.querySelectorAll('[data-sm]')]; if(!knoepfe.length) return;
+  knoepfe.forEach(b=>b.onclick=()=>{ const m=b.dataset.sm; srModus=m; try{ localStorage.setItem(SR_KEY,m); }catch(e){}
+    knoepfe.forEach(x=>{ x.classList.toggle('an',x.dataset.sm===m); x.setAttribute('aria-pressed', String(x.dataset.sm===m)); });
+    app.querySelectorAll('[data-panel]').forEach(p=>{ p.hidden = p.dataset.panel!==m; });
+    const w=app.querySelector('[data-sm-wert]'); if(w) w.value=m;
+    const f=app.querySelector(`[data-panel="${m}"] input:not([type=hidden])`); if(f) f.focus({preventScroll:true}); });
+});
+// Aufgabe mit Schlussrechnung. o: q, qh, lead, text, why (sonst Standard), wahl der Zwischenzeile im Einstieg
+function schlussAufgabe(sr, o={}){
+  if(!srOk(sr)) throw new Error('Schlussrechnung mit doppelten Zahlen');
+  const r=srRechnung(sr), n=srNamen(sr), b=sr.basis, z=sr.zeichen, {G:g, p, W:w} = sr;
+  // Einstieg: Zwischenzeile aus drei Vorschlägen (richtig, zehnmal so groß, ein Zehntel; p gesucht: Bruch verdreht)
+  let dOpt;
+  if(r.zw.bruch) dOpt = [[b,g],[g,b],[b,w],[b,g*10]].map(([x,y])=>({wert:x/y, html:`${br(Z(x),Z(y))}${NB}${z}`}));
+  else dOpt = [r.zw.wert, rund(r.zw.wert*10), rund(r.zw.wert/10), rund(r.zw.wert*100)].map(x=>({wert:x, html:srWert(sr,x)}));
+  const dWahl=[dOpt[0]]; for(const x of dOpt.slice(1)) if(dWahl.length<3&&!dWahl.some(y=>nahe(x.wert,y.wert))) dWahl.push(x);
+  // Formel: dieselben drei Zahlen, richtig und zwei andere Anordnungen
+  const zahlen=[...r.zaehler, r.nenner], fOpt=[[0,1,2],[0,2,1],[1,2,0]].map(([i,j,k])=>({wert:`${i}${j}${k}`, html:formelText(n[sr.gesucht], Z(zahlen[i]), Z(zahlen[j]), Z(zahlen[k]))}));
+  const mische = (l,k) => mischen(l.map((x,i)=>({...x, richtig:i===0}))).map((x,i)=>({...x, v:k+i}));
+  const dm=mische(dWahl,'d'), fm=mische(fOpt,'f');
+  const wahl = {d:dm.map(x=>[x.v,x.html]), f:fm.map(x=>[x.v,x.html]), ans:{d:dm.find(x=>x.richtig).v, f:fm.find(x=>x.richtig).v}};
+  const B=srBegriffe(sr);
+  const why = o.why || `Gesucht ist der ${farbig(sr.gesucht, B[sr.gesucht])}. Dreisatz: ${r.weg}. Formel: ${r.allg}.`;
+  return aufg(Object.assign({kind:'schluss', sr, r, wahl, pre:{ans:wahl.ans.d, optionen:wahl.d}, schritt:'Schritt 1', loesungBild:srBild(sr), why}, o));
+}
+
 UR.prozent = {ggT, kuerzen, rund, nachkomma, Z, E, P, br, NB, PUNKT, mischen, versuche, dezimal, prozentText, lesePeriode, leseBruch,
-  istGekuerzt, bruchFeld, periodeFeld, figur, gefaerbt, RASTER, kommaBild, kommaSchritt, rasterSVG, aufg, G, Pz, W, merk, ohneTags};
+  istGekuerzt, bruchFeld, periodeFeld, figur, gefaerbt, RASTER, kommaBild, kommaSchritt, rasterSVG, aufg, G, Pz, W, merk, ohneTags,
+  farbig, srWert, srProz, srOk, srRechnung, srBild, schlussAufgabe, wahlSchritt1, nahe};
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -6135,6 +6357,536 @@ const erklaerung = {
 const lzk = {merkmal:{anteil_bild:'anteil_bild', anteil_bemalen:'anteil_bild', tabelle:'tabelle', memory:'tabelle', proz_dezimal:'proz_dezimal',
   proz_bruch:'proz_bruch', bruch_proz:'proz_bruch'}};
 UR.kompetenzAnmelden({id:'M-Proz-G2', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/2.3 Prozentrechnung/M-Proz-G3.js */
+/* Baustein M-Proz-G3: „Ich kann Prozentrechnungen lösen.“
+   Steckbrief: M-Proz-G3.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026). Schlussrechnung wie im Mathe Know How
+   (Dreisatz mit Pfeilen links und rechts, darunter die Formel), Umschalter Dreisatz/Formel, beides zählt gleich.
+   G3-A07 Sachaufgabe: nur das Ergebnis, Dreisatz und Formel stehen in der Rückmeldung. */
+(function(UR){
+const {rnd, pick} = UR;
+const {Z, E, P, NB, br, mischen, versuche, rund, nachkomma, aufg, merk, G, Pz, W, srWert, srOk, srBild, schlussAufgabe, wahlSchritt1} = UR.prozent;
+
+const mitE = (x,e) => e==='€' ? E(x) : `${Z(x)}${e?NB+e:''}`;
+const ganzOder = (x,nk) => nachkomma(x)<=nk;
+const MERK = merk(`${W('W')} = ${br(`${G('G')} · ${Pz('p')}`,'100')} · ${Pz('p')} = ${br(`${W('W')} · 100`,G('G'))} · ${G('G')} = ${br(`${W('W')} · 100`,Pz('p'))}`);
+const ERKENNEN = `„von …“ ist der ${G('Grundwert G')} (das Ganze, 100${NB}%). Die Zahl mit % ist der ${Pz('Prozentsatz p')}. Der Anteil in Zahlen ist der ${W('Prozentwert W')}.`;
+
+/* ---------- Zahlen für die Schlussrechnung ---------- */
+const EINH = ['kg','€','m','ml','km²','l'];
+function wertAufgabe(e){
+  return versuche(()=>{
+    e = e || pick(EINH);
+    const g = pick([rnd(2,80)*10, rnd(20,999), rnd(100,8000)]);
+    const p = Math.random()<.25 ? rnd(11,999)/10 : rnd(1,99), w=rund(g*p/100);
+    if(!ganzOder(w,2)||!ganzOder(rund(g/100),2)) return null;
+    const sr={gesucht:'W', G:g, p, W:w, basis:100, zeichen:'%', einheit:e}; return srOk(sr) ? sr : null;
+  });
+}
+const STUECK = {Stück:`1${NB}Stück`, Punkte:`1${NB}Punkt`, Kinder:`1${NB}Kind`, Personen:`1${NB}Person`, Lose:`1${NB}Los`, Äpfel:`1${NB}Apfel`, Mitglieder:`1${NB}Mitglied`, Versuche:`1${NB}Versuch`, Seiten:`1${NB}Seite`};
+function satzAufgabe(e){
+  return versuche(()=>{
+    e = e || pick(['€','kg','m','l','Stück']);
+    const g = pick([rnd(2,99)*10, rnd(20,500), rnd(10,80)*50]);
+    const p = Math.random()<.15 ? rnd(101,150) : Math.random()<.2 ? rnd(11,999)/10 : rnd(1,99), w=rund(g*p/100);
+    if(!ganzOder(w, STUECK[e]?0:2)) return null;
+    const sr={gesucht:'p', G:g, p, W:w, basis:100, zeichen:'%', einheit:e, eins:STUECK[e]||mitE(1,e)}; return srOk(sr) ? sr : null;
+  });
+}
+function grundAufgabe(e){
+  return versuche(()=>{
+    e = e || pick(EINH);
+    const p = Math.random()<.1 ? 12.5 : rnd(2,90);
+    const g = Math.random()<.2 ? rnd(200,9999)/100 : pick([rnd(2,99)*10, rnd(20,999), rnd(10,80)*50]);
+    const w=rund(g*p/100), eins=rund(w/p);
+    if(!ganzOder(w,2)||!ganzOder(eins,4)||!ganzOder(g,2)) return null;
+    const sr={gesucht:'G', G:g, p, W:w, basis:100, zeichen:'%', einheit:e}; return srOk(sr) ? sr : null;
+  });
+}
+
+/* ---------- Sachaufgaben (G3-A07): je 8 Texte für W, p und G ---------- */
+// g: Bereich des Grundwerts [von, bis, Schritt]; nk: Nachkommastellen des Ergebnisses; e: Einheit der Antwort
+const SACH = [
+  {art:'W', e:'Versuche', nk:0, g:[20,200,10], s:(g,p)=>`Frau Physik zeigt ${g}. ${p} davon laufen wie geplant. Wie viele Versuche gelingen?`},
+  {art:'W', e:'Kinder', nk:0, g:[100,900,20], s:(g,p)=>`Eine Schule hat ${g}. ${p} kommen mit dem Rad. Wie viele Kinder sind das?`},
+  {art:'W', e:'€', nk:2, g:[80,1500,10], s:(g,p)=>`Ein Fahrrad kostet ${g}. Im Ausverkauf gibt es ${p} Rabatt. Wie viel Euro spart man?`},
+  {art:'W', e:'km', nk:2, g:[8,60,1], s:(g,p)=>`Ein Wanderweg ist ${g} lang. Nach der Pause sind ${p} geschafft. Wie viele Kilometer sind das?`},
+  {art:'W', e:'l', nk:1, g:[40,800,10], s:(g,p)=>`Ein Tank fasst ${g}. Er ist zu ${p} gefüllt. Wie viele Liter sind im Tank?`},
+  {art:'W', e:'Personen', nk:0, g:[200,2000,50], s:(g,p)=>`Bei einer Wahl geben ${g} ihre Stimme ab. ${p} wählen Lisa. Wie viele Personen wählen Lisa?`},
+  {art:'W', e:'€', nk:2, g:[1200,3000,50], s:(g,p)=>`Frau Berger verdient ${g} im Monat. ${p} davon zahlt sie für die Miete. Wie viel Euro sind das?`},
+  {art:'W', e:'m²', nk:1, g:[200,5000,50], s:(g,p)=>`Ein Feld ist ${g} groß. Auf ${p} der Fläche wachsen Kartoffeln. Wie groß ist diese Fläche?`},
+  {art:'p', e:'€', nk:2, g:[20,80,1], s:(g,w)=>`Ein Christbaum kostet ${g}. Kurz vor Weihnachten kostet er nur noch ${w}. Wie viel Prozent vom ursprünglichen Preis sind das?`},
+  {art:'p', e:'Kinder', nk:0, g:[200,800,20], s:(g,w)=>`Eine Schule hat ${g}. ${w} davon fahren mit dem Bus. Wie viel Prozent sind das?`},
+  {art:'p', e:'Punkte', nk:0, g:[20,80,4], s:(g,w)=>`Bei einem Test gibt es ${g}. Mia erreicht ${w}. Wie viel Prozent der Punkte hat sie?`},
+  {art:'p', e:'m', nk:0, g:[200,2000,50], s:(g,w)=>`Ein Weg ist ${g} lang. ${w} sind schon asphaltiert. Wie viel Prozent des Weges sind das?`},
+  {art:'p', e:'Lose', nk:0, g:[100,1000,50], s:(g,w)=>`Bei einer Tombola gibt es ${g}. ${w} davon gewinnen. Wie viel Prozent der Lose gewinnen?`},
+  {art:'p', e:'€', nk:2, g:[200,1200,50], s:(g,w)=>`Eine Klasse will ${g} sammeln. Bis jetzt hat sie ${w}. Wie viel Prozent des Ziels sind erreicht?`},
+  {art:'p', e:'Äpfel', nk:0, g:[40,200,10], s:(g,w)=>`In einem Korb liegen ${g}. ${w} davon sind faul. Wie viel Prozent der Äpfel sind faul?`},
+  {art:'p', e:'Mitglieder', nk:0, g:[100,600,20], s:(g,w)=>`Ein Sportverein hat ${g}. ${w} davon sind Kinder. Wie viel Prozent der Mitglieder sind Kinder?`},
+  {art:'G', e:'km', nk:0, g:[400,2000,50], s:(w,p)=>`Familie Schneider hat ${w} zurückgelegt, das sind ${p} der Strecke. Wie lang ist die ganze Strecke?`},
+  {art:'G', e:'Kinder', nk:0, g:[200,900,20], s:(w,p)=>`${w} einer Schule spielen ein Instrument, das sind ${p}. Wie viele Kinder hat die Schule?`},
+  {art:'G', e:'€', nk:2, g:[200,1500,10], s:(w,p)=>`Lukas hat ${w} gespart, das sind ${p} des Preises für ein Rad. Wie viel kostet das Rad?`},
+  {art:'G', e:'l', nk:0, g:[40,800,10], s:(w,p)=>`Ein Tank ist zu ${p} gefüllt, das sind ${w}. Wie viele Liter fasst der ganze Tank?`},
+  {art:'G', e:'€', nk:2, g:[50,900,5], s:(w,p)=>`Eine Jacke ist um ${w} billiger, das sind ${p} des alten Preises. Wie viel hat die Jacke vorher gekostet?`},
+  {art:'G', e:'Mitglieder', nk:0, g:[100,600,20], s:(w,p)=>`Zum Fest kommen ${w} eines Vereins, das sind ${p} aller Mitglieder. Wie viele Mitglieder hat der Verein?`},
+  {art:'G', e:'Seiten', nk:0, g:[100,600,10], s:(w,p)=>`Mia hat ${w} gelesen, das sind ${p} des Buches. Wie viele Seiten hat das Buch?`},
+  {art:'G', e:'m²', nk:0, g:[100,2000,50], s:(w,p)=>`Auf ${w} eines Gartens wachsen Blumen, das sind ${p} des Gartens. Wie groß ist der ganze Garten?`}
+];
+const PROZ_SACH = [5,10,12,15,20,25,30,35,40,45,50,60,65,70,75,80,85,90];
+function sachAufgabe(art){
+  return versuche(()=>{
+    const v=pick(SACH.filter(x=>!art||x.art===art)), [a,b,s]=v.g, g=rnd(a/s,b/s)*s, p=pick(PROZ_SACH), w=rund(g*p/100);
+    if(!ganzOder(w, v.nk)||w<1) return null;
+    const ein = v.e==='€'?'€':v.e;
+    const sr={gesucht:v.art, G:g, p, W:w, basis:100, zeichen:'%', einheit:ein, eins:STUECK[v.e]||(['€','km','l','m','m²'].includes(v.e)?mitE(1,v.e):`1${NB}${v.e}`)};
+    if(!srOk(sr)) return null;
+    const wt = x => mitE(x, v.e), q = v.art==='W' ? v.s(wt(g), P(p)) : v.art==='p' ? v.s(wt(g), wt(w)) : v.s(wt(w), P(p));
+    const erg = v.art==='W' ? w : v.art==='p' ? p : g, einh = v.art==='p' ? '%' : v.e;
+    const woran = v.art==='p' ? `Gefragt ist „wie viel Prozent“: gesucht ist der ${Pz('Prozentsatz p')}.`
+      : v.art==='G' ? `Der Teil (${W(wt(w))}) und sein Prozentsatz sind gegeben, gesucht ist das Ganze: der ${G('Grundwert G')}.`
+      : `Das Ganze (${G(wt(g))}) und der Prozentsatz sind gegeben, gesucht ist der Teil: der ${W('Prozentwert W')}.`;
+    return aufg({kind:'zahlen', text:true, q, sr, felder:[{label:'Ergebnis', ans:erg, ansText:v.art==='p'?P(erg):wt(erg), einheit:einh}],
+      loesungBild:srBild(sr), why:woran, lead:'Lies genau: Ist G, p oder W gesucht?'});
+  });
+}
+
+/* ---------- Plus: Fehler finden (G3-N01) ---------- */
+const NAMEN = ['Anna','Ben','Cem','Dora','Emil','Fatma','Gabi','Hannes','Ida','Jonas'];
+function fehlerAufgabe(){
+  return versuche(()=>{
+    const art=pick(['gp','wg','dez','div']), name=pick(NAMEN), e=pick(['kg','€','m']);
+    if(art==='gp'){ const g=rnd(2,40)*10, p=pick([10,20,25,40,50,75]), w=g*p/100, f=g*100/p; if(!ganzOder(f,2)||f===w) return null;
+      return {q:`${name} rechnet „${P(p)} von ${mitE(g,e)}“ so: ${Z(g)} · 100 : ${Z(p)} = ${mitE(f,e)}. Was ist richtig?`, ans:w, e, txt:mitE(w,e),
+        why:`${name} hat ${Pz('p')} und 100 vertauscht. Richtig: ${Z(g)} · ${Z(p)} : 100 = ${mitE(w,e)}.`}; }
+    if(art==='wg'){ const g=rnd(2,40)*10, p=pick([10,20,25,40,50,60,75,80]), w=g*p/100, f=g*100/w; if(!ganzOder(f,1)) return null;
+      return {q:`${name} rechnet „Wie viel Prozent sind ${mitE(w,e)} von ${mitE(g,e)}?“ so: ${Z(g)} · 100 : ${Z(w)} = ${P(rund(f))}. Was ist richtig?`, ans:p, e:'%', txt:P(p),
+        why:`${name} hat ${G('G')} und ${W('W')} vertauscht. Das Ganze steht nach „von“. Richtig: ${Z(w)} · 100 : ${Z(g)} = ${P(p)}.`}; }
+    if(art==='dez'){ const g=rnd(2,30)*100, p=rnd(2,9), w=g*p/100, f=g*p/10;
+      return {q:`${name} rechnet „${P(p)} von ${mitE(g,e)}“ so: ${Z(g)} · 0,${p} = ${mitE(f,e)}. Was ist richtig?`, ans:w, e, txt:mitE(w,e),
+        why:`${P(p)} = 0,0${p}, nicht 0,${p}. Richtig: ${Z(g)} · 0,0${p} = ${mitE(w,e)}.`}; }
+    const p=pick([10,20,25,40,50]), g=rnd(2,40)*10, w=g*p/100, f=rund(w*p/100); if(!ganzOder(f,2)||f===0) return null;
+    return {q:`${name} rechnet „${P(p)} sind ${mitE(w,e)}. Wie groß ist das Ganze?“ so: ${Z(w)} · ${Z(p)} : 100 = ${mitE(f,e)}. Was ist richtig?`, ans:g, e, txt:mitE(g,e),
+      why:`Das Ganze ist größer als der Teil. Richtig: ${Z(w)} · 100 : ${Z(p)} = ${mitE(g,e)}.`};
+  });
+}
+
+/* ---------- Plus: Welches Angebot ist günstiger? (G3-N03) ---------- */
+const ANGEBOT = [
+  {t:(a,x)=>`${E(a)} minus ${P(x)} Rabatt`, x:[5,10,15,20,25], f:(a,x)=>a*(100-x)/100},
+  {t:(a,x)=>`${E(a)} plus ${P(x)} Mehrwertsteuer`, x:[20], f:(a,x)=>a*(100+x)/100},
+  {t:(a,x)=>`${E(a)}, bei Barzahlung ${P(x)} Skonto`, x:[2,3], f:(a,x)=>a*(100-x)/100},
+  {t:(a,x)=>`${E(a)} plus ${P(x)} Versand`, x:[5,10,12], f:(a,x)=>a*(100+x)/100},
+  {t:a=>`${E(a)} ohne Nachlass`, x:[0], f:a=>a}
+];
+function angebotAufgabe(){
+  return versuche(()=>{
+    const basis=rnd(8,120)*10, arten=mischen(ANGEBOT).slice(0,3);
+    const l=arten.map((A,i)=>{ const x=pick(A.x), aa=Math.round(basis*rnd(85,115)/100), preis=rund(A.f(aa,x)); return {name:`Laden ${'ABC'[i]}`, text:A.t(aa,x), preis}; });
+    if(l.some(o=>!ganzOder(o.preis,2))) return null;
+    const s=[...l].sort((a,b)=>a.preis-b.preis); if(s[1].preis-s[0].preis<1) return null;
+    const best=s[0];
+    const t={kind:'zweischritt', q:'Welches Angebot ist am günstigsten?', lead:'Rechne alle drei Preise aus. Wähle das günstigste Angebot und gib seinen Preis an!',
+      qh:`Welches Angebot ist am günstigsten?<div class="angebote">${l.map(o=>`<div><b>${o.name}:</b> ${o.text}</div>`).join('')}</div>`, text:true,
+      s1:{label:'Schritt 1: das günstigste Angebot', kurz:'Günstigstes Angebot', wahl:l.map(o=>[o.name,o.name]), ans:best.name, ansText:best.name},
+      s2:{label:'Schritt 2: sein Preis', felder:[{label:'', ans:best.preis, ansText:E(best.preis), einheit:'€'}], ansText:E(best.preis)},
+      schritt:'Angebot', angebote:l, why:l.map(o=>`${o.name}: ${E(o.preis)}`).join(' · ')+`. Am günstigsten ist ${best.name}.`};
+    return aufg(wahlSchritt1(t));
+  });
+}
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // G3-A01 1 % im Kopf
+  kopf1(){
+    const g=rnd(2,200)*50, e=pick(['kg','€','m','l','s','km','g']), eins=rund(g/100);
+    if(Math.random()<.5) return aufg({kind:'zahlen', q:`1${NB}% von ${mitE(g,e)}`, lead:'Berechne 1 % im Kopf!',
+      felder:[{label:'1 % =', ans:eins, ansText:mitE(eins,e), einheit:e}], why:`1 % ist der hundertste Teil: ${mitE(g,e)} : 100 = ${mitE(eins,e)}.`});
+    return aufg({kind:'zahlen', q:`1${NB}% sind ${mitE(eins,e)}. Wie groß ist das Ganze (100${NB}%)?`, lead:'Rechne im Kopf!',
+      felder:[{label:'100 % =', ans:g, ansText:mitE(g,e), einheit:e}], why:`Das Ganze ist 100-mal so groß: ${mitE(eins,e)} · 100 = ${mitE(g,e)}.`});
+  },
+  // G3-A02 Im Kopf: drei Prozentwerte
+  kopf_mehr(){
+    const euro=Math.random()<.3, ps=mischen([1,2,5,10,20,25,50,75]).slice(0,3);
+    const felder=ps.map(p=>versuche(()=>{
+      const g = euro ? pick([rnd(2,99)*10, rnd(1,40)*100, rnd(10,999)]) : pick([rnd(2,99)*10, rnd(10,999), rnd(1,40)*100, rnd(12,99)*2]);
+      const w=rund(g*p/100); if(!ganzOder(w, euro?2:1)) return null;
+      return {label:`${P(p)} von ${euro?E(g):Z(g)} =`, ans:w, ansText:euro?E(w):Z(w), einheit:euro?'€':undefined, p, g};
+    }));
+    return aufg({kind:'zahlen', q:'Berechne die Prozentwerte im Kopf!', felder,
+      why:`Kopfrechenwege: 1 % = : 100 · 2 % = 2 · 1 % · 5 % = 10 % : 2 · 10 % = : 10 · 20 % = : 5 · 25 % = : 4 · 50 % = : 2 · 75 % = 3 · 25 %. Hier: ${felder.map(f=>`${f.label} ${f.ansText}`).join(' · ')}`});
+  },
+  // G3-A03 Prozentwert
+  prozentwert(){ const sr=wertAufgabe(); return schlussAufgabe(sr, {q:`${P(sr.p)} von ${srWert(sr,sr.G)}`, lead:'Berechne den Prozentwert W!', papierLead:'Berechne den Prozentwert W!'}); },
+  // G3-A04 Prozentsatz
+  prozentsatz(){ const sr=satzAufgabe(); return schlussAufgabe(sr, {q:`Wie viel Prozent sind ${srWert(sr,sr.W)} von ${srWert(sr,sr.G)}?`, lead:'Berechne den Prozentsatz p!'}); },
+  // G3-A05 Grundwert
+  grundwert(){ const sr=grundAufgabe(); return schlussAufgabe(sr, {q:`${P(sr.p)} sind ${srWert(sr,sr.W)}. Wie groß ist das Ganze?`, lead:'Berechne den Grundwert G!'}); },
+  // G3-A07 Sachaufgabe (nur Ergebnis)
+  sach(){ return sachAufgabe(); },
+  // G3-A06 (Plus) Schätzen, dann rechnen
+  schaetzen(){
+    return versuche(()=>{
+      const e=pick(['€','kg','cm']), g=e==='€'?rnd(500,4000)/100:rnd(200,9000)/10, w=e==='€'?rnd(100,Math.floor(g*95))/100:rnd(20,Math.floor(g*9.5))/10;
+      const p=w*100/g; if(p<8||p>92||Math.abs(p%1-.5)<.06) return null;
+      const c=Math.round(p/5)*5, andere=mischen([-40,-30,-20,-15,15,20,30,40].map(d=>c+d).filter(x=>x>=5&&x<=95));
+      const ws=[c]; for(const x of andere) if(ws.length<4&&ws.every(y=>Math.abs(y-x)>=10)) ws.push(x);
+      if(ws.length<4) return null;
+      const t={kind:'zweischritt', q:`Wie viel Prozent sind ${mitE(w,e)} von ${mitE(g,e)}?`, lead:'Schätze zuerst, dann rechne genau (auf ganze Prozent gerundet)!',
+        s1:{label:'Schritt 1: Schätze! Welcher Prozentsatz passt ungefähr?', kurz:'Schätzung', wahl:mischen(ws).map(x=>[String(x),`etwa ${P(x)}`]), ans:String(c), ansText:`etwa ${P(c)}`},
+        s2:{label:'Schritt 2: genau, auf ganze Prozent gerundet', felder:[{label:'', ans:Math.round(p), ansText:P(Math.round(p)), einheit:'%'}], ansText:P(Math.round(p))},
+        schritt:'Schätzung', why:`${Z(w)} · 100 : ${Z(g)} = ${Z(rund(Math.round(p*100)/100))} … ≈ ${P(Math.round(p))}. Das liegt nahe bei ${P(c)}.`};
+      return aufg(wahlSchritt1(t));
+    });
+  },
+  // G3-A08 (Plus) Welche Formel brauche ich?
+  formel_bauen(){
+    const ges=pick(['W','p','G']);
+    const karten={G:G('G'), p:Pz('p'), W:W('W'), h:'100'};
+    const soll={W:{G:'z',p:'z',h:'n',W:'x'}, p:{W:'z',h:'z',G:'n',p:'x'}, G:{W:'z',h:'z',p:'n',G:'x'}}[ges];
+    const name={W:W('W'),p:Pz('p'),G:G('G')}[ges], begriff={W:'den Prozentwert W',p:'den Prozentsatz p',G:'den Grundwert G'}[ges];
+    return aufg({kind:'zuordnen', q:`Baue die Formel für ${begriff}!`, qh:`Baue die Formel für ${begriff}: ${name} = ${br('□ · □','□')}`, gesucht:ges,
+      lead:'Lege zwei Karten in den Zähler und eine in den Nenner. Die gesuchte Größe legst du zu „bleibt übrig“.',
+      dinge:mischen(Object.keys(karten)).map(id=>({id, html:karten[id], kurz:id==='h'?'100':id})), ziele:[{id:'z',text:'Zähler (oben)'},{id:'n',text:'Nenner (unten)'},{id:'x',text:'bleibt übrig'}], ans:soll,
+      why:`${MERK}`});
+  },
+  // G3-N01 (Plus) Fehler finden
+  fehler(){ const f=fehlerAufgabe(); return aufg({kind:'zahlen', text:true, q:f.q, felder:[{label:'richtiges Ergebnis', ans:f.ans, ansText:f.txt, einheit:f.e}], why:f.why}); },
+  // G3-N02 (Plus) Skonto
+  skonto(){
+    return versuche(()=>{
+      const b=rnd(10,300)*10, s=pick([1,1.5,2,2.5,3]), sk=rund(b*s/100), zu=rund(b-sk); if(!ganzOder(sk,2)) return null;
+      return aufg({kind:'zahlen', text:true, q:`Ein Rechnungsbetrag von ${E(b)} wird bar mit ${P(s)} Skonto bezahlt. Wie hoch ist das Skonto, und wie viel ist zu zahlen?`,
+        felder:[{label:'Skonto', ans:sk, ansText:E(sk), einheit:'€'},{label:'zu zahlen', ans:zu, ansText:E(zu), einheit:'€'}],
+        why:`Das Skonto ist der Prozentwert: ${Z(b)} · ${Z(s)} : 100 = ${E(sk)}. Zu zahlen: ${E(b)} − ${E(sk)} = ${E(zu)}.`});
+    });
+  },
+  // G3-N03 (Plus) Welches Angebot ist günstiger?
+  angebote(){ return angebotAufgabe(); }
+};
+
+/* ---------- Stationen (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Im Kopf', hint:'10 % von 800 = 80', types:['kopf1','kopf_mehr']},
+  {id:'S2', name:'Prozentwert berechnen', hint:'80 kg … 100 % · 0,8 kg … 1 % · 60 kg … 75 %', types:['prozentwert']},
+  {id:'S3', name:'Prozentsatz berechnen', hint:'28 € von 35 € = 80 %', types:['prozentsatz']},
+  {id:'S4', name:'Grundwert berechnen', hint:'20 % sind 48 € → 100 % sind 240 €', types:['grundwert']},
+  {id:'S5', name:'Sachaufgaben', hint:'Was ist gesucht: G, p oder W?', types:['sach']}
+];
+const kern = ['kopf1','kopf_mehr','prozentwert','prozentsatz','grundwert','sach'];
+const plus = ['schaetzen','formel_bauen','fehler','skonto','angebote'];
+const plusHint = 'Schätzen · Formel bauen · Fehler finden · Skonto · Angebote vergleichen';
+
+/* ---------- Erklärung ---------- */
+const bsp = {W:()=>wertAufgabe('kg'), p:()=>satzAufgabe('€'), G:()=>grundAufgabe('€')};
+const erklaerung = {
+  beispiele: ()=>({W:bsp.W(), p:bsp.p(), G:bsp.G()}),
+  neu(kind,E){ if(bsp[kind]) E[kind]=bsp[kind](); },
+  html: E => `<section class="sheet"><h2>Prozentrechnungen lösen</h2>
+    <div class="rule"><h3>1. Was ist gesucht?</h3><p>${ERKENNEN}</p></div>
+    <div class="rule"><h3>2. Prozentwert gesucht: ${P(E.W.p)} von ${srWert(E.W,E.W.G)}</h3>
+      <p>Schreibe die Werte links, die Prozente rechts. Pfeil ①: durch 100, so kommst du auf 1 %. Pfeil ②: mal ${Z(E.W.p)}. Links und rechts steht immer dieselbe Rechnung. Tippe ①, ② und ③!</p>
+      ${srBild(E.W,true)}<button class="newex" data-newex="W">Neues Beispiel</button></div>
+    <div class="rule"><h3>3. Prozentsatz gesucht: Wie viel Prozent sind ${srWert(E.p,E.p.W)} von ${srWert(E.p,E.p.G)}?</h3>
+      <p>Pfeil ①: durch ${Z(E.p.G)}, so kommst du auf 1 €. Die Prozente lässt du als Bruch stehen, dann wird nichts gerundet. Pfeil ②: mal ${Z(E.p.W)}.</p>
+      ${srBild(E.p,true)}<button class="newex" data-newex="p">Neues Beispiel</button></div>
+    <div class="rule"><h3>4. Grundwert gesucht: ${P(E.G.p)} sind ${srWert(E.G,E.G.W)}</h3>
+      <p>Pfeil ①: durch ${Z(E.G.p)}, so kommst du auf 1 %. Pfeil ②: mal 100, so kommst du auf das Ganze.</p>
+      ${srBild(E.G,true)}<button class="newex" data-newex="G">Neues Beispiel</button></div>
+    <div class="rule"><h3>5. Die drei Formeln</h3>${MERK}
+      <p>Beim Üben kannst du oben zwischen <b>Dreisatz</b> und <b>Formel</b> umschalten. Beides zählt gleich.</p></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How Prozentrechnung.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
+};
+
+const lzk = {merkmal:{kopf1:'kopf', kopf_mehr:'kopf', prozentwert:'prozentwert', prozentsatz:'prozentsatz', grundwert:'grundwert', sach:'sach'}};
+UR.kompetenzAnmelden({id:'M-Proz-G3', typen, stationen, kern, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/2.3 Prozentrechnung/M-Proz-X1.js */
+/* Baustein M-Proz-X1: Promillerechnung.
+   Steckbrief: M-Proz-X1.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026, X1-A06 weggelassen, kein Plus-Paket).
+   Rechnen wie bei G3 mit der Schlussrechnung (Dreisatz/Formel), nur mit 1 000 statt 100. */
+(function(UR){
+const {rnd, pick} = UR;
+const {Z, P, NB, br, mischen, versuche, rund, nachkomma, aufg, merk, G, Pz, W, srOk, srBild, schlussAufgabe} = UR.prozent;
+
+const PM = x => `${Z(x)}${NB}‰`;
+const mitE = (x,e) => `${Z(x)}${NB}${e}`;
+const BEGRIFFE = {G:'Grundwert G', p:'Promillesatz p', W:'Promillewert W'};
+const MERK = merk(`Prozent = je 100 · Promille = je 1${NB}000 · 1${NB}‰ = 0,1${NB}% · 10${NB}‰ = 1${NB}%`);
+const sr = o => Object.assign({basis:1000, zeichen:'‰', begriffe:BEGRIFFE}, o);
+
+/* ---------- X1-A01: Fragen zu Promille (Pool) ---------- */
+const FRAGEN = [
+  ['Promille (‰) bedeutet …', ['je 1 000','je 100','je 10','je 10 000']],
+  ['1 ‰ ist wie viel Prozent?', ['0,1 %','1 %','10 %','0,01 %']],
+  ['10 ‰ sind wie viel Prozent?', ['1 %','10 %','0,1 %','100 %']],
+  ['1 % sind wie viel Promille?', ['10 ‰','1 ‰','0,1 ‰','100 ‰']],
+  ['Wo gibt man Anteile oft in Promille an?', ['beim Blutalkohol','bei der Schuhgröße','bei der Uhrzeit','bei der Temperatur']],
+  ['0,5 ‰ Blutalkohol bedeutet: In 1 000 ml Blut sind …', ['0,5 ml Alkohol','5 ml Alkohol','50 ml Alkohol','0,05 ml Alkohol']],
+  ['Wofür verwendet man Promille statt Prozent?', ['für sehr kleine Anteile','für sehr große Anteile','nur für Geldbeträge','nur für Längen']],
+  ['1 000 ‰ sind …', ['das Ganze (100 %)','10 %','1 %','1 000 %']],
+  ['Die Geburtenrate einer Stadt ist 9 ‰. Das heißt: …', ['9 Geburten je 1 000 Einwohner*innen','9 Geburten je 100 Einwohner*innen','9 Geburten je 10 Einwohner*innen','9 Geburten je 10 000 Einwohner*innen']],
+  ['Meerwasser enthält etwa 35 ‰ Salz. Das sind …', ['35 g Salz in 1 kg Meerwasser','35 g Salz in 100 g Meerwasser','3,5 g Salz in 1 kg Meerwasser','35 kg Salz in 100 kg Meerwasser']],
+  ['Welches Zeichen steht für Promille?', ['‰','%','°','#']],
+  ['Eine Straße hat 50 ‰ Steigung. Auf 1 000 m Strecke steigt sie um …', ['50 m','5 m','500 m','0,5 m']]
+].map(([f,o])=>[f.replace(/ (‰|%|ml|m|g|kg)\b/g, NB+'$1').replace(/(\d) (\d{3})/g,'$1'+NB+'$2'), o.map(x=>x.replace(/ (‰|%|ml|m|g|kg)/g, NB+'$1').replace(/(\d) (\d{3})/g,'$1'+NB+'$2'))]);
+
+/* ---------- X1-A05 und X1-N01: Sachtexte ---------- */
+// Grundwert gesucht: W und p gegeben (ganze G)
+const GRUND = [
+  {e:'kg', p:[30,32,35,38,40], g:[20,400,10], s:(w,p)=>`Meerwasser enthält ${p} Salz. In einem Becken sind ${w} Salz gelöst. Wie viel kg Meerwasser sind im Becken?`},
+  {e:'Autos', p:[8,12,15,20,25], g:[1000,20000,500], s:(w,p)=>`${p} aller Autos in einer Stadt sind rot, das sind ${w}. Wie viele Autos gibt es in der Stadt?`},
+  {e:'ml', p:[0.2,0.4,0.5,0.6,0.8,1.2], g:[4000,7000,500], s:(w,p)=>`Bei ${p} Blutalkohol sind ${w} Alkohol im Blut. Wie viel ml Blut hat dieser Mensch?`},
+  {e:'Geburten', p:[8,9,10,11,12], g:[1000,20000,500], s:(w,p)=>`In einer Gemeinde gab es ${w} in einem Jahr, das sind ${p} der Einwohner*innen. Wie viele Einwohner*innen hat die Gemeinde?`},
+  {e:'Teile', p:[2,4,5,8,12,15], g:[1000,50000,500], s:(w,p)=>`In einer Fabrik sind ${w} fehlerhaft, das sind ${p} aller Teile. Wie viele Teile wurden produziert?`},
+  {e:'m', p:[20,40,50,60,80,120], g:[200,3000,50], s:(w,p)=>`Eine Straße steigt um ${w}, die Steigung ist ${p}. Wie lang ist die Straße?`},
+  {e:'g', p:[333,585,750], g:[2,40,2], s:(w,p)=>`Ein Schmuckstück enthält ${p} Gold, das sind ${w}. Wie schwer ist das ganze Schmuckstück?`}
+];
+// Promillewert gesucht (Alltag, nur Ergebnis): G und p gegeben
+const ALLTAG = [
+  {e:'Kinder', p:[8,9,10,11,12], g:[1000,30000,500], nk:0, s:(g,p)=>`Die Geburtenrate einer Gemeinde ist ${p}. Die Gemeinde hat ${g} Einwohner*innen. Wie viele Kinder werden in einem Jahr geboren?`},
+  {e:'m', p:[20,40,50,60,80,120], g:[100,2000,50], nk:1, s:(g,p)=>`Eine Straße hat ${p} Steigung. Wie viele Meter Höhenunterschied sind es auf ${g} Strecke?`},
+  {e:'m', km:true, p:[8,10,12,15,20,25], g:[1,9,1], nk:1, s:(g,p)=>`Eine Straße mit ${p} Gefälle ist ${g} lang. Wie viele Meter Höhenunterschied hat sie? (1${NB}km = 1${NB}000${NB}m)`},
+  {e:'g', p:[30,32,35,38,40], g:[200,5000,100], nk:1, s:(g,p)=>`Meerwasser enthält ${p} Salz. Wie viel g Salz sind in ${g} Meerwasser?`},
+  {e:'ml', p:[0.3,0.4,0.5,0.6,0.8,1.2], g:[4000,7000,500], nk:2, s:(g,p)=>`Der Blutalkohol beträgt ${p}. Wie viel ml Alkohol sind in ${g} Blut?`},
+  {e:'Schrauben', p:[2,3,4,5,8], g:[1000,50000,500], nk:0, s:(g,p)=>`Eine Fabrik stellt ${g} her. ${p} davon sind fehlerhaft. Wie viele Schrauben sind das?`},
+  {e:'g', p:[333,585,750], g:[2,40,2], nk:2, s:(g,p)=>`Ein Ring wiegt ${g} und enthält ${p} Gold. Wie viel g Gold sind das?`},
+  {e:'Mitglieder', p:[5,8,10,12,15], g:[400,6000,200], nk:0, s:(g,p)=>`Ein Verein hat ${g}. ${p} davon sind Ehrenmitglieder. Wie viele Ehrenmitglieder sind das?`}
+];
+const grundAufgabe = () => versuche(()=>{
+  const v=pick(GRUND), [a,b,s]=v.g, g=rnd(a/s,b/s)*s, p=pick(v.p), w=rund(g*p/1000);
+  if(nachkomma(w)>2||nachkomma(rund(w/p))>4) return null;
+  const x=sr({gesucht:'G', G:g, p, W:w, einheit:v.e}); if(!srOk(x)) return null;
+  return {x, q:v.s(mitE(w,v.e), PM(p))};
+});
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // X1-A01 Was heißt Promille?
+  begriff(){
+    const [f,o]=pick(FRAGEN);
+    return aufg({kind:'fragen', q:f, gruppen:[{optionen:mischen(o).map(x=>[x,x]), ans:o[0], klasse:o.some(x=>x.length>14)?'lang':''}],
+      why:`Promille heißt „je 1${NB}000“: 1${NB}‰ = ${br(1,'1 000')} = 0,1${NB}%. Man nimmt Promille für sehr kleine Anteile (Blutalkohol, Steigung, Salzgehalt, Geburtenrate).`});
+  },
+  // X1-A02 Promille, Prozent, Dezimalzahl
+  umrechnen(){
+    return versuche(()=>{
+      const pm = Math.random()<.5 ? rnd(1,99) : Math.random()<.5 ? rnd(1,99)/10 : rnd(1,99)/100, pr=rund(pm/10), d=rund(pm/1000);
+      if(nachkomma(d)>5) return null;
+      if(Math.random()<.6) return aufg({kind:'zahlen', q:`${PM(pm)} in Prozent und als Dezimalzahl`, lead:'Stelle als Prozent und als Dezimalzahl dar!',
+        felder:[{label:'in Prozent', ans:pr, ansText:P(pr), einheit:'%'},{label:'als Dezimalzahl', ans:d, ansText:Z(d)}],
+        why:`‰ : 10 = %: ${PM(pm)} = ${P(pr)}. ‰ : 1${NB}000 = Dezimalzahl: ${PM(pm)} = ${Z(d)}.`});
+      return aufg({kind:'zahlen', q:`${P(pr)} in Promille und als Dezimalzahl`, lead:'Stelle als Promille und als Dezimalzahl dar!',
+        felder:[{label:'in Promille', ans:pm, ansText:PM(pm), einheit:'‰'},{label:'als Dezimalzahl', ans:d, ansText:Z(d)}],
+        why:`% · 10 = ‰: ${P(pr)} = ${PM(pm)}. % : 100 = Dezimalzahl: ${P(pr)} = ${Z(d)}.`});
+    });
+  },
+  // X1-A03 Promillewert (Blutalkohol)
+  promillewert(){
+    return versuche(()=>{
+      const l=pick([4,4.5,5,5.5,6,6.5,7]), g=l*1000, p=pick([rnd(3,12)/10, rnd(30,120)/100]), w=rund(g*p/1000);
+      if(nachkomma(w)>2) return null;
+      const x=sr({gesucht:'W', G:g, p, W:w, einheit:'ml'}); if(!srOk(x)) return null;
+      return schlussAufgabe(x, {text:true, q:`Ein Mensch hat ${Z(l)} Liter Blut, das sind ${mitE(g,'ml')}. Der Blutalkohol beträgt ${PM(p)}. Wie viel ml Alkohol sind im Blut?`,
+        lead:'Berechne den Promillewert!'});
+    });
+  },
+  // X1-A04 Anteil in Promille (Kontrollen, Fabrik)
+  anteil(){
+    return versuche(()=>{
+      const g=rnd(5,50)*100, p=pick([rnd(1,80), rnd(5,300)/10]), w=rund(g*p/1000);
+      if(!Number.isInteger(w)||w<1) return null;
+      const fab=Math.random()<.4;
+      const x=sr({gesucht:'p', G:g, p, W:w, einheit:fab?'Teile':'Personen', eins:fab?`1${NB}Teil`:`1${NB}Person`}); if(!srOk(x)) return null;
+      const q = fab ? `Eine Maschine stellt ${Z(g)} Teile her. ${Z(w)} davon sind fehlerhaft. Wie viel Promille sind das?`
+        : `Bei einer Verkehrskontrolle werden ${Z(g)} Autofahrer*innen überprüft. ${Z(w)} davon haben zu viel Alkohol im Blut. Wie viel Promille sind das?`;
+      return schlussAufgabe(x, {text:true, q, lead:'Berechne den Anteil in Promille!'});
+    });
+  },
+  // X1-A05 Grundwert aus Promille
+  grundwert(){ const {x,q}=grundAufgabe(); return schlussAufgabe(x, {text:true, q, lead:'Wie groß ist das Ganze?'}); },
+  // X1-N01 Promille im Alltag (nur Ergebnis)
+  alltag(){
+    return versuche(()=>{
+      const v=pick(ALLTAG), [a,b,s]=v.g, gz=rnd(a/s,b/s)*s, g=v.km?gz*1000:gz, p=pick(v.p), w=rund(g*p/1000);
+      if(nachkomma(w)>v.nk||w<=0) return null;
+      const x=sr({gesucht:'W', G:g, p, W:w, einheit:v.e}); if(!srOk(x)) return null;
+      return aufg({kind:'zahlen', text:true, q:v.s(mitE(gz, v.km?'km':v.e), PM(p)), sr:x, felder:[{label:'Ergebnis', ans:w, ansText:mitE(w,v.e), einheit:v.e}],
+        why:`${W('W')} = ${br(`${G('G')} · ${Pz('p')}`, `1${NB}000`)} = ${br(`${Z(g)} · ${Z(p)}`, `1${NB}000`)} = ${mitE(w,v.e)}${v.km?` (${Z(gz)}${NB}km = ${Z(g)}${NB}m)`:''}.`,
+        loesungBild:srBild(x)});
+    });
+  }
+};
+
+/* ---------- Stationen (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Was ist Promille?', hint:'‰ heißt je 1 000', types:['begriff']},
+  {id:'S2', name:'Promille, Prozent, Dezimalzahl', hint:'5 ‰ = 0,5 % = 0,005', types:['umrechnen']},
+  {id:'S3', name:'Promillewert und Anteil', hint:'1 ‰ von 6 000 ml = 6 ml', types:['promillewert','anteil']},
+  {id:'S4', name:'Grundwert und Alltag', hint:'35 ‰ sind 2,1 kg → 1 000 ‰ sind 60 kg', types:['grundwert','alltag']}
+];
+const kern = ['begriff','umrechnen','promillewert','anteil','grundwert','alltag'];
+const leicht = [];
+
+/* ---------- Erklärung ---------- */
+const bspW = () => { const t=typen.promillewert(); return t.sr; };
+const bspG = () => grundAufgabe().x;
+const erklaerung = {
+  beispiele: ()=>({W:bspW(), G:bspG()}),
+  neu(kind,E){ if(kind==='W') E.W=bspW(); if(kind==='G') E.G=bspG(); },
+  html: E => `<section class="sheet"><h2>Promillerechnung</h2>
+    <div class="rule"><h3>1. Promille heißt „je 1${NB}000“</h3>${MERK}
+      <p>Beispiel Blutalkohol: 0,5${NB}‰ heißt 0,5${NB}ml Alkohol in 1${NB}000${NB}ml Blut. Promille nimmt man für sehr kleine Anteile.</p></div>
+    <div class="rule"><h3>2. Umrechnen</h3><p>‰ : 10 = %, zum Beispiel 5${NB}‰ = 0,5${NB}%.<br>‰ : 1${NB}000 = Dezimalzahl, zum Beispiel 5${NB}‰ = 0,005.</p></div>
+    <div class="rule"><h3>3. Rechnen wie bei Prozent, nur mit 1${NB}000</h3>
+      <p>Das Ganze sind 1${NB}000${NB}‰. Pfeil ①: durch 1${NB}000, so kommst du auf 1${NB}‰. Pfeil ②: mal ${Z(E.W.p)}. Tippe ①, ② und ③!</p>
+      ${srBild(E.W,true)}<button class="newex" data-newex="W">Neues Beispiel</button></div>
+    <div class="rule"><h3>4. Das Ganze gesucht</h3><p>Pfeil ①: durch ${Z(E.G.p)}, so kommst du auf 1${NB}‰. Pfeil ②: mal 1${NB}000.</p>
+      ${srBild(E.G,true)}<button class="newex" data-newex="G">Neues Beispiel</button></div>
+    <p>Beim Üben kannst du oben zwischen <b>Dreisatz</b> und <b>Formel</b> umschalten. Beides zählt gleich.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
+};
+
+const lzk = {merkmal:{begriff:'begriff_promille', umrechnen:'umrechnen_promille', promillewert:'promillewert', anteil:'promillesatz', grundwert:'grundwert_promille', alltag:'promille_alltag'}};
+UR.kompetenzAnmelden({id:'M-Proz-X1', typen, stationen, kern, leicht, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/2.3 Prozentrechnung/M-Proz-X2.js */
+/* Baustein M-Proz-X2: Zinsrechnung.
+   Steckbrief: M-Proz-X2.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026). Zinsrechnung = Prozentrechnung mit anderen
+   Wörtern (Kapital K, Zinssatz p, Zinsen Z); Jahreszinsen mit der Schlussrechnung (Dreisatz/Formel), Monate (: 12) und
+   Tage (1 Jahr = 360 Tage), Endkapital immer mit Zinseszins (Taschenrechner, ± 1 Cent). X2-N01 ist in X2-A05 aufgegangen. */
+(function(UR){
+const {rnd, pick} = UR;
+const {Z, E, P, NB, br, mischen, versuche, rund, nachkomma, aufg, merk, G, Pz, W, srOk, srBild, schlussAufgabe} = UR.prozent;
+
+const NAMEN = {G:'K', p:'p', W:'Z'}, BEGRIFFE = {G:'Kapital K', p:'Zinssatz p', W:'Zinsen Z'};
+const MERK = merk(`${G('Kapital K')} = Grundwert · ${Pz('Zinssatz p')} = Prozentsatz · ${W('Zinsen Z')} = Prozentwert · 1 Jahr = 12 Monate = 360 Tage`);
+const sr = o => Object.assign({basis:100, zeichen:'%', einheit:'€', namen:NAMEN, begriffe:BEGRIFFE, eins:`1${NB}€`}, o);
+const ZF = merk(`${W('Z')} = ${br(`${G('K')} · ${Pz('p')}`, '100')} (für 1 Jahr)`);
+
+// Kapital und Zinssatz mit Jahreszinsen auf Cent
+const jahr = () => versuche(()=>{
+  const k=pick([rnd(10,160)*50, rnd(5,80)*100]), p=rnd(5,30)/10, z=rund(k*p/100);
+  return nachkomma(z)<=2&&z!==100&&k!==100 ? {k,p,z} : null;
+});
+// Schritt 1 im Einstieg: Jahreszinsen aus drei Vorschlägen
+const vorschlaege = z => mischen([z, rund(z*10), rund(z/10)].map(x=>[String(x), E(x)]));
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // X2-A01 Begriffe der Zinsrechnung
+  begriffe(){
+    const dinge=[['K','Kapital K'],['p','Zinssatz p'],['Z','Zinsen Z'],['t','Zeit t']].map(([id,text])=>({id, html:text, kurz:text}));
+    const ziele=[{id:'G',text:'Grundwert G'},{id:'P',text:'Prozentsatz p'},{id:'W',text:'Prozentwert W'},{id:'X',text:'kein Gegenstück (Teil des Jahres)'}];
+    return aufg({kind:'zuordnen', q:'Ordne die Begriffe der Zinsrechnung den Begriffen der Prozentrechnung zu!', dinge:mischen(dinge), ziele:mischen(ziele),
+      ans:{K:'G', p:'P', Z:'W', t:'X'}, why:`Zinsrechnung ist Prozentrechnung mit anderen Wörtern. ${MERK}`});
+  },
+  // X2-A02 Jahreszinsen (Schlussrechnung mit K, p, Z)
+  jahreszinsen(){
+    const {k,p,z}=jahr(), x=sr({gesucht:'W', G:k, p, W:z});
+    return schlussAufgabe(x, {text:true, q:`${E(k)} werden 1 Jahr lang zu ${P(p)} angelegt. Wie hoch sind die Zinsen?`, lead:'Berechne die Jahreszinsen!'});
+  },
+  // X2-A03 Zinsen für Monate
+  monate(){
+    return versuche(()=>{
+      const {k,p,z}=jahr(), t=rnd(1,11), zm=rund(z*t/12); if(nachkomma(zm)>2) return null;
+      return aufg({kind:'zweischritt', text:true, q:`${E(k)} werden ${t} ${t===1?'Monat':'Monate'} lang zu ${P(p)} angelegt. Wie hoch sind die Zinsen?`,
+        lead:'Berechne zuerst die Zinsen für 1 Jahr, dann für die Monate!', schritt:'Schritt 1',
+        s1:{label:'Schritt 1: Zinsen für 1 Jahr', kurz:'Zinsen für 1 Jahr', felder:[{label:'', ans:z, ansText:E(z), einheit:'€'}], ansText:E(z)},
+        s2:{label:`Schritt 2: Zinsen für ${t} ${t===1?'Monat':'Monate'}`, felder:[{label:'', ans:zm, ansText:E(zm), einheit:'€'}], ansText:E(zm)},
+        pre:{ans:String(z), optionen:vorschlaege(z)},
+        why:`Erst ein Jahr: ${Z(k)} · ${Z(p)} : 100 = ${E(z)}. Dann der Teil des Jahres (1 Jahr = 12 Monate): ${E(z)} · ${t} : 12 = ${E(zm)}.`});
+    });
+  },
+  // X2-A04 Zinsen für Tage (1 Jahr = 360 Tage)
+  tage(){
+    return versuche(()=>{
+      const {k,p,z}=jahr(), t=rnd(3,33)*10, zt=rund(z*t/360); if(nachkomma(zt)>2) return null;
+      return aufg({kind:'zweischritt', text:true, q:`${E(k)} werden ${t} Tage lang zu ${P(p)} angelegt. Wie hoch sind die Zinsen? (1 Jahr = 360 Tage)`,
+        lead:'Berechne zuerst die Zinsen für 1 Jahr, dann für die Tage!', schritt:'Schritt 1',
+        s1:{label:'Schritt 1: Zinsen für 1 Jahr', kurz:'Zinsen für 1 Jahr', felder:[{label:'', ans:z, ansText:E(z), einheit:'€'}], ansText:E(z)},
+        s2:{label:`Schritt 2: Zinsen für ${t} Tage`, felder:[{label:'', ans:zt, ansText:E(zt), einheit:'€'}], ansText:E(zt)},
+        pre:{ans:String(z), optionen:vorschlaege(z)},
+        why:`Erst ein Jahr: ${Z(k)} · ${Z(p)} : 100 = ${E(z)}. Dann der Teil des Jahres (1 Jahr = 360 Tage, 1 Monat = 30 Tage): ${E(z)} · ${t} : 360 = ${E(zt)}.`});
+    });
+  },
+  // X2-A05 Endkapital mit Zinseszins (Taschenrechner, ± 1 Cent)
+  zinseszins(){
+    return versuche(()=>{
+    const k=pick([rnd(10,200)*50, rnd(5,100)*100]), p=rnd(5,40)/10, n=rnd(2,10), af=rund(1+p/100), genau=k*Math.pow(af,n)*100;
+    if(Math.abs(genau%1-.5)<.01) return null;   // nicht knapp an einem halben Cent (Rundung eindeutig)
+    const end=Math.round(genau)/100, einfach=rund(k+n*k*p/100);
+    const opt=mischen([[String(af),Z(af)],[String(rund(p/100)),Z(rund(p/100))],[String(rund(1+p/10)),Z(rund(1+p/10))]]);
+    return aufg({kind:'zweischritt', text:true, q:`${E(k)} werden ${n} Jahre lang zu einem fixen Zinssatz von ${P(p)} angelegt. Die Zinsen werden jedes Jahr dazugezählt (Zinseszins). Wie groß ist das Endkapital?`,
+      lead:'Du brauchst einen Taschenrechner.', schritt:'Schritt 1',
+      s1:{label:'Schritt 1: Änderungsfaktor', kurz:'Änderungsfaktor', felder:[{label:'', ans:af, ansText:Z(af)}], ansText:Z(af)},
+      s2:{label:'Schritt 2: Endkapital (auf Cent)', felder:[{label:'', ans:end, tol:0.01, ansText:E(end), einheit:'€'}], ansText:E(end)},
+      pre:{ans:String(af), optionen:opt}, einfach,
+      hinweisNach:(e1,e2)=>e2[0].v!==null&&Math.abs(e2[0].v-einfach)<0.006 ? `Das sind einfache Zinsen (${E(einfach)}). Beim Zinseszins werden die Zinsen jedes Jahr mitverzinst: ${Z(k)} · ${Z(af)}<sup>${n}</sup>.` : '',
+      why:`Änderungsfaktor = 1 + ${br(Z(p),'100')} = ${Z(af)}. Jedes Jahr wird mit ${Z(af)} multipliziert: ${Z(k)} · ${Z(af)}<sup>${n}</sup> = ${E(end)}. Zum Vergleich ohne Zinseszins: ${E(einfach)}.`});
+    });
+  },
+  // X2-A06 (Plus) Kapital oder Zinssatz gesucht
+  kapital_zinssatz(){
+    const {k,p,z}=jahr();
+    if(Math.random()<.5) return schlussAufgabe(sr({gesucht:'G', G:k, p, W:z}), {text:true, q:`Für 1 Jahr gibt es ${E(z)} Zinsen bei einem Zinssatz von ${P(p)}. Wie groß ist das Kapital?`, lead:'Berechne das Kapital K!'});
+    return schlussAufgabe(sr({gesucht:'p', G:k, p, W:z}), {text:true, q:`${E(k)} bringen in 1 Jahr ${E(z)} Zinsen. Wie hoch ist der Zinssatz?`, lead:'Berechne den Zinssatz p!'});
+  },
+  // X2-A07 (Plus) Welche Bank zahlt mehr Zinsen?
+  bankvergleich(){
+    return versuche(()=>{
+      const k=pick([rnd(4,80)*100, rnd(10,100)*50]);
+      const bank = () => { const art=pick(['j','m','t']), p=rnd(5,30)/10, t=art==='j'?1:art==='m'?rnd(2,18):rnd(3,30)*10;
+        const z=rund(k*p/100*(art==='j'?1:art==='m'?t/12:t/360));
+        return {p, art, t, z, text:`${P(p)} Zinsen pro Jahr, das Geld liegt ${art==='j'?'1 Jahr':art==='m'?`${t} Monate`:`${t} Tage`}`}; };
+      const a=bank(), b=bank(); if(!(nachkomma(a.z)<=2&&nachkomma(b.z)<=2)||Math.abs(a.z-b.z)<1) return null;
+      return aufg({kind:'fragen', text:true, q:`Du legst ${E(k)} an. Bank A: ${a.text}. Bank B: ${b.text}. Welche Bank zahlt mehr Zinsen? (1 Jahr = 12 Monate = 360 Tage)`,
+        gruppen:[{optionen:[['A','Bank A'],['B','Bank B']], ans:a.z>b.z?'A':'B'}], why:`Bank A: ${E(a.z)} · Bank B: ${E(b.z)}.`});
+    });
+  }
+};
+
+/* ---------- Stationen (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Begriffe der Zinsrechnung', hint:'Kapital = Grundwert', types:['begriffe']},
+  {id:'S2', name:'Zinsen für ein Jahr', hint:'3 750 € zu 0,8 % → 30 €', types:['jahreszinsen']},
+  {id:'S3', name:'Zinsen für Monate und Tage', hint:'30 € · 8 : 12 = 20 €', types:['monate','tage']},
+  {id:'S4', name:'Endkapital mit Zinseszins', hint:'2 000 · 1,02³ = 2 122,42 €', types:['zinseszins']}
+];
+const kern = ['begriffe','jahreszinsen','monate','tage','zinseszins'];
+const plus = ['kapital_zinssatz','bankvergleich'];
+const plusHint = 'Kapital oder Zinssatz gesucht · Welche Bank zahlt mehr?';
+
+/* ---------- Erklärung ---------- */
+const bspJ = () => { const {k,p,z}=jahr(); return sr({gesucht:'W', G:k, p, W:z}); };
+const zze = () => { const k=pick([1000,2000,3000,5000]), p=pick([1,1.5,2,2.5,3]), af=rund(1+p/100);
+  const jahre=[k]; for(let i=1;i<=3;i++) jahre.push(Math.round(jahre[i-1]*af*100)/100); return {k,p,af,jahre, einfach:rund(k+3*k*p/100)}; };
+const erklaerung = {
+  beispiele: ()=>({J:bspJ(), Z:zze()}),
+  neu(kind,E){ if(kind==='J') E.J=bspJ(); if(kind==='Z') E.Z=zze(); },
+  html: E => `<section class="sheet"><h2>Zinsrechnung</h2>
+    <div class="rule"><h3>1. Zinsrechnung ist Prozentrechnung</h3>${MERK}</div>
+    <div class="rule"><h3>2. Zinsen für ein Jahr</h3>${ZF}<p>Tippe ①, ② und ③!</p>${srBild(E.J,true)}<button class="newex" data-newex="J">Neues Beispiel</button></div>
+    <div class="rule"><h3>3. Zinsen für einen Teil des Jahres</h3><p>Erst die Zinsen für 1 Jahr, dann den Teil des Jahres (1 Jahr = 12 Monate = 360 Tage, 1 Monat = 30 Tage):</p>
+      <div class="ex">für Monate: ${W('Z')} · ${br('Monate',12)}</div><div class="ex">für Tage: ${W('Z')} · ${br('Tage',360)}</div></div>
+    <div class="rule"><h3>4. Zinseszins</h3><p>Bleibt das Geld liegen, werden die Zinsen dazugezählt und im nächsten Jahr mitverzinst. Jedes Jahr wird mit dem
+      Änderungsfaktor 1 + ${br('p',100)} multipliziert.</p>
+      <div class="ex">${E.Z.jahre.map(E_).join(' → ')}</div>
+      <p>Kurz mit dem Taschenrechner: ${Z(E.Z.k)} · ${Z(E.Z.af)}<sup>3</sup> = ${E_(E.Z.jahre[3])}. Ohne Zinseszins wären es nur ${E_(E.Z.einfach)}.</p>
+      <button class="newex" data-newex="Z">Neues Beispiel</button></div>
+    <p>Beim Üben kannst du bei den Jahreszinsen oben zwischen <b>Dreisatz</b> und <b>Formel</b> umschalten. Beides zählt gleich.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
+};
+const E_ = E;
+
+const lzk = {merkmal:{begriffe:'begriffe_zins', jahreszinsen:'jahreszinsen', monate:'zinsen_teil', tage:'zinsen_teil', zinseszins:'zinseszins'}};
+UR.kompetenzAnmelden({id:'M-Proz-X2', typen, stationen, kern, plus, plusHint, erklaerung, lzk});
 })(window.UR = window.UR || {});
 </script>
 <script>UR.start(document.getElementById('app'));</script>
