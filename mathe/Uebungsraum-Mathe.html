@@ -1318,7 +1318,7 @@ function fassungPruefen(){
   if(typeof navigator!=='undefined' && navigator.onLine===false) return;
   const ab = typeof AbortController==='function' ? new AbortController() : null;
   if(ab) setTimeout(()=>ab.abort(), 8000);
-  fetch(UR.fach.webseite+'version.json', {cache:'no-store', signal:ab?ab.signal:undefined})
+  fetch(UR.fach.versionsdatei || UR.fach.webseite+'version.json', {cache:'no-store', signal:ab?ab.signal:undefined})
     .then(r=>r.ok?r.json():null)
     .then(v=>{ if(v && v.nummer && UR.neuer(v.nummer, UR.version.nummer)){ neueFassung=v; neuZeichnen(); } })
     .catch(()=>{});   // offline oder gesperrt: nichts anzeigen
@@ -1345,7 +1345,9 @@ UR.fachAnmelden({
   titel: 'Mathe-Übungsraum',
   seitentitel: 'Mathe-Übungsraum 7/8',
   einleitung: 'Wähle oben die GKÜ, dann ein Thema und eine Kompetenz. Zuerst kommt ein kurzer <b>Eingangscheck</b>. Danach weißt du, ob du sie schon kannst oder was du noch üben solltest.',
-  webseite: 'https://ediqat.github.io/mathe/',   // Downloadseite (öffentlich); dort liegt version.json
+  fachseite: 'Mathematik',   // Name der Fach-Startseite im Lernportal (Rücklink auf der Downloadseite)
+  webseite: 'https://ediqat.github.io/mathe/uebungsraum/',   // Downloadseite (öffentlich, seit 20.11.2026 Unterordner)
+  versionsdatei: 'https://ediqat.github.io/mathe/version.json',   // fest: so fragen auch ältere Fassungen ab
   minusTaste: true,          // eigene Taste für − (die Zahlentastatur am Handy hat keine)
   themen: [
     {kuerzel:'RaZa', name:'Rationale Zahlen', gruppe:'1. GKÜ', nummer:'1.1', stufen:'7-8', kompetenzen:[
@@ -1480,7 +1482,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-20.33","datum":"20.11.2026","pruefsumme":"b5d354998611991e"};
+UR.version = {"nummer":"2026-11-20.34","datum":"20.11.2026","pruefsumme":"6d248e5012ee63ee"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
