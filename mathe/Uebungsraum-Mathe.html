@@ -166,6 +166,12 @@ button.link{font:inherit;background:none;border:0;padding:0;color:var(--ink);tex
 .answer.mitE .einheit{min-width:2.6em;text-align:left}
 /* Liste nach dem Check: Teile einer Antwort grün (richtig), rot (falsch) oder orange (teilweise) */
 .rv-ok{color:var(--ok)} .rv-no{color:var(--bad)} .rv-halb{color:var(--v)}
+/* Felder in einer Zeile mit Text dazwischen (t.zeile, z. B. P( … | … )), passt auch auf 360 px */
+.answer.zeile{flex-wrap:nowrap;align-items:center;gap:4px}
+.answer.zeile .zt{font-size:1.6rem;font-weight:800;white-space:nowrap}
+.answer.zeile .zf{display:flex;gap:3px;align-items:stretch;min-width:0}
+.answer.zeile .sign{width:2.5rem;font-size:1.3rem}
+.answer.zeile input.zahl{width:4.6ch;font-size:1.4rem;padding:8px 2px}
 </style>
 <style>
 /* Mathe/fach.css */
@@ -891,9 +897,13 @@ UR.zahlStuecke = (felder,erg) => erg.map((x,i)=>({text:`${x.roh||'?'}${x.e?' '+x
   ok:x.zahlOk&&x.einheitOk, soll:felder[i].ansText}));
 UR.einheitFehltHinweis = (felder,erg) => { const l=[...new Set(erg.map((x,i)=>x.fehltEinheit&&x.zahlOk?felder[i].einheitAns:null).filter(Boolean))];
   return l.length ? T.einheitDazu(l.join(', ')) : ''; };
+// t.zeile {vor, zwischen, nach} (fachneutral, 21.11.2026): alle Felder in einer Zeile mit Text davor, dazwischen und danach,
+// z. B. Mathe „P( … | … )“; die Beschriftung der Felder wird dann nur vorgelesen (aria-label)
+const zeileHTML = t => `<div class="answer zeile"><span class="zt">${t.zeile.vor||''}</span>${t.felder.map((f,i)=>`${i?`<span class="zt">${t.zeile.zwischen||''}</span>`:''}<span class="zf" role="group" aria-label="${esc(ohneTags(f.label))}">${
+  f.feldHTML?f.feldHTML('z'+i):`<input id="z${i}" class="zahl" data-feld inputmode="decimal" placeholder="?">`}</span>`).join('')}<span class="zt">${t.zeile.nach||''}</span></div>`;
 UR.formAnmelden('zahlen', {
   html: t => { const platz=t.felder.some(f=>f.einheit);
-    return `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off">${t.felder.map((f,i)=>UR.zahlFeldHTML(f,i,platz)).join('')}${okKnopf}</form>`; },
+    return `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off">${t.zeile?zeileHTML(t):t.felder.map((f,i)=>UR.zahlFeldHTML(f,i,platz)).join('')}${okKnopf}</form>`; },
   bewerten(t,pre,raw){
     const erg=UR.zahlFelderBewerten(t.felder, Array.isArray(raw)?[...raw]:[raw], t);
     t.ergebnis=erg;
@@ -942,7 +952,9 @@ UR.formen.zuordnen.papier = t => {
   return {aufgabe:P().mitBild(kopf+tabelle(false), t.bild), loesung:P().mitBild(kopf+tabelle(true), t.loesungBild||t.bild), statt:true, kreuz:false, lead:t.lead||T.lzkOrdneZu, aufwand:3};
 };
 UR.formen.zahlen.papier = t => ({
-  aufgabe:P().mitBild(`${P().angabe(t)}${P().platz(t.papierPlatz||(t.felder.length>1&&!t.bild?2:1))}${t.felder.map(f=>P().linie(f.label, f.einheit||'')).join('')}`, t.bild),
+  aufgabe:P().mitBild(`${P().angabe(t)}${P().platz(t.papierPlatz||(t.felder.length>1&&!t.bild?2:1))}${t.zeile
+    ? `<div class="pz-feld pz-zeile">${t.zeile.vor||''}${t.felder.map(()=>'<span class="pz-strich"></span>').join(t.zeile.zwischen||'')}${t.zeile.nach||''}</div>`
+    : t.felder.map(f=>P().linie(f.label, f.einheit||'')).join('')}`, t.bild),
   loesung:t.felder.map(f=>(f.ansHTML||f.ansText)+(f.tol>=0.1&&f.einheit?` (± ${String(f.tol).replace('.',',')} ${f.einheit})`:'')).join('<br>'), lead:t.lead||undefined, aufwand:t.felder.length>1||t.bild?2:1});
 })(window.UR = window.UR || {});
 </script>
@@ -1651,7 +1663,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-21.4","datum":"21.11.2026","pruefsumme":"d7cc22866400d407"};
+UR.version = {"nummer":"2026-11-21.5","datum":"21.11.2026","pruefsumme":"ed1b9651f36a18ad"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -4018,6 +4030,8 @@ const koordHinweis = (x,y) => erg => {
   return '';
 };
 const koordFelder = (x,y) => [vzFeld('x-Koordinate', x), vzFeld('y-Koordinate', y)];
+// Eingabe in einer Zeile wie im Heft: P( x | y ), links x, rechts y
+const punktZeile = n => ({vor:`${n}(`, zwischen:'|', nach:')'});
 const ansHTML = (n,x,y) => `${n}(${Z(x)}|${Z(y)})`;
 
 /* ---------- Zahlen mit Vorzeichen für A03 und N03: ganze Zahlen, Dezimalzahlen, Brüche ---------- */
@@ -4101,7 +4115,9 @@ const typen = {
     const p=pkte[0], {x,y}=p;
     const bild=ksSVG({punkte:pkte.map(q=>({x:q.x, y:q.y, name:q.name})), wege:leicht?[{x,y}]:[]});
     const loesungBild=ksSVG({punkte:[{x,y,name:p.name,farbe:'var(--g)'}], wege:[{x,y}]});
-    return aufg({kind:'zahlen', q:`Gib die Koordinaten des Punktes ${p.name} an!`, qh:`Gib die Koordinaten des Punktes <b>${p.name}</b> an! <span class="nw">${p.name}( x | y )</span>`,
+    return aufg({kind:'zahlen', q:`Gib die Koordinaten des Punktes ${p.name} an!`, qh:`Gib die Koordinaten des Punktes <b>${p.name}</b> an!${leicht?` <span class="nw">${p.name}( x | y )</span>`:''}`,
+      // Einstieg: x- und y-Koordinate getrennt; danach und im Check wie im Heft: P( … | … ) (Lehrkraft, 21.11.2026)
+      zeile: leicht ? undefined : punktZeile(p.name),
       lead: leicht ? merk(`${ZUERST} Folge dem Weg im Bild.`) : '', papierLead:'Lies die Koordinaten ab!', bild, loesungBild, punkt:p,
       felder:koordFelder(x,y).map((f,i)=>Object.assign(f,{ansHTML:i?Z(y):Z(x)})), hinweisNach:koordHinweis(x,y),
       why:`${WEG(x,y)} Also ${ansHTML(p.name,x,y)}. ${ZUERST}`, steps:pkt(p.name,x,y)});
@@ -4179,7 +4195,7 @@ const typen = {
     const bild=ksSVG({punkte:[{x,y,name:n}], spiegel:art==='beide'?undefined:art, halb:x%1!==0||y%1!==0});
     return aufg({kind:'zahlen', q:`Spiegle ${pkt(n,x,y)} ${text}! Gib die Koordinaten des Bildpunkts ${n}′ an.`, qh:`Spiegle <b>${pkt(n,x,y)}</b> ${text}! Gib die Koordinaten des Bildpunkts <b>${n}′</b> an.`,
       art, punkt:{x,y,name:n}, bild,
-      felder:koordFelder(sx,sy).map((f,i)=>Object.assign(f,{ansHTML:i?Z(sy):Z(sx)})), hinweisNach:koordHinweis(sx,sy),
+      zeile:punktZeile(n+'′'), felder:koordFelder(sx,sy).map((f,i)=>Object.assign(f,{ansHTML:i?Z(sy):Z(sx)})), hinweisNach:koordHinweis(sx,sy),
       loesungBild:ksSVG({punkte:[{x,y,name:n},{x:sx,y:sy,name:n+'′',farbe:'var(--g)'}], spiegel:art==='beide'?undefined:art, verbindung:[[x,y,sx,sy]], halb:x%1!==0||y%1!==0}),
       why:`${regel} ${pkt(n,x,y)} → ${pkt(n+'′',sx,sy)}`, steps:pkt(n+'′',sx,sy)});
   },
@@ -4190,7 +4206,7 @@ const typen = {
     const geg=[0,1,2,3].filter(i=>i!==fehlt), [fx,fy]=P[fehlt];
     return aufg({kind:'zahlen', q:`${geg.map(i=>pkt(N[i],...P[i])).join(', ')} sind Eckpunkte des Rechtecks ABCD. Die Seiten sind parallel zu den Achsen. Gib ${N[fehlt]} an!`,
       qh:`${geg.map(i=>`<span class="nw">${pkt(N[i],...P[i])}</span>`).join(', ')} sind Eckpunkte des Rechtecks ABCD. Die Seiten sind parallel zu den Achsen. Gib <b>${N[fehlt]}</b> an!`,
-      ecken:P, fehlt, felder:koordFelder(fx,fy).map((f,i)=>Object.assign(f,{ansHTML:i?Z(fy):Z(fx)})), hinweisNach:koordHinweis(fx,fy),
+      ecken:P, fehlt, zeile:punktZeile(N[fehlt]), felder:koordFelder(fx,fy).map((f,i)=>Object.assign(f,{ansHTML:i?Z(fy):Z(fx)})), hinweisNach:koordHinweis(fx,fy),
       loesungBild:ksSVG({punkte:P.map(([x,y],i)=>({x,y,name:N[i],farbe:i===fehlt?'var(--g)':undefined})), figur:P}),
       why:`Zwei Ecken haben dasselbe x, zwei dasselbe y. ${N[fehlt]} hat das x von ${N[geg.find(i=>P[i][0]===fx)]} und das y von ${N[geg.find(i=>P[i][1]===fy)]}: ${pkt(N[fehlt],fx,fy)}.`, steps:pkt(N[fehlt],fx,fy)});
   },
