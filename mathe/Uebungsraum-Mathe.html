@@ -454,6 +454,39 @@ svg.kreisdia .st-t{fill:var(--text)} svg.kreisdia path+text,svg.kreisdia .st-t{p
 input.term[readonly]{background:var(--ink-soft);color:var(--ink);font-weight:700}
 .zbfeld input.term::placeholder,.mfeld input.term::placeholder{font-size:.8em}
 .mfeld .bfeld{min-width:8ch}
+/* Vorrangregeln (M-RaZa-V2, 21.11.2026): Reihenfolge-Nummern ①②③ mit Pfeil über dem Rechenzeichen (Platz darüber
+   reserviert, damit sich nichts überlappt, auch wenn der Term am Handy umbricht), Zwischenzeilen mit Feldern in der
+   Zeile, Rechenzeichen zum Antippen (A03) */
+.task.vg-pf{line-height:2.7;padding-top:.3em}
+.vg-op{position:relative;display:inline-block;line-height:1.2}
+.vg-op::before{content:attr(data-nr) "\A↓";white-space:pre;position:absolute;left:50%;bottom:100%;transform:translateX(-50%);
+  font-size:.62em;line-height:1.05;font-weight:800;color:var(--ink);text-align:center;pointer-events:none}
+.vg-leg{list-style:none;margin:4px auto 10px;padding:0;display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;font-size:1.05rem}
+.vg-leg b{color:var(--ink);font-size:1.15em}
+.vg-rf{margin-top:8px}
+.vg-zeile{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 3px;margin:2px 0 6px;font-size:1.3rem;font-weight:700}
+.vg-zeile .vg-t{white-space:pre-wrap}
+.vg-zeile .vg-f{display:inline-flex;align-items:center;gap:3px}
+.vg-zeile .sign{width:2.4rem;font-size:1.25rem;padding:4px 0;min-height:2.6rem}
+.vg-zeile input.zahl{width:5.2ch;font-size:1.3rem;padding:6px 2px}
+.vg-zeile .mfeld{flex:0 0 auto;gap:3px}
+.vg-zeile .bfeld{flex:0 0 5.6ch;min-width:5.6ch}
+.vg-zeile .mfeld .bfeld{min-width:5.6ch}
+.vg-zeile .bfeld input.term{font-size:1.05rem;padding:4px 2px}
+.vg-zeile .mfeld input.ganze{flex:0 0 5.4ch;width:5.4ch;font-size:1.1rem;padding:6px 2px}
+.vg-zeile.vg-breit .vg-f{flex:0 1 auto;min-width:0}
+.vg-zeile input.wide{width:11ch;font-size:1.3rem;padding:6px 4px}
+.vg-opw{display:inline-flex;flex-direction:column;gap:3px}
+.vg-opw .sign{width:2.2rem;min-height:2rem;font-size:1.15rem;padding:0}
+.vg-opw .sign.sel{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.vg-tipp{font:inherit;font-weight:800;min-width:2.3em;min-height:2.1em;padding:0 .2em;margin:0 .05em;border:2px dashed var(--ink);border-radius:10px;
+  background:var(--paper);color:var(--ink);cursor:pointer;line-height:1.2}
+.vg-tipp.sel{background:var(--ink);color:var(--paper);border-style:solid}
+.task:has(+ .fb) .vg-tipp,.pz-q .vg-tipp,.pz-q.text .vg-tipp{border-style:none;min-width:0;min-height:0;cursor:default}
+.vg-weg{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:1.25rem;line-height:1.5}
+.vg-znr{display:inline-block;font-size:.7em;font-weight:800;color:var(--ink);background:var(--ink-soft);border-radius:6px;padding:0 .4em;margin-right:.3em;vertical-align:middle}
+.vg-schritte .vg-ez{margin:2px 0}
+.vg-schritte .newex{margin-top:4px}
 </style>
 </head>
 <body>
@@ -1680,7 +1713,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-21.9","datum":"21.11.2026","pruefsumme":"8d416311c8bffd25"};
+UR.version = {"nummer":"2026-11-21.21","datum":"21.11.2026","pruefsumme":"5eba90e3076cd326"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -3545,9 +3578,204 @@ UR.bindungen.push(app=>{ if(!app.querySelectorAll) return;   // Testumgebung ohn
     b.addEventListener('click',()=>{ const s=letztes.value.trim(); letztes.value=s.startsWith('-')||s.startsWith(M)?s.slice(1):'-'+s.replace(/^\+/,''); letztes.focus(); }); });
 });
 
+/* ---------- Vorrangregeln (M-RaZa-V2, Lehrkraft 20.11.2026) ----------
+   Term als Kette [Knoten, Zeichen, Knoten, …]. Knoten: Zahl {q, art ('ganz'|'dez'|'bruch'|'misch'), neu, von} oder
+   Klammer {kl:'[', c:Kette}; Zeichen {op, id}. Regeln: Klammern zuerst (innen vor außen), dann Punkt vor Strich, sonst
+   von links nach rechts. Rechenweg wie im Mathe Know How: je Zeile werden alle Rechnungen ausgeführt, die gerade
+   Vorrang haben (jede Klammer, in jeder Kette von Punktrechnungen die erste); eine Klammer mit nur + und − wird in
+   einem Schritt ausgerechnet. Die letzte Strichrechnung kommt zuerst ohne Klammern (12 + 20), dann das Ergebnis. */
+const KREIS = '⓪①②③④⑤⑥⑦⑧⑨';
+const PUNKT = o => o.op==='·'||o.op===':';
+const istKl = n => !!n && n.kl!==undefined;
+const istOp = n => !!n && n.op!==undefined;
+const qneg = q => [-q[0], q[1]];
+const rechneOp = (a,o,b) => o==='+'?qadd(a,b):o===M?qsub(a,b):o==='·'?qmul(a,b):qdiv(a,b);
+const hatKl = c => c.some(istKl);
+const hatPunkt = c => c.some(x=>istOp(x)&&PUNKT(x));
+const nurStrich = c => c.length>1 && !hatKl(c) && !hatPunkt(c);
+const klon = c => c.map(x=>istKl(x)?{kl:x.kl, c:klon(x.c)}:istOp(x)?x:Object.assign({}, x, {neu:false, vorher:!!x.neu}));
+// Term bauen: spec = [Zahl, '·', Zahl, …], eine Klammer ist ein eingebettetes Array mit Zeichen; Zahl = [z, n] oder {q, art}
+function vgTerm(spec, art='ganz'){
+  let id=0;
+  const istQ = x => Array.isArray(x) && x.length===2 && typeof x[0]==='number' && typeof x[1]==='number';
+  const bau = a => a.map(x => typeof x==='string' ? {op:x, id:id++} : istQ(x) ? {q:Q(...x), art} : Array.isArray(x) ? {kl:'[', c:bau(x)} : {q:Q(...x.q), art:x.art||art});
+  return bau(spec);
+}
+// Rechenweg: Zeilen {art:'zwischen'|'glieder', kette | glieder}, Ergebnis, Reihenfolge der Rechnungen (für die Nummern ①②③)
+function vgWeg(kette){
+  const reihe=[]; let nr=0, sauber=true;
+  const tu = (a,o,b,grund) => { const w=rechneOp(a.q,o.op,b.q); nr++; reihe.push({id:o.id, nr, a, o, b, w, grund}); return {q:w, neu:true, von:nr}; };
+  function zeile(c, inKl){
+    if(hatKl(c)) return c.map(x=>istKl(x)?klammer(x):x);
+    if(hatPunkt(c)){
+      const strich=c.some(x=>istOp(x)&&!PUNKT(x)), out=[c[0]];
+      for(let k=1;k<c.length;k+=2){ const o=c[k], r=c[k+1];
+        if(PUNKT(o)&&(k===1||!PUNKT(c[k-2]))){ const l=out.pop(); out.push(tu(l,o,r, inKl?'klammer':strich?'punkt':'links')); } else out.push(o,r); }
+      return out;
+    }
+    return null;
+  }
+  function klammer(b){
+    if(nurStrich(b.c)){ let v=b.c[0]; for(let k=1;k<b.c.length;k+=2) v=tu(v,b.c[k],b.c[k+1],'klammer'); return v; }
+    const r=zeile(b.c, true); return r.length===1 ? r[0] : {kl:b.kl, c:r};
+  }
+  const vorherDa = c => c.some(x=>istKl(x)?vorherDa(x.c):!istOp(x)&&x.vorher);
+  const zeilen=[]; let cur=kette;
+  for(let s=0; s<12; s++){
+    if(cur.length===1 && !istKl(cur[0])) break;
+    if(nurStrich(cur)){
+      const gl=[Object.assign({}, cur[0])]; for(let k=1;k<cur.length;k+=2) gl.push(Object.assign({}, cur[k+1], {q:cur[k].op==='+'?cur[k+1].q:qneg(cur[k+1].q)}));
+      let v=cur[0]; for(let k=1;k<cur.length;k+=2) v=tu(v,cur[k],cur[k+1],'strich');
+      zeilen.push({art:'glieder', glieder:gl, kette:cur}); cur=[v]; break;
+    }
+    const nx=zeile(klon(cur), false);
+    if(nx.length===1 && !istKl(nx[0])){ cur=nx; break; }
+    // ein Teilergebnis, das in der nächsten Zwischenzeile unverändert stehen bliebe, würde die Lösung verraten
+    if(vorherDa(nx)) sauber=false;
+    zeilen.push({art:'zwischen', kette:nx}); cur=nx;
+  }
+  return {zeilen, ergebnis:cur[0].q, reihe, sauber, nrVon:id=>(reihe.find(s=>s.id===id)||{}).nr};
+}
+// erlaubte erste Rechnungen (einzeln, für Antippen und Reihenfolge): IDs der Zeichen
+function vgErlaubt(c){
+  if(hatKl(c)) return c.filter(istKl).flatMap(b=>nurStrich(b.c)?[b.c[1].id]:vgErlaubt(b.c));
+  if(hatPunkt(c)) return c.filter((x,k)=>istOp(x)&&PUNKT(x)&&(k===1||!PUNKT(c[k-2]))).map(x=>x.id);
+  return c.length>1 ? [c[1].id] : [];
+}
+// eine Rechnung ausführen (Zeichen-ID), liefert die neue Kette und den Schritt {a, o, b, w}
+function vgEinzeln(c, id){
+  let schritt=null;
+  const geh = c => { const k=c.findIndex(x=>istOp(x)&&x.id===id);
+    if(k>0){ const w=rechneOp(c[k-1].q,c[k].op,c[k+1].q); schritt={a:c[k-1], o:c[k], b:c[k+1], w}; return [...c.slice(0,k-1), {q:w}, ...c.slice(k+2)]; }
+    return c.map(x=>{ if(!istKl(x)) return x; const r=geh(x.c); return r.length===1 ? r[0] : {kl:x.kl, c:r}; }); };
+  return {kette:geh(c), schritt};
+}
+// alle richtigen Reihenfolgen der einzelnen Rechnungen
+function vgOrdnungen(c){
+  const ids=vgErlaubt(c); if(!ids.length) return [[]];
+  return ids.flatMap(id=>vgOrdnungen(vgEinzeln(c,id).kette).map(r=>[id,...r]));
+}
+/* Anzeige: Zahlen in Vorzeichen-Klammern (+12), (−⅝) mit waagrechtem Strich; o.nr(id) → Nummer über dem Zeichen,
+   o.tipp → Zeichen zum Antippen (Form 'fragen' im Bild), o.feld(knoten) → HTML für neue Teilergebnisse */
+const betragH = n => { const a=[Math.abs(n.q[0]), n.q[1]]; return n.art==='misch'&&a[0]>a[1] ? gemHTML(a) : n.art==='dez' ? Z(qwert(a)) : bHTML(a); };
+const betragT = n => { const a=[Math.abs(n.q[0]), n.q[1]]; return n.art==='misch'&&a[0]>a[1] ? gemText(a) : n.art==='dez' ? Z(qwert(a)) : bText(a); };
+const vgZahlH = n => `(<b class="sg">${n.q[0]<0?M:'+'}</b>${betragH(n)})`;
+const vgZahlT = n => `(${n.q[0]<0?M:'+'}${betragT(n)})`;
+function vgHTML(c, o={}){
+  return c.map(x=>{
+    if(istKl(x)) return `[${vgHTML(x.c,o)}]`;
+    if(istOp(x)){ const nr=o.nr&&o.nr(x.id);
+      if(o.tipp) return ` <button type="button" class="vg-tipp" data-wg="${o.tipp}" data-wert="${x.id}" aria-label="Rechenzeichen ${x.op}">${x.op}</button> `;
+      return nr ? ` <span class="vg-op" data-nr="${KREIS[nr]}">${x.op}</span> ` : ` ${x.op} `; }
+    if(x.neu&&o.feld) return o.feld(x);
+    return vgZahlH(x);
+  }).join('').replace(/ {2,}/g,' ').trim();
+}
+const vgText = c => c.map(x=>istKl(x)?`[${vgText(x.c)}]`:istOp(x)?` ${x.op} `:vgZahlT(x)).join('').replace(/ {2,}/g,' ').trim();
+// Glieder ohne Klammern: −5,25 + 9/8 − 1/6 (Brüche waagrecht)
+const vgGlH = gl => gl.map((g,i)=>`${i?` ${g.q[0]<0?M:'+'} `:g.q[0]<0?M:''}${betragH(g)}`).join('');
+const vgGlT = gl => gl.map((g,i)=>`${i?` ${g.q[0]<0?M:'+'} `:g.q[0]<0?M:''}${betragT(g)}`).join('');
+// Rechenzeichen + oder − wählen (Zeile ohne Klammern mit Brüchen)
+const opFeld = q => { const s=q[0]<0?'-':'+';
+  return {label:'', ans:0, ansText:s==='-'?M:'+', ansHTML:s==='-'?M:'+', eingabe:s, op:true,
+    feldHTML:id=>`${UR.wahlFeld('w_'+id)}<span class="vg-opw" data-wgruppe="w_${id}"><button type="button" class="sign" data-wg="w_${id}" data-wert="+" aria-label="plus">+</button><button type="button" class="sign" data-wg="w_${id}" data-wert="-" aria-label="minus">${M}</button></span>`,
+    lesen:v=>v===s?0:v?1:null, rohHTML:r=>r==='-'?M:esc(r)}; };
+const WORT = {'·':'das Mal', ':':'das Geteilt', '+':'das Plus', [M]:'das Minus'};
+const GRUND = {klammer:'Klammer zuerst', punkt:'Punkt vor Strich', links:'von links nach rechts', strich:'zum Schluss von links nach rechts'};
+const chipM = x => UR.mathe&&UR.mathe.chip ? UR.mathe.chip(x) : x;
+/* Aufgabe mit Rechenweg bauen (Antwortform 'vorrang'). o.bruch: Felder für Brüche, Ergebnis gekürzt als gemischte Zahl;
+   o.pfeile: Einstieg mit Hilfe (Nummern ①②③ mit Pfeil über dem Term, darunter die Rechnungen). */
+function vgAufgabe(kette, o={}){
+  const w=vgWeg(kette), bruch=!!o.bruch, nr=w.nrVon;
+  const besch = n => n.von ? KREIS[n.von] : vgZahlH(n);
+  const legende = `<ol class="vg-leg">${w.reihe.map(s=>`<li><b>${KREIS[s.nr]}</b> <span class="nw">${besch(s.a)} ${s.o.op} ${besch(s.b)}</span> <span class="small muted">(${GRUND[s.grund]})</span></li>`).join('')}</ol>`;
+  const wertH = n => vgZahlH(Object.assign({}, n, {art:bruch?'bruch':'ganz'}));
+  const felder=[], zeilen=[], loesH=[], loesT=[];
+  const neuFeld = n => bruch ? bruchFeld('', n.q, {vz:true}) : vzFeld('', qwert(n.q));
+  w.zeilen.forEach(z=>{
+    if(z.art==='zwischen'){
+      const teile=[], fl=[], marke='\u0001';
+      const html = vgHTML(z.kette, {feld:n=>{ fl.push({f:neuFeld(n), n}); return marke; }});
+      html.split(marke).forEach((h,i)=>{ if(h) teile.push({h}); if(i<fl.length){ teile.push({h:'('}, {f:fl[i].f}, {h:')'}); felder.push(fl[i].f); } });
+      const schritte=w.reihe.filter(s=>fl.some(x=>x.n.von===s.nr));
+      const grund=schritte.some(s=>s.grund==='klammer')?'klammer':schritte.some(s=>s.grund==='punkt')?'punkt':'links';
+      const nrs=schritte.map(s=>KREIS[s.nr]).join(' und ');
+      zeilen.push({art:'zwischen', teile:[...teile, {h:' ='}], n:fl.length, grund, schritte, felder:fl.map(x=>x.f),
+        label:o.pfeile ? `Rechne ${nrs} aus. Schreib ${fl.length>1?'die Ergebnisse':'das Ergebnis'} mit Vorzeichen in die Zeile:` : 'Zwischenzeile (Ergebnis mit Vorzeichen):'});
+      loesH.push(vgHTML(z.kette, {feld:wertH})); loesT.push(vgText(z.kette));
+    } else {
+      const gl=z.glieder, fg=[];
+      if(bruch) gl.forEach((g,i)=>{ if(i) fg.push(opFeld(g.q)); fg.push(bruchFeld('', i?[Math.abs(g.q[0]),g.q[1]]:g.q, {vz:!i})); });
+      else fg.push(gliederFeld('', gl.map(g=>qwert(g.q))));
+      felder.push(...fg);
+      zeilen.push({art:'glieder', teile:[...fg.map(f=>({f})), {h:' ='}], n:fg.length, glieder:gl, felder:fg,
+        label:bruch ? 'Ohne Klammern schreiben, noch nicht zusammenfassen (Rechenzeichen wählen):' : 'Ohne Klammern schreiben, noch nicht zusammenfassen:'});
+      loesH.push(vgGlH(gl)); loesT.push(vgGlT(gl));
+    }
+  });
+  const ergFeld = bruch ? mischFeld('Ergebnis', w.ergebnis, {gekuerzt:true, gemischt:true}) : vzFeld('Ergebnis', qwert(w.ergebnis));
+  felder.push(ergFeld);
+  zeilen.push({art:'ergebnis', teile:[{f:ergFeld}], n:1, felder:[ergFeld], label:bruch?'Ergebnis, vollständig gekürzt, als gemischte Zahl:':'Ergebnis:'});
+  const ergH = bruch ? gemHTML(w.ergebnis) : Z(qwert(w.ergebnis)), ergT = bruch ? gemText(w.ergebnis) : Z(qwert(w.ergebnis));
+  loesH.push(ergH); loesT.push(ergT);
+  const qhPfeile = vgHTML(kette, {nr});
+  const regeln = `Klammern zuerst, dann Punkt vor Strich (${chipM('·')} und ${chipM(':')} <span class="nw">vor ${chipM('+')}</span> <span class="nw">und ${chipM(M)}),</span> sonst von links nach rechts.`;
+  const reihenText = w.reihe.map(s=>`<span class="nw">${KREIS[s.nr]} ${besch(s.a)} ${s.o.op} ${besch(s.b)} = ${bruch?bHTML(s.w):Z(qwert(s.w))}</span>`).join(', ');
+  const t = {kind:'vorrang', q:vgText(kette), qh:`${o.pfeile?qhPfeile:vgHTML(kette)} =`, pfeile:!!o.pfeile, legende, bruch, kette, weg:w, zeilen, felder, ergebnis:w.ergebnis,
+    loesungText:loesT.join(' = '), loesungH:loesH.join(' = '), wegH:`${vgHTML(kette)} = ${loesH.join(' = ')}`,
+    why:regeln, reihenText, qhPfeile, sauber:w.sauber};
+  t.zeilenHinweis = (zi, e) => {
+    const z=zeilen[zi], wo=`Zeile ${zi+1}: `;
+    if(z.art==='ergebnis'){ const x=e[0]; return x.wertOk&&!x.formOk ? formHinweis(x.roh) : `${wo}Rechne die Zeile davor von links nach rechts aus.`; }
+    if(z.art==='glieder'){
+      if(!bruch) return wo+(gliederGrund(e[0].roh, z.glieder.map(g=>qwert(g.q))) || 'Schreibe die Zahlen der Zeile davor ohne Klammern hin.');
+      return wo+(e.some((x,i)=>!x.zahlOk&&z.felder[i].op) ? `Klammern auflösen: Gleiche Zeichen ergeben ${chipM('+')}, verschiedene Zeichen ergeben ${chipM(M)}.`
+        : 'Schreibe die Zahlen der Zeile davor ohne Klammern hin, in derselben Reihenfolge.');
+    }
+    const s=z.schritte[0], erst=`${besch(s.a)} ${s.o.op} ${besch(s.b)}`;
+    const vz = e.some((x,i)=>{ const soll=z.felder[i].ans; return x.v!==null&&!Number.isNaN(x.v)&&Math.abs(Math.abs(x.v)-Math.abs(soll))<1e-9&&Math.abs(x.v-soll)>1e-9; });
+    if(vz) return `${wo}Achte auf das Vorzeichen: Gleiche Vorzeichen ergeben ein positives Ergebnis, verschiedene ein negatives.`;
+    if(z.grund==='klammer') return `${wo}Zuerst die Klammer (innen vor außen), hier zuerst <span class="nw">${erst}.</span>`;
+    if(z.grund==='punkt') return `${wo}Punkt vor Strich, hier zuerst ${WORT[s.o.op]}: <span class="nw">${erst}.</span>`;
+    return `${wo}Von links nach rechts, hier zuerst <span class="nw">${erst}.</span>`;
+  };
+  // Rückmeldung (der Rechenweg steht schon bei „Richtig ist …“): Reihenfolge ①②③ über dem Term, darunter die Rechnungen
+  t.zusatzRueckmeldung = f => `${!f.ok&&t.hinweis?`<div class="fb no pop"><span>${t.hinweis}</span></div>`:''}<div class="vg-rf"><p class="small muted">Reihenfolge:</p><div class="task vg-pf">${qhPfeile}</div>${legende}</div>`;
+  return t;
+}
+
+UR.formAnmelden('vorrang', {
+  html(t){
+    let i=0; const feld = f => f.feldHTML('z'+(i++));
+    const kopf = `${t.lead?`<p class="muted">${t.lead}</p>`:''}<div class="task${t.pfeile?' vg-pf':''}">${t.qh}</div>${t.pfeile?t.legende:''}`;
+    const zeilen = t.zeilen.map(z=>`<p class="lbl">${z.label}</p><div class="vg-zeile${z.art==='glieder'&&!t.bruch?' vg-breit':''}">${
+      z.teile.map(p=>p.f?`<span class="vg-f">${feld(p.f)}</span>`:`<span class="vg-t">${p.h}</span>`).join('')}</div>`).join('');
+    return `${kopf}<form class="selfform vg" id="multiForm" autocomplete="off">${zeilen}<div class="answer"><button class="big" type="submit">${UR.TEXTE.ok}</button></div></form>`;
+  },
+  bewerten(t,pre,raw){
+    const erg=UR.zahlFelderBewerten(t.felder, Array.isArray(raw)?[...raw]:[raw], t);
+    let k=0, falsch=-1; t.hinweis='';
+    t.zeilen.forEach((z,zi)=>{ const e=erg.slice(k,k+z.n); k+=z.n; if(falsch<0&&!e.every(x=>x.zahlOk)){ falsch=zi; t.hinweis=t.zeilenHinweis(zi,e); } });
+    t.falscheZeile=falsch;
+    const stuecke=UR.zahlStuecke(t.felder, erg);
+    return {ok:falsch<0, stuecke, shown:stuecke.map(s=>s.text).join(' | ')};
+  },
+  loesung: t => t.loesungText,
+  loesungHTML: t => t.loesungH,
+  // LZK: Term, Platz für die Zwischenzeilen, Lösung = ganzer Rechenweg
+  papier: t => ({aufgabe:`<div class="pz-q">${vgHTML(t.kette)} =</div>${UR.papier.platz(t.zeilen.length>2?3:2)}`, loesung:t.wegH, lead:t.lead, aufwand:t.bruch?3:2})
+});
+// Erklärung: Rechenweg Zeile für Zeile aufdecken ([data-vg-weiter] zeigt die nächste versteckte Zeile seines Blocks)
+UR.bindungen.push(app=>{ if(!app.querySelectorAll) return;
+  app.querySelectorAll('[data-vg-weiter]').forEach(b=>b.addEventListener('click',()=>{
+    const box=b.closest('.vg-schritte'); if(!box) return; const n=box.querySelector('.vg-ez[hidden]');
+    if(n) n.hidden=false; if(!box.querySelector('.vg-ez[hidden]')) b.hidden=true; }));
+});
+
 UR.raza = {ggT, Q, qadd, qsub, qmul, qdiv, qvgl, qwert, rund, alsQ, Z, br, gemHTML, gemText, NB,
   vzFeld, vzFeldHTML, nurFeldHTML, minusTaste, mischFeld, mischFeldHTML, leseMisch, mischTeile, formHinweis,
-  mischRohHTML, bruchFeld, bHTML, bText, gliederFeld, gliederLesen, gliederGrund, gliederText, zweiBruchFeld, zweiBruchTeile, zweiBruchGrund, zweiBruchHTML};
+  mischRohHTML, bruchFeld, bHTML, bText, gliederFeld, gliederLesen, gliederGrund, gliederText, zweiBruchFeld, zweiBruchTeile, zweiBruchGrund, zweiBruchHTML,
+  KREIS, vgTerm, vgWeg, vgErlaubt, vgEinzeln, vgOrdnungen, vgHTML, vgText, vgZahlH, vgZahlT, vgGlH, vgGlT, vgAufgabe, opFeld, qneg, rechneOp, PUNKT, istKl, istOp, GRUND, WORT};
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -4727,6 +4955,331 @@ const erklaerung = {
 
 const lzk = {merkmal:{glieder:'klammern', plusMinus:'bruchplusminus', mal:'bruchmal', durch:'bruchdurch'}};
 UR.kompetenzAnmelden({id:'M-RaZa-V1', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.1 Rationale-Zahlen/M-RaZa-V2.js */
+/* Baustein M-RaZa-V2: „Ich kenne die Vorrangregeln beim Rechnen mit Rationalen Zahlen und kann sie anwenden.“
+   Steckbrief: M-RaZa-V2.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026). Entscheidungen der Lehrkraft 20.11.2026:
+   - Rechenweg mit Zwischenschritt: Das Kind tippt je Punktrechnung bzw. Klammer das Teilergebnis in die vorgegebene
+     Zwischenzeile; die letzte Strichrechnung zuerst ohne Klammern (12 + 20), dann das Ergebnis. Richtig nur, wenn alle
+     Zeilen stimmen. Punktrechnung: Vorzeichen und Betrag zusammen.
+   - „als gemischte Zahl“ (A05): unechter bzw. nicht gekürzter Bruch zählt falsch, mit Hinweis.
+   - Brüche immer mit waagrechtem Strich, auch in Lösung und Rückmeldung.
+   - Reihenfolge-Nummern ①②③ mit Pfeil über dem Term: im Einstieg mit Hilfe (dazu die Rechnungen darunter), in der
+     Rückmeldung und in der Erklärung. A03: die erste Rechnung im Term antippen (Form 'fragen' im Bild).
+   Antwortform 'vorrang' und Rechenweg aus Mathe/bausteine/rationale.js. Der Einstieg mit Hilfe läuft über `leicht`
+   (das Kind tippt dabei alle Zeilen selbst, die Nummern zeigen nur die Reihenfolge). */
+(function(UR){
+const {rnd, pick} = UR, M = UR.M;
+const {ggT, Q, qwert, Z, br, bHTML, gemHTML, vzFeld, KREIS, vgTerm, vgWeg, vgErlaubt, vgEinzeln, vgOrdnungen, vgHTML, vgText, vgZahlH,
+  vgAufgabe, rechneOp, istKl, istOp, GRUND, WORT} = UR.raza;
+const {chip} = UR.mathe;
+const mischen = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; };
+function versuche(fn){ for(let n=0;n<4000;n++){ const r=fn(); if(r) return r; } throw new Error('Generator findet keine passende Aufgabe'); }
+const merk = html => `<div class="merk">${html}</div>`;
+const REGEL = `<b>Klammern zuerst</b> (innen vor außen), dann <b>Punkt vor Strich</b> (${chip('·')} und ${chip(':')} <span class="nw">vor ${chip('+')}</span> <span class="nw">und ${chip(M)}),</span> sonst <b>von links nach rechts</b>.`;
+const MERK = merk(REGEL);
+
+/* ---------- Zahlen ---------- */
+const g = (max=12) => [pick([1,-1])*rnd(1,max), 1];                 // ganze Zahl mit Vorzeichen, Betrag 1 … max
+const S = () => pick(['+', M]), P = () => pick(['·', ':']);
+// Division geht auf: Dividend = Divisor · Quotient (beide bis 12)
+const teilbar = (d,quot) => [d[0]*quot[0], 1];
+const wert = c => vgWeg(c).ergebnis;
+const groesse = q => Math.abs(qwert(q));
+// alle Teilergebnisse: nicht 0, ganzzahlig (ganze Zahlen), Betrag höchstens max
+function passt(c, o={}){
+  const w=vgWeg(c); if(!w.sauber) return null;
+  for(const s of w.reihe){ if(s.w[0]===0 && s!==w.reihe[w.reihe.length-1]) return null; if(!o.bruch&&s.w[1]!==1) return null; if(groesse(s.w)>(o.max||200)) return null; if(o.bruch&&s.w[1]>(o.nenner||60)) return null; }
+  if(w.ergebnis[0]===0 && Math.random()<(o.null??.85)) return null;
+  return w;
+}
+
+/* ---------- Terme (Vorlagen) ---------- */
+// V2-A01: drei Zahlen, eine Punkt- und eine Strichrechnung
+function termA01(){
+  const p=P(), s=S(), vorn=Math.random()<.5;
+  const pk = () => { if(p==='·') return [g(),'·',g()]; const d=g(), quot=g(); return [teilbar(d,quot),':',d]; };
+  const [a,o,b]=pk();
+  return vgTerm(vorn ? [a,o,b,s,g()] : [g(),s,a,o,b]);
+}
+// V2-A02: drei bis vier Zahlen, mehrere Rechenzeichen
+const A02 = {
+  pp(){ const t1=Math.random()<.5?[g(),'·',g()]:(()=>{ const d=g(),q=g(); return [teilbar(d,q),':',d]; })(); const t2=Math.random()<.5?[g(),'·',g()]:(()=>{ const d=g(9),q=g(9); return [teilbar(d,q),':',d]; })(); return vgTerm([...t1,S(),...t2]); },
+  kette(){ const n=Math.random()<.6?4:3, l=[g(9)]; for(let i=1;i<n;i++) l.push('·', g(n===4?7:9)); if(Math.random()<.35){ l[l.length-2]=':'; } return vgTerm(l); },
+  sps(){ return vgTerm([g(), S(), g(), P()==='·'?'·':'·', g(), S(), g()]); },
+  sds(){ const d=g(), q=g(); return vgTerm([g(), S(), teilbar(d,q), ':', d, S(), g()]); },
+  pps(){ return vgTerm([g(9), '·', g(9), ':', g(9), S(), g()]); }
+};
+function termA02(){ return A02[pick(Object.keys(A02))](); }
+// V2-A04: Klammern (runde für die Vorzeichen, eckige zum Zusammenfassen)
+const A04 = {
+  klMal(){ const kl=[g(),S(),g()]; return vgTerm(Math.random()<.5 ? [kl,P(),g()] : [g(),'·',kl]); },
+  klKl(){ return vgTerm([[g(),S(),g()], Math.random()<.7?'·':':', [g(),S(),g()]]); },
+  klPunkt(){ return vgTerm([[g(),S(),g(9),'·',g(9)], P(), g()]); },
+  strichKl(){ return vgTerm([g(), S(), [g(),S(),g()], '·', g(9)]); }
+};
+function termA04(art){ return A04[art||pick(Object.keys(A04))](); }
+
+/* ---------- Brüche und Dezimalzahlen (V2-A05) ---------- */
+const NENNER = [2,3,4,5,6,7,8,9,10,12];
+function bz(o={}){ return versuche(()=>{ const n=pick(o.nenner||NENNER), z=rnd(1, o.unecht?2*n+n-1:n-1); if(ggT(z,n)!==1||z===n) return null;
+  return {q:[pick([1,-1])*z, n], art:o.unecht&&z>n?'misch':'bruch'}; }); }
+const DEZ = [[1,2],[1,4],[3,4],[3,2],[5,4],[5,2],[21,4],[1,5],[2,5],[6,5],[9,4],[7,2]];
+const dz = () => { const q=pick(DEZ); return {q:[pick([1,-1])*q[0], q[1]], art:'dez'}; };
+const A05 = {
+  ps(){ return vgTerm([bz(), P(), bz({unecht:Math.random()<.3}), S(), bz()]); },
+  sp(){ return vgTerm([Math.random()<.4?dz():bz({unecht:Math.random()<.5}), S(), bz(), P(), bz({unecht:Math.random()<.3})]); },
+  pp(){ return vgTerm([bz(), '·', bz(), S(), bz(), '·', bz()]); },
+  sps(){ return vgTerm([dz(), S(), bz(), '·', bz({unecht:Math.random()<.5}), S(), bz()]); }
+};
+function termA05(){ return A05[pick(Object.keys(A05))](); }
+const passtBruch = c => { const w=passt(c,{bruch:true, max:40, nenner:72, null:.7}); if(!w) return null;
+  if(w.ergebnis[1]>72||groesse(w.ergebnis)>20) return null; return w; };
+
+/* ---------- Aufgaben mit Rechenweg ---------- */
+function rechenweg(baue, ctx, o={}){
+  const pfeile=!!(ctx&&ctx.leicht);
+  return versuche(()=>{
+    const c=baue(); if(!(o.bruch?passtBruch(c):passt(c,o))) return null;
+    const t=vgAufgabe(c, {pfeile, bruch:o.bruch});
+    t.lead = o.lead; t.papierLead = o.lead;
+    return t;
+  });
+}
+
+/* ---------- Was wird zuerst gerechnet? (V2-A03) ---------- */
+function ersteRechnung(ctx){
+  const leicht=!!(ctx&&ctx.leicht);
+  return versuche(()=>{
+    const c = leicht ? (Math.random()<.6 ? termA01() : termA04('klMal')) : pick([termA01, termA02, ()=>termA04(pick(['klMal','klPunkt','strichKl']))])();
+    if(!passt(c,{null:0})) return null;
+    const erst=vgErlaubt(c); if(erst.length!==1) return null;
+    const w=vgWeg(c), s=w.reihe.find(x=>x.id===erst[0]);
+    const ops=[]; const sammle=k=>k.forEach(x=>istKl(x)?sammle(x.c):istOp(x)&&ops.push(x)); sammle(c);
+    // Rechnung zu einem Zeichen: die Nachbarn in seiner Kette (Zahl oder ganze Klammer)
+    const zeig = id => { const such = k => { const j=k.findIndex(x=>istOp(x)&&x.id===id); if(j>0) return [k[j-1],k[j],k[j+1]];
+        for(const x of k) if(istKl(x)){ const r=such(x.c); if(r) return r; } return null; };
+      const [a,o,b]=such(c), n = x => istKl(x) ? `[${vgHTML(x.c)}]` : vgZahlH(x); return `${n(a)} ${o.op} ${n(b)}`; };
+    const erstH = zeig(erst[0]);
+    const grund = s.grund==='klammer' ? 'Die Klammer kommt zuerst.' : s.grund==='punkt' ? `Punkt vor Strich: ${WORT[s.o.op]} kommt vor + und ${M}.` : 'Es gibt nur Punktrechnungen: von links nach rechts.';
+    return {kind:'fragen', q:vgText(c), qh:vgHTML(c,{tipp:'q0'}), lead:`Tippe das Rechenzeichen der Rechnung an, die du zuerst ausführst!${leicht?MERK:''}`,
+      papierLead:'Kreise das Rechenzeichen der Rechnung ein, die du zuerst ausführst!', kette:c,
+      gruppen:[{imBild:true, optionen:ops.map(o=>[String(o.id), zeig(o.id)]), ans:String(erst[0]), ansHTML:erstH}],
+      why:`${grund} Zuerst rechnest du <span class="nw">${erstH}.</span> ${REGEL}`,
+      loesungBild:`<div class="task vg-pf">${vgHTML(c,{nr:w.nrVon})}</div>`,
+      zusatzRueckmeldung:()=>`<div class="vg-rf"><p class="small muted">Reihenfolge:</p><div class="task vg-pf">${vgHTML(c,{nr:w.nrVon})}</div></div>`};
+  });
+}
+
+/* ---------- Rechenschritte ordnen (V2-N02) ---------- */
+function ordnen(ctx){
+  const leicht=!!(ctx&&ctx.leicht);
+  return versuche(()=>{
+    const c = pick([A02.pp, A02.sps, A02.sds, A02.pps, ()=>termA04('klPunkt'), ()=>termA04('strichKl'), ()=>termA04('klKl')])();
+    if(!passt(c,{null:.5})) return null;
+    const ordnungen=vgOrdnungen(c), schritte={};
+    // Karten: jede Rechnung mit ihren Zahlen (Teilergebnisse aus der ersten richtigen Reihenfolge)
+    let k=c; for(const id of ordnungen[0]){ const r=vgEinzeln(k,id); schritte[id]=r.schritt; k=r.kette; }
+    const ids=ordnungen[0];
+    if(ids.length<3||ids.length>4) return null;
+    const txt = id => { const s=schritte[id]; return `${vgZahlH(s.a)} ${s.o.op} ${vgZahlH(s.b)} = ${Z(qwert(s.w))}`; };
+    if(new Set(ids.map(txt)).size!==ids.length) return null;
+    const w=vgWeg(c);
+    const grund = id => { const s=w.reihe.find(x=>x.id===id); return GRUND[s.grund]; };
+    const karten=mischen(ids.map(id=>({id:'k'+id, text:txt(id), kurz:txt(id).replace(/<[^>]+>/g,'')})));
+    return {kind:'reihenfolge', q:vgText(c), qh:vgHTML(c), lead:`Bringe die Rechenschritte in die richtige Reihenfolge!${leicht?MERK:''}`, kette:c,
+      papierLead:'Nummeriere die Rechenschritte in der richtigen Reihenfolge!',
+      karten, loesungen:ordnungen.map(o=>o.map(id=>'k'+id)), fest:leicht?1:0,
+      why:`Richtige Reihenfolge: ${ids.map((id,i)=>`<span class="nw">${KREIS[i+1]} ${txt(id)}</span> (${grund(id)})`).join(', ')}.${ordnungen.length>1?' Rechnungen, die nicht voneinander abhängen, dürfen auch in anderer Reihenfolge stehen.':''}`,
+      zusatzRueckmeldung:()=>`<div class="vg-rf"><p class="small muted">Reihenfolge:</p><div class="task vg-pf">${vgHTML(c,{nr:w.nrVon})}</div></div>`};
+  });
+}
+
+/* ---------- Plus: Klammern setzen (V2-A06) ---------- */
+// Term ohne Vorzeichen-Klammern wie in der Beispielsammlung: −12 − 24 : 6; negative Zahlen nach einem Zeichen in ( )
+const A06Z = [[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[7,1],[8,1],[9,1],[10,1],[12,1],[1,2],[1,4]];
+function klammernSetzen(){
+  return versuche(()=>{
+    const n=4;   // bei drei Zahlen gäbe es nur zwei Klammerungen, die etwas ändern
+    const zahlen=Array.from({length:n},()=>{ const q=pick(A06Z); return [pick([1,1,-1])*q[0]*(q[1]===1&&Math.random()<.3?2:1), q[1]]; });
+    const ops=Array.from({length:n-1},()=>pick(['+',M,'·',':']));
+    if(!ops.some(o=>o==='·'||o===':')||!ops.some(o=>o==='+'||o===M)) return null;
+    // Klammerungen: eine Klammer über 2 bis n−1 Zahlen, bei 4 Zahlen auch zwei Klammern (ab)(cd)
+    const varianten=[];
+    for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) if(j-i<n-1) varianten.push([[i,j]]);
+    if(n===4) varianten.push([[0,1],[2,3]]);
+    const bau = kl => { const spec=[]; let pos=0;
+      const teil=(a,b)=>{ const l=[]; for(let k=a;k<=b;k++){ if(k>a) l.push(ops[k-1]); l.push(zahlen[k]); } return l; };
+      const rest=[]; let k=0;
+      while(k<n){ const p=kl.find(x=>x[0]===k); if(k>0) rest.push(ops[k-1]); if(p){ rest.push(teil(p[0],p[1])); k=p[1]+1; } else { rest.push(zahlen[k]); k++; } }
+      return vgTerm(rest,'dez'); };
+    const werte=varianten.map(v=>{ try{ const c=bau(v); const w=vgWeg(c); if(w.reihe.some(s=>!Number.isFinite(s.w[0])||s.w[1]===0||groesse(s.w)>500)) return null; return {v, c, q:w.ergebnis}; }catch(e){ return null; } });
+    if(werte.some(x=>!x)) return null;
+    const ohne=vgWeg(vgTerm(zahlen.flatMap((z,i)=>i?[ops[i-1],z]:[z]),'dez'));
+    if(ohne.reihe.some(s=>s.w[1]===0)) return null;
+    const richtig=pick(werte), ziel=richtig.q;
+    if(100%ziel[1]!==0||groesse(ziel)>200) return null;
+    const gleich=(a,b)=>a[0]*b[1]===b[0]*a[1];
+    if(werte.filter(x=>gleich(x.q,ziel)).length!==1 || gleich(ohne.ergebnis,ziel)) return null;
+    // Anzeige wie in der Beispielsammlung: negative Zahlen nach einem Zeichen in ( ); eine Klammer um Zahlen mit ( ) ist eckig
+    const zH = (q,frei) => { const a=Z(Math.abs(q[0])/q[1]); return q[0]<0 ? (frei?`${M}${a}`:`(${M}${a})`) : a; };
+    const zeige = kl => { let h='';
+      for(let k=0;k<n;k++){
+        const auf=kl.find(x=>x[0]===k), zu=kl.find(x=>x[1]===k);
+        const eckig = p => zahlen.slice(p[0]+1,p[1]+1).some(q=>q[0]<0);
+        if(k>0) h+=` ${ops[k-1]} `;
+        if(auf) h+=eckig(auf)?'[':'(';
+        h+=zH(zahlen[k], k===0||!!auf);
+        if(zu) h+=eckig(zu)?']':')';
+      }
+      return h; };
+    // zur Auswahl nur Klammerungen, die etwas ändern (nicht dasselbe wie ohne Klammern) und verschiedene Ergebnisse haben
+    const andere=[]; for(const x of mischen(werte.filter(x=>x!==richtig))) if(!gleich(x.q,ohne.ergebnis)&&!andere.some(y=>gleich(y.q,x.q))) andere.push(x);
+    if(andere.length<2) return null;
+    const opt=[richtig, ...andere.slice(0, Math.random()<.5?2:3)];
+    const optionen=mischen(opt).map((x,i)=>[String(i), zeige(x.v)]);
+    const ans=String(optionen.findIndex(o=>o[1]===zeige(richtig.v)));
+    if(new Set(optionen.map(o=>o[1])).size!==optionen.length) return null;
+    const ergH = q => q[1]===1?Z(q[0]):100%q[1]===0?`${q[0]<0?M:''}${Z(Math.abs(q[0])/q[1])}`:bHTML(q);
+    const alle = opt.map(x=>`<span class="nw">${zeige(x.v)} = ${ergH(x.q)}</span>`).join(', ');
+    return {kind:'fragen', q:`${zeige([]).replace(/<[^>]+>/g,'')} = ${ergH(ziel).replace(/<[^>]+>/g,'')}`, qh:`${zeige([])} = ${ergH(ziel)}`, lead:'Wo müssen die Klammern stehen, damit das Ergebnis stimmt?',
+      zahlen, ops, ziel, varianten:opt.map(x=>x.v),
+      gruppen:[{optionen, ans, klasse:'lang'}],
+      why:`Nur eine Klammerung ergibt ${ergH(ziel)}. Gerechnet: ${alle}.`};
+  });
+}
+
+/* ---------- Plus: Fehler im Rechenweg (V2-N01) ---------- */
+const WAHL = n => [...Array.from({length:n},(_,i)=>[String(i+1),`Zeile ${i+1}`]), ['0','kein Fehler']];
+const wahlFeld = (label, optionen, ans) => ({label, ans:0, wahl:true, eingabe:ans,
+  ansText:(optionen.find(o=>o[0]===ans)||[,ans])[1], ansHTML:(optionen.find(o=>o[0]===ans)||[,ans])[1],
+  feldHTML:id=>`${UR.wahlFeld('w_'+id)}${UR.wahlGruppe('w_'+id, optionen, {klasse:optionen.length===3?'drei':''})}`, lesen:v=>v===ans?0:v?1:null});
+// Zeilen eines Rechenwegs als HTML (ganze Zahlen)
+function wegZeilen(c){
+  const w=vgWeg(c), wertH=n=>vgZahlH(Object.assign({},n,{art:'ganz'}));
+  return [...w.zeilen.map(z=>z.art==='zwischen'?vgHTML(z.kette,{feld:wertH}):UR.raza.vgGlH(z.glieder)), Z(qwert(w.ergebnis))];
+}
+function fehlerFinden(){
+  return versuche(()=>{
+    const art=pick(['strich','vorzeichen','glieder','rechnen','klammer','richtig']);
+    const c = art==='klammer' ? vgTerm([[g(),S(),g()], '·', g(9)]) : termA01();
+    if(!passt(c,{null:0})) return null;
+    const richtigZ=wegZeilen(c), soll=wert(c);
+    let zeilen, falsch, text;
+    const top=c.filter(x=>istOp(x)), ersterPunkt=top.find(x=>x.op==='·'||x.op===':');
+    if(art==='richtig'){ zeilen=richtigZ; falsch=0; text='Alles stimmt.'; }
+    else if(art==='strich'||art==='klammer'){
+      // Strich vor Punkt gerechnet bzw. Klammer übersehen: der falsche Weg als eigener Term
+      let c2;
+      if(art==='strich'){ const k=c.indexOf(ersterPunkt); if(k!==3) return null; c2=vgTerm([[c[0].q,c[1].op,c[2].q], c[3].op, c[4].q]); }
+      else { const kl=c[0].c; c2=vgTerm([kl[0].q, kl[1].op, kl[2].q, '·', c[2].q]); }
+      if(!passt(c2,{null:0})) return null;
+      zeilen=wegZeilen(c2); falsch=1;
+      text = art==='strich' ? 'In Zeile 1 wurde Strich vor Punkt gerechnet. Richtig ist Punkt vor Strich: zuerst · und :, dann + und −.'
+        : 'In Zeile 1 wurde die Klammer übersehen. Die Klammer kommt zuerst.';
+    } else if(art==='vorzeichen'){
+      const w=vgWeg(c), z1=w.zeilen[0]; if(!z1||z1.art!=='zwischen') return null;
+      const k2=z1.kette.map(x=>x.neu?Object.assign({},x,{q:[-x.q[0],x.q[1]],neu:false}):x);
+      zeilen=[vgHTML(k2), ...wegZeilen(k2)]; falsch=1;
+      text='In Zeile 1 stimmt das Vorzeichen des Teilergebnisses nicht: Gleiche Vorzeichen ergeben ein positives Ergebnis, verschiedene ein negatives.';
+    } else if(art==='glieder'){
+      const w=vgWeg(c), gi=w.zeilen.findIndex(z=>z.art==='glieder'); if(gi<1) return null;
+      const gl=w.zeilen[gi].glieder.map((x,i)=>i===1?Object.assign({},x,{q:[-x.q[0],x.q[1]]}):x);
+      let summe=[0,1]; for(const x of gl) summe=rechneOp(summe,'+',x.q);
+      zeilen=[...richtigZ.slice(0,gi), UR.raza.vgGlH(gl), Z(qwert(summe))]; falsch=gi+1;
+      text=`In Zeile ${gi+1} ist eine Klammer falsch aufgelöst: Gleiche Zeichen ergeben +, verschiedene Zeichen ergeben ${M}.`;
+    } else {
+      const d=pick([1,2,10,-1,-2,-10]), falschErg=qwert(soll)+d; if(falschErg===qwert(soll)) return null;
+      zeilen=[...richtigZ.slice(0,-1), Z(falschErg)]; falsch=richtigZ.length;
+      text=`In Zeile ${richtigZ.length} wurde falsch gerechnet.`;
+    }
+    if(art!=='richtig'&&zeilen[zeilen.length-1]===richtigZ[richtigZ.length-1]&&art!=='glieder') return null;
+    if(zeilen.length>3) return null;
+    const optionen=WAHL(zeilen.length), ans=String(falsch);
+    const qh=`<div class="vg-weg"><div>${vgHTML(c)} =</div>${zeilen.map((z,i)=>`<div><span class="vg-znr">Zeile ${i+1}</span> ${z}${i<zeilen.length-1?' =':''}</div>`).join('')}</div>`;
+    return {kind:'zweischritt', q:`${vgText(c)} = …`, qh, lead:'In welcher Zeile steckt der Fehler? Wie lautet das richtige Ergebnis?', schritt:'Zeile mit Fehler',
+      art, kette:c, zeilenAnzeige:zeilen, falsch, ergebnis:soll,
+      s1:{label:'Schritt 1: In welcher Zeile steckt der Fehler?', kurz:'Fehler', felder:[wahlFeld('', optionen, ans)], ansText:optionen.find(o=>o[0]===ans)[1]},
+      s2:{label:'Schritt 2: das richtige Ergebnis', felder:[vzFeld('Ergebnis', qwert(soll))], ansText:Z(qwert(soll))},
+      pre:{ans, optionen},
+      why:`${text} Richtig: ${vgHTML(c)} = ${richtigZ.join(' = ')}.`};
+  });
+}
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // V2-A01 Punkt vor Strich (ganze Zahlen)
+  punktStrich: ctx => rechenweg(termA01, ctx, {lead:'Beachte die Vorrangregeln und berechne!', max:150}),
+  // V2-A02 Vier Zahlen, mehrere Rechenzeichen
+  mehrere: ctx => rechenweg(termA02, ctx, {lead:'Berechne Schritt für Schritt!', max:1000}),
+  // V2-A03 Was wird zuerst gerechnet?
+  zuerst: ersteRechnung,
+  // V2-A04 Klammern (runde und eckige)
+  klammern: ctx => rechenweg(()=>termA04(), ctx, {lead:'Berechne schrittweise und beachte die Vorrangregeln!', max:200}),
+  // V2-A05 Vorrangregeln mit Brüchen und Dezimalzahlen
+  brueche: ctx => rechenweg(termA05, ctx, {lead:'Berechne und stelle das Ergebnis als gemischte Zahl dar! Dezimalzahlen darfst du als Bruch schreiben.', bruch:true}),
+  // V2-N02 Rechenschritte in die richtige Reihenfolge
+  ordnen: ctx => ordnen(ctx),
+  /* ---------- Plus ---------- */
+  // V2-A06 Klammern setzen
+  klammernSetzen: () => klammernSetzen(),
+  // V2-N01 Fehler im Rechenweg finden
+  fehlerFinden: () => fehlerFinden()
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Punkt vor Strich', hint:`(+12) ${M} (+120) : (${M}6) = 32`, types:['zuerst','punktStrich','mehrere']},
+  {id:'S2', name:'Klammern', hint:`[(${M}3) + (${M}2)] · (${M}5) = 25`, types:['klammern','ordnen']},
+  {id:'S3', name:'Brüche und Dezimalzahlen', hint:`(${M}5,25) ${M} (+${br(3,4)}) · (${M}1${UR.raza.NB}${br(1,2)}) = ${M}4${UR.raza.NB}${br(1,8)}`, types:['brueche']}
+];
+const kern = ['punktStrich','mehrere','zuerst','klammern','brueche','ordnen'];
+// Einstieg mit Hilfe über `leicht`: bei den Rechenwegen Nummern ①②③ und Rechnungen über den Zeilen (das Kind tippt
+// alles selbst), bei A03 und N02 die leichtere Fassung (Merkkarte, kürzere Terme bzw. erster Schritt vorgegeben)
+const leicht = ['punktStrich','mehrere','zuerst','klammern','brueche','ordnen'];
+const plus = ['klammernSetzen','fehlerFinden'];
+const plusHint = 'Klammern setzen · Fehler im Rechenweg finden';
+
+/* ---------- Erklärung ---------- */
+// Beispiel Zeile für Zeile aufdecken, die Nummern ①②③ zeigen die Reihenfolge
+function schritteHTML(t){
+  const z=t.loesungH.split(' = ');
+  return `<div class="vg-schritte"><div class="task vg-pf">${t.qhPfeile} =</div>${z.map((x,i)=>`<div class="ex vg-ez" hidden>${x}${i<z.length-1?' =':''}</div>`).join('')}
+    <button class="newex" data-vg-weiter>Nächster Schritt</button></div>`;
+}
+const bsp = {a:()=>rechenweg(termA02,{}, {max:1000}), b:()=>rechenweg(()=>termA04(),{}, {max:200}), c:()=>rechenweg(termA05,{}, {bruch:true})};
+const erklaerung = {
+  beispiele: ()=>({a:bsp.a(), b:bsp.b(), c:bsp.c()}),
+  neu(kind,E){ E[kind]=bsp[kind](); },
+  html: E => `<section class="sheet"><h2>Vorrangregeln</h2>
+    <div class="rule"><h3>1. Die Reihenfolge</h3>
+      <ol><li><b>Klammern zuerst</b>, innen vor außen: <span class="nw">( ) vor [ ]</span>.</li>
+        <li><b>Punkt vor Strich</b>: ${chip('·')} und ${chip(':')} <span class="nw">vor ${chip('+')}</span> <span class="nw">und ${chip(M)}.</span></li>
+        <li>Sonst <b>von links nach rechts</b>.</li></ol>
+      <p>Schreib nach jedem Schritt eine neue Zeile: Was Vorrang hat, ist ausgerechnet, der Rest wird abgeschrieben.
+        Die letzte Strichrechnung schreibst du zuerst ohne Klammern (z.&nbsp;B. 12 + 20), dann kommt das Ergebnis.</p></div>
+    <div class="rule"><h3>2. Beispiel mit Reihenfolge</h3>
+      <p>Die Nummern über dem Term zeigen, was zuerst kommt. Tippe auf „Nächster Schritt“.</p>
+      ${schritteHTML(E.a)}
+      <button class="newex" data-newex="a">Neues Beispiel</button></div>
+    <div class="rule"><h3>3. Mit Klammern</h3>
+      <p>Zuerst wird die Klammer ausgerechnet. In der Klammer gilt wieder: Punkt vor Strich.</p>
+      ${schritteHTML(E.b)}
+      <button class="newex" data-newex="b">Neues Beispiel</button></div>
+    <div class="rule"><h3>4. Mit Brüchen und Dezimalzahlen</h3>
+      <p>Die Reihenfolge bleibt gleich. Dezimalzahlen darfst du als Bruch schreiben. Am Schluss vollständig kürzen und
+        einen unechten Bruch als gemischte Zahl schreiben.</p>
+      <div class="ex">${E.c.wegH}</div>
+      <button class="newex" data-newex="c">Neues Beispiel</button></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
+};
+
+const lzk = {merkmal:{punktStrich:'vorrangpunkt', mehrere:'vorrangmehr', zuerst:'ersterechnung', klammern:'vorrangklammer', brueche:'vorrangbruch', ordnen:'rechenreihenfolge'},
+  aufwand:{zuerst:1, ordnen:2, brueche:3}};
+UR.kompetenzAnmelden({id:'M-RaZa-V2', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
 })(window.UR = window.UR || {});
 </script>
 <script>
