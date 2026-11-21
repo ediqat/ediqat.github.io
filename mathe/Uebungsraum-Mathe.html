@@ -1730,7 +1730,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-21.23","datum":"21.11.2026","pruefsumme":"c94aab7ad16e9100"};
+UR.version = {"nummer":"2026-11-21.24","datum":"21.11.2026","pruefsumme":"ab3032f82503edd5"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -5494,6 +5494,494 @@ const erklaerung = {
 const lzk = {merkmal:{punktStrich:'vorrangpunkt', mehrere:'vorrangmehr', zuerst:'ersterechnung', klammern:'vorrangklammer', brueche:'vorrangbruch', ordnen:'rechenreihenfolge'},
   aufwand:{zuerst:1, ordnen:2, brueche:3}};
 UR.kompetenzAnmelden({id:'M-RaZa-V2', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.1 Rationale-Zahlen/M-RaZa-V3.js */
+/* Baustein M-RaZa-V3: „Ich kann Rationale Zahlen zur Lösung von Problemen in Sachsituationen verwenden.“
+   Steckbrief: M-RaZa-V3.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026). Entscheidungen der Lehrkraft 20.11.2026:
+   - Bei jeder Sachaufgabe die Einheiten-Tasten m, cm, € und °C (die Einheit ist gefragt; umgerechnet zählt nur m ↔ cm),
+     beim Aufzug keine Einheit (Stockwerke sind Zahlen, Erdgeschoss = 0, Untergeschosse negativ).
+   - V3-A01: Die restlichen Schulden zählen als 320 € und als −320 € (ebenso eine Rate, die Schulden abzahlt).
+   - Brüche immer mit waagrechtem Strich, auch in Lösung und Rückmeldung.
+   Zwei Schritte (A01, A02, A03, Form 'zweischritt' aus prozent.js): 1. die passende Rechnung aus drei Möglichkeiten
+   wählen (zwei typische Fehler: falsches Vorzeichen, falsche Rechenart), 2. das Ergebnis eintippen. Einstieg mit Hilfe:
+   Rückmeldung nach der Wahl, dazu Thermometer bzw. Gebäudeschnitt als Bild. A05 Pegel: drei Schritte (Form 'mehrschritt'
+   aus rationale.js), im Einstieg einzeln mit Rückmeldung je Schritt.
+   Antwortprüfung (Leitfaden „Antwortprüfung und Vielfalt“): Sachaufgaben = Fall B (exakter Wert oder Rundung auf 1 bis 3
+   Nachkommastellen); Mittelwerte, die nicht abbrechen, verlangen Hundertstel (Fall A). Gerundete Zwischenergebnisse
+   (Pegel) zählen beim Weiterrechnen mit. Bilder (Thermometer, Gebäudeschnitt, Zahlengerade) stehen hier im Baustein. */
+(function(UR){
+const {rnd, pick} = UR, M = UR.M, T = UR.TEXTE;
+const {Z, br, NB, vzFeldHTML} = UR.raza;
+const {chip} = UR.mathe;
+const {wahlSchritt1} = UR.prozent;
+const mischen = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; };
+function versuche(fn){ for(let n=0;n<4000;n++){ const r=fn(); if(r) return r; } throw new Error('Generator findet keine passende Aufgabe'); }
+const merk = html => `<div class="merk">${html}</div>`;
+const ohneTags = h => String(h).replace(/<[^>]+>/g,'');
+const gross = s => s[0].toUpperCase()+s.slice(1);
+
+/* ---------- Zahlen und Einheiten ---------- */
+const EH = ['m','cm','€','°C'];                                  // Einheiten-Tasten bei jeder Sachaufgabe (Lehrkraft 20.11.2026)
+const kl = x => x<0 ? `(${M}${Z(-x)})` : Z(x);                   // negative Zahl in Klammern: (−7)
+const mit = (x,e) => `${Z(x)}${NB}${e}`;
+const C = x => mit(x,'°C');
+// Euro aus Cent: ganze Euro ohne Komma, sonst immer zwei Nachkommastellen (7,20 €)
+function eurZ(c){ const a=Math.abs(c), s=c<0?M:'', g=Z(Math.floor(a/100)); return a%100 ? `${s}${g},${String(a%100).padStart(2,'0')}` : s+g; }
+const E = c => `${eurZ(c)}${NB}€`;
+// Ergebnisfeld mit Vorzeichen-Taste und Einheiten-Tasten; text = Lösung als Text (sonst die Zahl)
+const ergFeld = (label, ans, e, o={}) => ({label, ans, ansText:`${o.text||Z(ans)} ${e}`, ansHTML:`${o.text||Z(ans)}${NB}${e}`, feldHTML:vzFeldHTML,
+  einheiten:EH, einheitAns:e, auch:o.auch, stellen:o.stellen});
+// Stockwerk bzw. Anzahl der Stockwerke: Zahl ohne Einheit, nur der exakte Wert
+const zahlFeld = (label, ans) => ({label, ans, ansText:Z(ans), ansHTML:Z(ans), feldHTML:vzFeldHTML, exakt:true});
+const PERS = [['Herr Berger','er'],['Frau Yilmaz','sie'],['Familie Huber','sie'],['Herr Novak','er'],['Frau Lechner','sie'],['Frau Petrović','sie'],['Herr Gruber','er'],['Frau Aigner','sie']];
+// Hinweis, wenn die Zahl stimmt, die Einheit aber nicht (eine fehlende Einheit meldet der Kern in 'zahlen' und
+// 'zweischritt' selbst; in 'mehrschritt' hier mit e = gefragte Einheit)
+const einheitHinweis = (erg, e) => { const l=erg||[];
+  if(e&&l.some(x=>x.zahlOk&&x.fehltEinheit)) return T.einheitDazu(e);
+  return l.some(x=>x.zahlOk&&!x.einheitOk&&!x.fehltEinheit) ? T.einheitFalsch : ''; };
+
+/* ---------- Bilder ---------- */
+const badge = (cx,cy,n,farbe) => `<circle cx="${cx}" cy="${cy}" r="8" fill="${farbe}"/><text x="${cx}" y="${cy+4}" font-size="11" font-weight="800" text-anchor="middle" fill="var(--paper)">${n}</text>`;
+const KREISZ = '⓪①②③④⑤⑥⑦⑧⑨';
+const legende = l => l.length ? `<p class="small">${l.map((x,i)=>`<span class="nw">${KREISZ[i+1]} ${x}</span>`).join(' · ')}</p>` : '';
+// Beschriftungen rechts untereinander, ohne Überlappung (Mindestabstand d)
+function stapeln(l, d, oben, unten){
+  l.sort((a,b)=>a.y-b.y); for(let i=1;i<l.length;i++) if(l[i].ly-l[i-1].ly<d) l[i].ly=l[i-1].ly+d;
+  const ueber=l.length?l[l.length-1].ly-unten:0; if(ueber>0) l.forEach(x=>x.ly-=ueber);
+  for(let i=0;i<l.length;i++) if(l[i].ly<oben) l[i].ly=oben;
+  return l;
+}
+/* Thermometer: marken [{w, text, farbe}], pfeile [{a, b}] (Temperaturen als Zahl). Skala mit Strich je 1 °C, beschriftet
+   je 1, 2 oder 5 °C; 0 °C fett. */
+function thermoSVG(marken, pfeile=[]){
+  const werte=[...marken.map(m=>m.w), ...pfeile.flatMap(p=>[p.a,p.b])];
+  const lo=Math.floor(Math.min(...werte, 0))-1, hi=Math.ceil(Math.max(...werte, 0))+1, span=hi-lo;
+  const H=Math.max(200, Math.min(330, span*12+60)), y0=24, y1=H-44, y=w=>y1-(w-lo)*(y1-y0)/span;
+  const lab=span<=12?1:span<=26?2:5, tx=64, W=340;
+  let s=`<rect x="${tx-7}" y="${y0-12}" width="14" height="${y1-y0+24}" rx="7" fill="var(--paper)" stroke="var(--text)" stroke-width="1.6"/>
+    <circle cx="${tx}" cy="${y1+24}" r="13" fill="var(--cop-soft)" stroke="var(--text)" stroke-width="1.6"/>`;
+  for(let w=lo;w<=hi;w++){ const l=w%lab===0; s+=`<line x1="${tx+7}" x2="${tx+(l?17:12)}" y1="${y(w)}" y2="${y(w)}" stroke="var(--muted)"/>`;
+    if(l) s+=`<text x="${tx-14}" y="${y(w)+4}" font-size="12" text-anchor="end" fill="var(--text)"${w===0?' font-weight="800"':''}>${w>0?'+':''}${Z(w)}</text>`; }
+  s+=`<line x1="${tx-7}" x2="${tx+7}" y1="${y(0)}" y2="${y(0)}" stroke="var(--text)" stroke-width="1.6"/>`;
+  pfeile.forEach((p,i)=>{ const x=112+i*22;
+    s+=`<line x1="${x}" x2="${x}" y1="${y(p.a)}" y2="${y(p.b)+(p.b>p.a?6:-6)}" stroke="var(--c2)" stroke-width="3" marker-end="url(#v3pf)"/>
+      <line x1="${tx+8}" x2="${x}" y1="${y(p.a)}" y2="${y(p.a)}" stroke="var(--c2)" stroke-width="1" stroke-dasharray="2 3"/>${badge(x+12,(y(p.a)+y(p.b))/2,i+1,'var(--c2)')}`; });
+  const l=stapeln(marken.map(m=>({y:y(m.w), ly:y(m.w), m})), 17, 12, H-8);
+  for(const x of l){ s+=`<path d="M${tx-9} ${x.y-6}l12 12M${tx+3} ${x.y-6}l-12 12" stroke="${x.m.farbe}" stroke-width="3" stroke-linecap="round" transform="translate(3 0)"/>
+    <line x1="${tx+20}" x2="${158}" y1="${x.y}" y2="${x.ly}" stroke="${x.m.farbe}" stroke-width="1" stroke-dasharray="2 2"/>
+    <text x="162" y="${x.ly+4}" font-size="13" font-weight="700" fill="${x.m.farbe}">${x.m.text}</text>`; }
+  return `<svg class="v3-bild" viewBox="0 0 ${W} ${H}" style="max-width:340px" role="img" aria-label="Thermometer">
+    <defs><marker id="v3pf" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--c2)"/></marker></defs>${s}</svg>`;
+}
+/* Gebäudeschnitt: Erdgeschoss = 0, Untergeschosse negativ. o.start (Aufzug), o.ziel (Zeile hervorgehoben), o.wege [{a, b}]. */
+const stockName = n => n>0 ? `${n}. Stock` : n<0 ? `${-n}. UG` : 'EG';
+function gebaeudeSVG(u, og, o={}){
+  const zh=17, y0=14, W=300, y=n=>y0+(og-n)*zh, xb=78, xe=176, xs=150;   // y(n) = Oberkante des Stockwerks n
+  let s=`<rect x="${xb}" y="${y(og)}" width="${xe-xb}" height="${(og+u+1)*zh}" fill="var(--paper)" stroke="var(--text)" stroke-width="1.6"/>
+    <rect x="${xb}" y="${y(-1)}" width="${xe-xb}" height="${u*zh}" fill="var(--line)" opacity=".55"/>`;
+  if(o.ziel!==undefined) s+=`<rect x="${xb+1}" y="${y(o.ziel)+1}" width="${xe-xb-2}" height="${zh-2}" fill="var(--v-soft)"/>`;
+  for(let n=og;n>=-u;n--){ const yy=y(n);
+    if(n<og) s+=`<line x1="${xb}" x2="${xe}" y1="${yy}" y2="${yy}" stroke="var(--muted)" stroke-width=".8"/>`;
+    s+=`<text x="${xb-6}" y="${yy+zh-4}" font-size="11" text-anchor="end" fill="var(--text)">${stockName(n)}</text>
+      <text x="${xe+8}" y="${yy+zh-4}" font-size="12" font-weight="${n===0?800:600}" fill="var(--ink)">${n>0?'+':''}${Z(n)}</text>`; }
+  s+=`<line x1="${xb-74}" x2="${W-4}" y1="${y(-1)}" y2="${y(-1)}" stroke="var(--text)" stroke-width="2.2"/>
+    <text x="4" y="${y(-1)-4}" font-size="10" fill="var(--muted)">Erdboden</text>
+    <rect x="${xs}" y="${y(og)}" width="18" height="${(og+u+1)*zh}" fill="none" stroke="var(--muted)" stroke-dasharray="3 2"/>`;
+  if(o.start!==undefined) s+=`<rect x="${xs+2}" y="${y(o.start)+2}" width="14" height="${zh-4}" rx="2" fill="var(--c1)"/>`;
+  (o.wege||[]).forEach((p,i)=>{ const x=222+i*18, ya=y(p.a)+zh/2, yb=y(p.b)+zh/2;
+    s+=`<line x1="${x}" x2="${x}" y1="${ya}" y2="${yb+(p.b>p.a?6:-6)}" stroke="var(--c2)" stroke-width="2.6" marker-end="url(#v3pa)"/>${badge(x,ya,i+1,'var(--c2)')}`; });
+  const H=y(-u)+zh+10;
+  return `<svg class="v3-bild" viewBox="0 0 ${W} ${H}" style="max-width:300px" role="img" aria-label="Gebäudeschnitt mit ${og} Stockwerken über und ${u} unter dem Erdgeschoss">
+    <defs><marker id="v3pa" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--c2)"/></marker></defs>${s}</svg>`;
+}
+// Zahlengerade mit zwei Werten und dem Abstand dazwischen (V3-N02)
+function abstandSVG(lo, hi, e, mitAbstand){
+  const span=hi-lo, step=[1,2,5,10,20,25,50,100,200,250,500,1000].find(x=>span/x<=8)||1000;
+  const a=Math.floor(Math.min(lo,0)/step)*step-step, b=Math.ceil(Math.max(hi,0)/step)*step+step, W=340, L=22, R=W-22, Y=62, x=v=>L+(v-a)*(R-L)/(b-a);
+  let s=`<line x1="${L-12}" x2="${R+12}" y1="${Y}" y2="${Y}" stroke="var(--text)" stroke-width="2" marker-start="url(#v3pz)" marker-end="url(#v3pz)"/>`;
+  for(let v=a;v<=b;v+=step) s+=`<line x1="${x(v)}" x2="${x(v)}" y1="${Y-6}" y2="${Y+6}" stroke="var(--muted)"/><text x="${x(v)}" y="${Y+20}" font-size="11" text-anchor="middle" fill="var(--muted)"${v===0?' font-weight="800"':''}>${Z(v)}</text>`;
+  const kreuz=(v,f)=>`<path d="M${x(v)-6} ${Y-6}l12 12M${x(v)+6} ${Y-6}l-12 12" stroke="${f}" stroke-width="3" stroke-linecap="round"/>`;
+  const txt=(v,f,yy)=>{ const c=Math.min(W-40,Math.max(40,x(v))); return `<text x="${c}" y="${yy}" font-size="13" font-weight="700" text-anchor="middle" fill="${f}">${mit(v,e)}</text>`; };
+  const nah=Math.abs(x(hi)-x(lo))<80;
+  s+=kreuz(lo,'var(--c1)')+kreuz(hi,'var(--cop)')+txt(lo,'var(--c1)',Y+40)+txt(hi,'var(--cop)',nah?Y+58:Y+40);
+  if(mitAbstand) s+=`<path d="M${x(lo)} ${Y-12}v-10H${x(hi)}v10" fill="none" stroke="var(--c2)" stroke-width="2"/><text x="${(x(lo)+x(hi))/2}" y="${Y-30}" font-size="13" font-weight="700" text-anchor="middle" fill="var(--c2)">Abstand ${mit(hi-lo,e)}</text>`;
+  return `<svg class="v3-bild" viewBox="0 ${mitAbstand?0:34} ${W} ${Y+(nah?66:50)-(mitAbstand?0:34)}" role="img" aria-label="Zahlengerade mit ${mit(lo,e)} und ${mit(hi,e)}">
+    <defs><marker id="v3pz" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text)"/></marker></defs>${s}</svg>`;
+}
+const bildBox = h => `<div class="bild">${h}</div>`;
+
+/* ---------- Aufgabe mit zwei Schritten: Rechnung wählen, Ergebnis eintippen ---------- */
+// o.rechnungen = [{h: HTML, w: Wert}] (die erste ist richtig), o.feld, o.weg (Rechenweg), o.satz (Antwortsatz)
+function sach(o){
+  const r=o.rechnungen;
+  if(new Set(r.map(x=>ohneTags(x.h))).size!==r.length) return null;
+  if(r.slice(1).some(x=>Math.abs(x.w-r[0].w)<1e-9)) return null;
+  const t={kind:'zweischritt', text:true, q:ohneTags(o.qh), qh:o.qh, lead:o.lead||'', schritt:'Schritt 1', bild:o.bild, art:o.art, daten:o.daten,
+    s1:{label:'Schritt 1: Welche Rechnung passt?', kurz:'Rechnung', wahl:mischen(r.map((x,i)=>[String(i), x.h])), ans:'0', ansText:ohneTags(r[0].h), ansHTML:r[0].h},
+    s2:{label:o.s2label||'Schritt 2: Rechne aus! Gib auch die Einheit an.', felder:[o.feld], ansText:o.feld.ansText, ansHTML:o.feld.ansHTML},
+    hinweisNach:(e1,e2)=>einheitHinweis(e2),
+    why:`${o.why} <span class="nw">${o.weg}.</span> ${o.satz}`, weg:o.weg, satz:o.satz, bildVoll:o.bildVoll, legendeVoll:o.legende||'',
+    papierLead:o.lead||undefined};
+  if(o.bildVoll) t.zusatzRueckmeldung = f => f.ok ? '' : bildBox(o.bildVoll)+(o.legende||'');
+  return wahlSchritt1(t);
+}
+
+/* ---------- V3-A01 Schulden und Raten ---------- */
+function schulden(art){
+  return versuche(()=>{
+    const [wer,pr]=pick(PERS), Pr=gross(pr), e=x=>mit(x,'€');
+    const S=rnd(30,150)*10, r=rnd(4,20)*5, n=rnd(2,12);
+    if(art==='rest'){ const rest=S-n*r; if(rest<20) return null;
+      return sach({art, daten:{S,r,n}, qh:`${wer} hat ${e(S)} Schulden. ${Pr} zahlt ${n} Monate lang jeden Monat ${e(r)} zurück. Wie hoch sind die restlichen Schulden?`,
+        rechnungen:[{h:`(${M}${Z(S)}) + ${n} · ${Z(r)}`, w:-rest}, {h:`(${M}${Z(S)}) ${M} ${n} · ${Z(r)}`, w:-S-n*r}, {h:`(${M}${Z(S)}) + ${n} + ${Z(r)}`, w:-S+n+r}],
+        feld:ergFeld('Restliche Schulden', rest, '€', {auch:[-rest]}),
+        why:`Schulden sind negativ: ${M}${e(S)}. Jede Rückzahlung verringert die Schulden, also kommt ${n} · ${e(r)} dazu (Punkt vor Strich).`,
+        weg:`(${M}${Z(S)}) + ${n} · ${Z(r)} = (${M}${Z(S)}) + ${Z(n*r)} = ${M}${Z(rest)}`, satz:`Es bleiben ${e(rest)} Schulden.`});
+    }
+    if(art==='rate'){ const rate=rnd(4,20)*5, S2=rate*n; if(S2<300||S2>1500) return null;
+      return sach({art, daten:{S:S2,n}, qh:`${wer} hat ${e(S2)} Schulden und zahlt sie in ${n} gleich hohen Monatsraten zurück. Wie hoch ist eine Rate?`,
+        rechnungen:[{h:`(${M}${Z(S2)}) : ${n}`, w:-rate}, {h:`(${M}${Z(S2)}) · ${n}`, w:-S2*n}, {h:`(${M}${Z(S2)}) ${M} ${n}`, w:-S2-n}],
+        feld:ergFeld('Eine Rate', rate, '€', {auch:[-rate]}),
+        why:`Schulden sind negativ: ${M}${e(S2)}. Die Schulden werden auf ${n} gleiche Raten aufgeteilt, also geteilt durch ${n}.`,
+        weg:`(${M}${Z(S2)}) : ${n} = ${M}${Z(rate)}`, satz:`Eine Rate beträgt ${e(rate)}.`});
+    }
+    if(art==='restRate'){ const m=rnd(2,10), rest=S-n*r; if(rest<40||rest%m) return null; const rate=rest/m; if(rate<10) return null;
+      return sach({art, daten:{S,r,n,m}, qh:`${wer} hat ${e(S)} Schulden. ${Pr} zahlt ${n} Monate lang jeden Monat ${e(r)} zurück. Den Rest will ${pr} in ${m} gleich hohen Raten zahlen. Wie hoch ist eine dieser Raten?`,
+        rechnungen:[{h:`[(${M}${Z(S)}) + ${n} · ${Z(r)}] : ${m}`, w:-rate}, {h:`(${M}${Z(S)}) + ${n} · ${Z(r)} : ${m}`, w:-S+n*r/m}, {h:`[(${M}${Z(S)}) ${M} ${n} · ${Z(r)}] : ${m}`, w:(-S-n*r)/m}],
+        feld:ergFeld('Eine Rate', rate, '€', {auch:[-rate]}),
+        why:`Schulden sind negativ: ${M}${e(S)}. Zuerst die restlichen Schulden berechnen (Klammer), dann durch ${m} teilen.`,
+        weg:`[(${M}${Z(S)}) + ${n} · ${Z(r)}] : ${m} = [(${M}${Z(S)}) + ${Z(n*r)}] : ${m} = (${M}${Z(rest)}) : ${m} = ${M}${Z(rate)}`, satz:`Eine Rate beträgt ${e(rate)}.`});
+    }
+    // Kontostand im Minus, mehrmals eingezahlt
+    const K=rnd(5,90)*10, res=-K+n*r; if(res===0) return null;
+    return sach({art:'konto', daten:{K,r,n}, qh:`Das Konto von ${wer} steht bei ${M}${e(K)}. ${Pr} zahlt ${n}-mal je ${e(r)} ein. Wie hoch ist der Kontostand danach?`,
+      rechnungen:[{h:`(${M}${Z(K)}) + ${n} · ${Z(r)}`, w:res}, {h:`(${M}${Z(K)}) ${M} ${n} · ${Z(r)}`, w:-K-n*r}, {h:`${Z(K)} + ${n} · ${Z(r)}`, w:K+n*r}],
+      feld:ergFeld('Kontostand', res, '€'),
+      why:`Ein Konto im Minus ist negativ: ${M}${e(K)}. Einzahlen ist positiv: + ${n} · ${e(r)}.`,
+      weg:`(${M}${Z(K)}) + ${n} · ${Z(r)} = (${M}${Z(K)}) + ${Z(n*r)} = ${Z(res)}`, satz:`Der Kontostand beträgt ${e(res)}.`});
+  });
+}
+
+/* ---------- V3-A02 Temperatur steigt und fällt (Zehntel als ganze Zahlen) ---------- */
+function temperatur(art, ctx){
+  const hilfe=!!(ctx&&ctx.einstieg);
+  return versuche(()=>{
+    const z=x=>x/10, T0=rnd(-150,100), d1=rnd(5,150), d2=rnd(5,150);
+    if(T0===0||(T0%10===0&&d1%10===0)) return null;
+    const start={w:z(T0), text:`Start: ${C(z(T0))}`, farbe:'var(--c1)'};
+    if(art==='steigt'||art==='faellt'){ const s=art==='steigt'?1:-1, res=T0+s*d1;
+      const op=s>0?'+':M, gegen=s>0?M:'+';
+      const qh = art==='steigt'
+        ? `Am Morgen zeigt das Thermometer ${C(z(T0))}. Bis zum Mittag steigt die Temperatur um ${C(z(d1))}. Wie warm ist es zu Mittag?`
+        : `Am Abend zeigt das Thermometer ${C(z(T0))}. Bis Mitternacht fällt die Temperatur um ${C(z(d1))}. Welche Temperatur hat es um Mitternacht?`;
+      return sach({art, daten:{T0,d1}, qh, bild:hilfe?thermoSVG([start]):undefined,
+        rechnungen:[{h:`${kl(z(T0))} ${op} ${Z(z(d1))}`, w:z(res)}, {h:`${kl(z(T0))} ${gegen} ${Z(z(d1))}`, w:z(T0-s*d1)}, {h:`${kl(z(-T0))} ${op} ${Z(z(d1))}`, w:z(-T0+s*d1)}],
+        feld:ergFeld(art==='steigt'?'Temperatur zu Mittag':'Temperatur um Mitternacht', z(res), '°C'),
+        why:`Start bei ${C(z(T0))}. ${s>0?`Die Temperatur steigt: ${chip('+')}.`:`Die Temperatur fällt: ${chip(M)}.`}`,
+        weg:`${kl(z(T0))} ${op} ${Z(z(d1))} = ${Z(z(res))}`, satz:`Es hat ${C(z(res))}.`,
+        bildVoll:thermoSVG([start, {w:z(res), text:`Ziel: ${C(z(res))}`, farbe:'var(--text)'}], [{a:z(T0), b:z(res)}]),
+        legende:legende([`${s>0?'steigt':'fällt'} um ${C(z(d1))}`])});
+    }
+    if(art==='beides'){ const mitte=T0+d1, res=mitte-d2; if(res===mitte||Math.abs(res)>250) return null;
+      return sach({art, daten:{T0,d1,d2}, qh:`Am Morgen zeigt das Thermometer ${C(z(T0))}. Bis zum Mittag steigt die Temperatur um ${C(z(d1))}, bis zum Abend fällt sie um ${C(z(d2))}. Welche Temperatur hat es am Abend?`,
+        bild:hilfe?thermoSVG([start]):undefined,
+        rechnungen:[{h:`${kl(z(T0))} + ${Z(z(d1))} ${M} ${Z(z(d2))}`, w:z(res)}, {h:`${kl(z(T0))} ${M} ${Z(z(d1))} + ${Z(z(d2))}`, w:z(T0-d1+d2)}, {h:`${kl(z(T0))} + ${Z(z(d1))} + ${Z(z(d2))}`, w:z(T0+d1+d2)}],
+        feld:ergFeld('Temperatur am Abend', z(res), '°C'),
+        why:`Start bei ${C(z(T0))}. Steigen ist ${chip('+')}, fallen ist ${chip(M)}. Von links nach rechts rechnen.`,
+        weg:`${kl(z(T0))} + ${Z(z(d1))} ${M} ${Z(z(d2))} = ${Z(z(mitte))} ${M} ${Z(z(d2))} = ${Z(z(res))}`, satz:`Am Abend hat es ${C(z(res))}.`,
+        bildVoll:thermoSVG([start, {w:z(mitte), text:`Mittag: ${C(z(mitte))}`, farbe:'var(--c2)'}, {w:z(res), text:`Ziel: ${C(z(res))}`, farbe:'var(--text)'}], [{a:z(T0), b:z(mitte)}, {a:z(mitte), b:z(res)}]),
+        legende:legende([`steigt um ${C(z(d1))}`, `fällt um ${C(z(d2))}`])});
+    }
+    // Unterschied: um wie viel ist es kälter geworden? (größer − kleiner)
+    const T1=rnd(-80,80), T2=rnd(-200,-5); if(T2>=T1||T1===0||(T1%10===0&&T2%10===0)) return null; const res=T1-T2;
+    const m1={w:z(T1), text:`Abend: ${C(z(T1))}`, farbe:'var(--c1)'}, m2={w:z(T2), text:`Mitternacht: ${C(z(T2))}`, farbe:'var(--text)'};
+    return sach({art:'unterschied', daten:{T1,T2}, qh:`Am Abend hat es ${C(z(T1))}. Um Mitternacht zeigt das Thermometer ${C(z(T2))}. Um wie viel Grad ist die Temperatur gefallen?`,
+      bild:hilfe?thermoSVG([m1,m2]):undefined,
+      rechnungen:[{h:`${kl(z(T1))} ${M} ${kl(z(T2))}`, w:z(res)}, {h:`${kl(z(T1))} + ${kl(z(T2))}`, w:z(T1+T2)}, {h:`${kl(z(T2))} ${M} ${kl(z(T1))}`, w:z(T2-T1)}],
+      feld:ergFeld('Die Temperatur ist gefallen um', z(res), '°C'),
+      why:`Unterschied = höhere Temperatur ${M} tiefere Temperatur.`,
+      weg:`${kl(z(T1))} ${M} ${kl(z(T2))} = ${kl(z(T1))} + ${Z(z(-T2))} = ${Z(z(res))}`, satz:`Die Temperatur ist um ${C(z(res))} gefallen.`,
+      bildVoll:thermoSVG([m1,m2], [{a:z(T1), b:z(T2)}]), legende:legende([`fällt um ${C(z(res))}`])});
+  });
+}
+
+/* ---------- V3-A03 Aufzug und Stockwerke (keine Einheit) ---------- */
+const imStock = n => n>0 ? `im ${n}. Stock` : n<0 ? `im ${-n}. Untergeschoss` : 'im Erdgeschoss';
+const vomStock = n => n>0 ? `vom ${n}. Stock` : n<0 ? `vom ${-n}. Untergeschoss` : 'vom Erdgeschoss';
+const inStock = n => n>0 ? `in den ${n}. Stock` : n<0 ? `ins ${-n}. Untergeschoss` : 'ins Erdgeschoss';
+const zahlWort = ['','ein','zwei','drei'];
+const gebaeude = (u,og) => `Ein Bürogebäude hat ein Erdgeschoss, ${og} Stockwerke darüber und ${zahlWort[u]} Untergeschoss${u>1?'e':''}.`;
+const fahrt = m => `${Math.abs(m)} ${Math.abs(m)===1?'Stockwerk':'Stockwerke'} ${m>0?'hinauf':'hinunter'}`;
+function aufzug(art, ctx){
+  const hilfe=!!(ctx&&ctx.einstieg);
+  return versuche(()=>{
+    const u=rnd(1,3), og=rnd(5,12);
+    if(art==='ende'){
+      const k=rnd(2,4), s=rnd(-u,og), wege=[], pos=[s];
+      for(let i=0;i<k;i++){ const m=pick([1,-1])*rnd(1,7), p=pos[pos.length-1]+m; if(p<-u||p>og) return null; wege.push(m); pos.push(p); }
+      const ende=pos[pos.length-1]; if(ende===s||Math.min(...pos)>=0) return null;
+      const term=(st,ms)=>[kl(st), ...ms.map(m=>`${m>0?'+':M} ${Math.abs(m)}`)].join(' ');
+      const i=rnd(0,k-1), j=s!==0?-1:(i+1+rnd(0,k-2))%k;
+      const f1=wege.map((m,x)=>x===i?-m:m), f2=j<0?wege:wege.map((m,x)=>x===j?-m:m), st2=j<0?-s:s;
+      const summe=(st,ms)=>ms.reduce((a,m)=>a+m,st);
+      return sach({art, daten:{u,og,s,wege}, qh:`${gebaeude(u,og)} Der Aufzug steht ${imStock(s)}. Er fährt ${wege.map(fahrt).join(', dann ')}. In welchem Stockwerk steht er jetzt?`,
+        bild:gebaeudeSVG(u,og,{start:s}), s2label:'Schritt 2: Rechne aus! (Erdgeschoss = 0, Untergeschosse negativ)',
+        rechnungen:[{h:term(s,wege), w:ende}, {h:term(s,f1), w:summe(s,f1)}, {h:term(st2,f2), w:summe(st2,f2)}],
+        feld:zahlFeld('Stockwerk', ende),
+        why:`Erdgeschoss = 0, Stockwerke darüber positiv, Untergeschosse negativ. Start ${imStock(s)}: ${kl(s)}. Hinauf ist ${chip('+')}, hinunter ist ${chip(M)}.`,
+        weg:`${term(s,wege)} = ${Z(ende)}`, satz:`Der Aufzug steht ${imStock(ende)}.`,
+        bildVoll:gebaeudeSVG(u,og,{start:s, ziel:ende, wege:wege.map((m,x)=>({a:pos[x], b:pos[x+1]}))}),
+        legende:legende(wege.map(m=>`${m>0?'+':M}${Math.abs(m)}`))});
+    }
+    // Wie viele Stockwerke fährt der Aufzug von a nach b? (größer − kleiner)
+    const unten=-rnd(1,u), oben=rnd(1,og), hinab=Math.random()<.5, a=hinab?oben:unten, b=hinab?unten:oben, res=oben-unten;
+    return sach({art:'etagen', daten:{u,og,a,b}, qh:`${gebaeude(u,og)} Wie viele Stockwerke fährt der Aufzug ${vomStock(a)} ${inStock(b)}?`,
+      bild:gebaeudeSVG(u,og,hilfe?{start:a, ziel:b}:{start:a}), s2label:'Schritt 2: Rechne aus!',
+      rechnungen:[{h:`${Z(oben)} ${M} (${M}${-unten})`, w:res}, {h:`${Z(oben)} ${M} ${-unten}`, w:oben+unten}, {h:`(${M}${-unten}) ${M} ${Z(oben)}`, w:unten-oben}],
+      feld:zahlFeld('Anzahl der Stockwerke', res),
+      why:`Untergeschosse sind negativ: ${imStock(unten).replace('im ','das ')} ist ${M}${-unten}. Anzahl der Stockwerke = oberes Stockwerk ${M} unteres Stockwerk.`,
+      weg:`${Z(oben)} ${M} (${M}${-unten}) = ${Z(oben)} + ${-unten} = ${Z(res)}`, satz:`Der Aufzug fährt ${res} Stockwerke.`,
+      bildVoll:gebaeudeSVG(u,og,{start:a, ziel:b, wege:[{a,b}]}), legende:legende([`${b>a?'+':M}${res}`])});
+  });
+}
+
+/* ---------- V3-A05 Bruchteil und Absenken (Pegel), Rechnen in mm (ganzzahlig, exakt) ---------- */
+const BRUCHTEILE = [[1,2,'um die Hälfte'],[1,4,'um ein Viertel'],[1,5,'um ein Fünftel'],[3,4,'um drei Viertel']];
+const mm = x => Z(x/1000), mmM = x => mit(x/1000,'m');
+const cmT = x => mit(x/10,'cm');
+// kaufmännisch auf k Nachkommastellen in Metern (k = 1, 2), gerechnet in mm
+const rmm = (x,k) => { const f=10**(3-k); return Math.sign(x)*Math.floor(Math.abs(x)/f+0.5)*f; };
+const mitRund = l => [...new Set(l.flatMap(x=>[x, rmm(x,1), rmm(x,2)]))];
+function pegel(ctx){
+  const einzeln=!!(ctx&&ctx.leicht);
+  return versuche(()=>{
+    const P=rnd(40,300)*10, [b0,b1,bw]=pick(BRUCHTEILE), lage=pick(['see','see','fluss','becken','schnee']);
+    if((P*b0)%b1) return null;
+    const Zu=P*b0/b1, r1=lage==='schnee'?1:pick([1,-1]), r2=-r1, Cm=rnd(10,160)*5;   // Cm in mm (0,5 cm genau)
+    const P2=P+r1*Zu, P3=P2+r2*Cm;
+    if(P3<100||Cm>=P2||Zu<20) return null;
+    if(Cm%10===0&&Math.random()<.5) return null;                                          // oft halbe Zentimeter
+    const auf=r1>0, wort=auf?'steigt':'sinkt';
+    const texte={
+      see: auf ? `Der Pegelstand eines Sees liegt bei ${mmM(P)}. Nach starkem Regen steigt er ${bw} an. Danach sinkt das Wasser um ${cmT(Cm)}. Wie hoch ist der Pegelstand am Ende?`
+        : `Der Pegelstand eines Sees liegt bei ${mmM(P)}. In einem heißen Sommer sinkt er ${bw}. Nach einem Gewitter steigt das Wasser wieder um ${cmT(Cm)}. Wie hoch ist der Pegelstand am Ende?`,
+      fluss: auf ? `Ein Fluss ist ${mmM(P)} tief. Nach der Schneeschmelze steigt der Wasserstand ${bw}. Danach sinkt er um ${cmT(Cm)}. Wie tief ist der Fluss am Ende?`
+        : `Ein Fluss ist ${mmM(P)} tief. In einer trockenen Woche sinkt der Wasserstand ${bw}. Danach steigt er um ${cmT(Cm)}. Wie tief ist der Fluss am Ende?`,
+      becken: auf ? `In einem Schwimmbecken steht das Wasser ${mmM(P)} hoch. Beim Befüllen steigt es ${bw}. Danach werden ${cmT(Cm)} abgelassen. Wie hoch steht das Wasser am Ende?`
+        : `In einem Schwimmbecken steht das Wasser ${mmM(P)} hoch. Beim Reinigen sinkt es ${bw}. Danach steigt es beim Befüllen um ${cmT(Cm)}. Wie hoch steht das Wasser am Ende?`,
+      schnee: `Auf dem Dach einer Hütte liegt ${mmM(P)} Schnee. Über Nacht wird die Schneedecke ${bw} höher. Am Tag schmelzen ${cmT(Cm)}. Wie hoch liegt der Schnee am Ende?`};
+    const was={see:'der Pegelstand', fluss:'der Wasserstand', becken:'der Wasserstand', schnee:'die Schneedecke'}[lage];
+    const c1=mitRund([Zu]), c2=c1.map(z=>P+r1*z), c3=mitRund(c2).map(y=>y+r2*Cm);
+    const auch=(l,soll)=>[...new Set(l)].filter(x=>x!==soll).map(x=>x/1000);
+    const h = erg => einheitHinweis(erg, 'm oder cm');
+    const bruch = `${mm(P)}${NB}m · ${br(b0,b1)}`;
+    const schritte=[
+      {label:`Um wie viel ${wort} ${was} zuerst? (${gross(bw.replace(/^um /,''))} vom Anfangswert)`, felder:[ergFeld('', Zu/1000, 'm')], ansText:`${mm(Zu)} m`, ansHTML:`${bruch} = ${mmM(Zu)}`,
+        hinweis:erg=>h(erg)||`Rechne ${bw.replace(/^um /,'')} vom Anfangswert: ${bruch}.`},
+      {label:`Wie hoch ist ${was} danach?`, felder:[ergFeld('', P2/1000, 'm', {auch:auch(c2,P2)})], ansText:`${mm(P2)} m`, ansHTML:`${mm(P)} ${auf?'+':M} ${mm(Zu)} = ${mmM(P2)}`,
+        hinweis:erg=>h(erg)||`${auf?'Steigen':'Sinken'} ist ${auf?'+':M}: Anfangswert ${auf?'+':M} ${auf?'Zunahme':'Abnahme'}.`},
+      {label:`Wie hoch ist ${was} am Ende?`, felder:[ergFeld('', P3/1000, 'm', {auch:auch(c3,P3)})], ansText:`${mm(P3)} m`, ansHTML:`${mm(P2)} ${r2>0?'+':M} ${mm(Cm)} = ${mmM(P3)}`,
+        hinweis:erg=>h(erg)||`Rechne zuerst um: ${cmT(Cm)} = ${mmM(Cm)}.`}];
+    const t={kind:'mehrschritt', text:true, q:ohneTags(texte[lage]), qh:texte[lage], lead:'Rechne Schritt für Schritt! Gib bei jedem Schritt auch die Einheit an.',
+      papierLead:'Rechne Schritt für Schritt!', schritte, einzeln, art:lage, daten:{P,b0,b1,r1,Cm},
+      why:`${gross(was)} ${wort} zuerst ${bw}: ${bruch} = ${mmM(Zu)}. Dann ${mm(P)} ${auf?'+':M} ${mm(Zu)} = ${mmM(P2)}. Einheiten umrechnen: ${cmT(Cm)} = ${mmM(Cm)} (100 cm = 1 m). Am Ende ${mm(P2)} ${r2>0?'+':M} ${mm(Cm)} = ${mmM(P3)}.`,
+      stepsh:`${bruch} = ${mmM(Zu)}<br>${mm(P)} ${auf?'+':M} ${mm(Zu)} = ${mmM(P2)}<br>${cmT(Cm)} = ${mmM(Cm)}<br>${mm(P2)} ${r2>0?'+':M} ${mm(Cm)} = ${mmM(P3)}`};
+    // Rückmeldung: Hinweis zum ersten falschen Schritt (die Form setzt t.hinweis)
+    t.zusatzRueckmeldung = f => !f.ok&&t.hinweis ? `<div class="fb no pop"><span>${t.hinweis}</span></div>` : '';
+    return t;
+  });
+}
+
+/* ---------- V3-N02 Wie weit ist es zwischen …? ---------- */
+function abstand(ctx){
+  const leicht=!!(ctx&&ctx.leicht);
+  return versuche(()=>{
+    const art=pick(['temp','kuehl','tauchen','konto','fehlt','kalt']), dez=Math.random()<.35;
+    let lo, hi, e, qh, frage;
+    const z=x=>x/10;
+    if(art==='temp'){ lo=dez?z(rnd(-200,-10)):-rnd(1,20); hi=dez?z(rnd(-40,150)):rnd(-4,15); e='°C';
+      qh=`Am Montag war die höchste Temperatur ${C(hi)}, die tiefste ${C(lo)}. Wie groß ist der Unterschied zwischen den beiden Temperaturen?`; frage='Unterschied'; }
+    else if(art==='kuehl'){ hi=rnd(2,8); lo=-rnd(15,26); e='°C';
+      qh=`Im Kühlschrank hat es ${C(hi)}, im Tiefkühlfach ${C(lo)}. Um wie viel Grad ist es im Tiefkühlfach kälter?`; frage='Unterschied'; }
+    else if(art==='kalt'){ lo=dez?z(-rnd(60,200)):-rnd(6,20); hi=dez?z(-rnd(5,50)):-rnd(1,5); e='°C';
+      qh=`Um 6 Uhr hatte es ${C(lo)}, um 10 Uhr ${C(hi)}. Um wie viel Grad ist es wärmer geworden?`; frage='Unterschied'; }
+    else if(art==='tauchen'){ lo=-rnd(3,40); hi=rnd(3,80)*(Math.random()<.3?5:1); e='m';
+      qh=`Eine Taucherin ist in einer Tiefe von ${mit(lo,'m')}. Direkt über ihr fliegt eine Möwe in ${mit(hi,'m')} Höhe. Wie weit sind die beiden voneinander entfernt?`; frage='Entfernung'; }
+    else if(art==='konto'){ lo=-rnd(4,100)*5; hi=(Math.random()<.6?1:-1)*rnd(1,100)*5; e='€';
+      qh=`Am Monatsanfang stand das Konto bei ${mit(lo,'€')}, am Monatsende bei ${mit(hi,'€')}. Um wie viel Euro ist der Kontostand gestiegen?`; frage='Der Kontostand ist gestiegen um'; }
+    else { lo=-rnd(4,100)*5; hi=rnd(1,60)*5; e='€';
+      qh=`Das Konto steht bei ${mit(lo,'€')}. Wie viel Geld muss eingezahlt werden, damit der Kontostand ${mit(hi,'€')} beträgt?`; frage='Einzahlung'; }
+    if(hi<=lo||lo>=0||(art!=='kalt'&&hi===0)) return null;
+    const d=Math.round((hi-lo)*10)/10;
+    const MERK='Abstand = größerer Wert − kleinerer Wert.';
+    return {kind:'zahlen', text:true, art, lo, hi, einheit:e, q:ohneTags(qh), qh, lead:leicht?merk(MERK):'', bild:leicht?abstandSVG(lo,hi,e,false):undefined,
+      felder:[ergFeld(frage, d, e)], papierLead:'Berechne!',
+      zusatzRueckmeldung: f => f.ok ? '' : bildBox(abstandSVG(lo,hi,e,true)),
+      why:`${MERK} <span class="nw">${Z(hi)} ${M} ${kl(lo)} = ${Z(hi)} + ${Z(-lo)} = ${mit(d,e)}.</span>`, stepsh:`${Z(hi)} ${M} ${kl(lo)} = ${mit(d,e)}`};
+  });
+}
+
+/* ---------- Plus: V3-A04 Mittelwert negativer Zahlen ---------- */
+function mittelwert(){
+  return versuche(()=>{
+    const n=pick([3,3,4]), art=pick(['salz','tage','see']), l=Array.from({length:n},()=>art==='salz'?rnd(-160,-90):art==='see'?rnd(-20,45):rnd(-160,30));
+    if(l.filter(x=>x<0).length<2||new Set(l).size<n||l.some(x=>x===0)||l.every(x=>x%10===0)) return null;
+    const S=l.reduce((a,x)=>a+x,0), ganz=(S*100)%n===0 ? null : 2;     // S in Zehnteln; bricht S/n nicht ab: auf Hundertstel
+    if(S===0) return null;
+    const mw=S/(n*10), sw=S/10;
+    const liste=l.map(x=>C(x/10)), auf=liste.slice(0,-1).join(', ')+' und '+liste[liste.length-1];
+    const qh = art==='salz' ? `Der Gefrierpunkt einer Salz-Eis-Mischung wurde in ${n===3?'drei':'vier'} Versuchen gemessen: ${auf}. Berechne den Mittelwert!`
+      : art==='tage' ? `Die Tiefsttemperaturen an ${n===3?'drei':'vier'} Wintertagen waren ${auf}. Wie hoch war die Tiefsttemperatur im Durchschnitt?`
+      : `Auf einem Berggipfel wurde an ${n===3?'drei':'vier'} Tagen um 7 Uhr die Temperatur gemessen: ${auf}. Berechne den Mittelwert!`;
+    const flip=l.findIndex(x=>x<0), S1=S-2*l[flip], S2=-l.reduce((a,x)=>a+Math.abs(x),0);
+    const opt=[S, S1, S2===S?-S:S2].map(x=>x/10);
+    if(new Set(opt).size<3) return null;
+    const optionen=mischen(opt.map((x,i)=>[String(i), C(x)]));
+    const s2label = ganz ? 'Schritt 2: Mittelwert, auf Hundertstel gerundet' : 'Schritt 2: Mittelwert';
+    const sollMw = ganz ? UR.runde(mw,2) : mw;
+    const t={kind:'zweischritt', text:true, q:ohneTags(qh), qh, lead:'Berechne zuerst die Summe, dann den Mittelwert! Gib auch die Einheit an.', schritt:'Schritt 1', werte:l, rund:ganz,
+      s1:{label:'Schritt 1: Summe aller Werte', kurz:'Summe', felder:[ergFeld('', sw, '°C')], ansText:`${Z(sw)} °C`, ansHTML:C(sw)},
+      s2:{label:s2label, felder:[ergFeld('', mw, '°C', {stellen:ganz||undefined, text:ganz?Z(sollMw):undefined})], ansText:`${Z(sollMw)} °C`, ansHTML:C(sollMw)},
+      pre:{ans:'0', optionen},
+      hinweisNach:(e1,e2)=>einheitHinweis([...(e1||[]),...e2]),
+      why:`Mittelwert = Summe : Anzahl. Summe: <span class="nw">${l.map((x,i)=>i?(x<0?`${M} ${Z(-x/10)}`:`+ ${Z(x/10)}`):Z(x/10)).join(' ')} = ${C(sw)}.</span> Mittelwert: <span class="nw">${kl(sw)} : ${n} = ${ganz?`${Z(UR.runde(mw,3))}… ≈ ${Z(sollMw)}`:Z(mw)}${NB}°C.</span>`};
+    return t;
+  });
+}
+
+/* ---------- Plus: V3-A06 Kontostand mit mehreren Buchungen (Cent, ganzzahlig) ---------- */
+function konto(){
+  return versuche(()=>{
+    const art=pick(['abheben','gemischt','cent']);
+    let G, buch, qh;
+    const liste=l=>l.slice(0,-1).join(', ')+' und '+l[l.length-1];
+    if(art==='abheben'){ G=rnd(150,500)*1000; buch=Array.from({length:rnd(3,4)},()=>-rnd(5,150)*1000);
+      qh=`Auf einem Konto sind ${E(G)}. Es werden ${liste(buch.map(x=>E(-x)))} abgehoben. Wie hoch ist der Kontostand danach?`; }
+    else if(art==='cent'){ G=rnd(80000,300000); const n=rnd(3,9), x=rnd(2,10)*1000, y=rnd(30000,200000); buch=[...Array(n).fill(-x), -y];
+      qh=`Auf einem Konto sind ${E(G)}. Es werden ${n}-mal je ${E(x)} abgehoben, dann wird eine Rechnung über ${E(y)} abgebucht. Wie hoch ist der Kontostand danach?`; }
+    else { G=(Math.random()<.4?-1:1)*rnd(10,200)*500; const posten=mischen([['Gehalt',rnd(1200,2600)*100],['Miete',-rnd(400,900)*100],['Strom',-rnd(3000,12000)],['Einkauf',-rnd(2000,25000)]]).slice(0,3);
+      buch=posten.map(p=>p[1]);
+      qh=`Das Konto steht bei ${E(G)}. Dann wird gebucht: ${liste(posten.map(([w,b])=>`${w} ${b<0?M:'+'}${E(Math.abs(b))}`))}. Wie hoch ist der Kontostand danach?`; }
+    const S=buch.reduce((a,x)=>a+x,0), neu=G+S; if(neu===0) return null;
+    const eu=c=>c/100;
+    return {kind:'mehrschritt', text:true, q:ohneTags(qh), qh, art, start:G, buchungen:buch, lead:'Rechne Schritt für Schritt! Gib auch die Einheit an.',
+      schritte:[{label:'Summe aller Buchungen (Abbuchungen negativ)', felder:[ergFeld('', eu(S), '€', {text:eurZ(S)})], ansText:`${eurZ(S)} €`, ansHTML:E(S), hinweis:erg=>einheitHinweis(erg,'€')||'Abbuchungen sind negativ, Einzahlungen positiv. Zähle alle Buchungen zusammen.'},
+        {label:'Kontostand danach', felder:[ergFeld('', eu(neu), '€', {text:eurZ(neu)})], ansText:`${eurZ(neu)} €`, ansHTML:E(neu), hinweis:erg=>einheitHinweis(erg,'€')||'Kontostand am Anfang + Summe der Buchungen.'}],
+      why:`Buchungen: <span class="nw">${buch.map((x,i)=>i?`${x<0?M:'+'} ${eurZ(Math.abs(x))}`:eurZ(x)).join(' ')} = ${E(S)}.</span> Kontostand: <span class="nw">${G<0?`(${eurZ(G)})`:eurZ(G)} ${S<0?M:'+'} ${eurZ(Math.abs(S))} = ${E(neu)}.</span>`};
+  });
+}
+
+/* ---------- Plus: V3-A07 Jahresverdienst und Mittel (Gehalt), Cent ganzzahlig ---------- */
+function gehalt(){
+  return versuche(()=>{
+    const [wer,pr]=pick(PERS.filter(p=>!/Familie/.test(p[0]))), art=pick(['netto','monat','miete','mittel']);
+    let qh, ans, weg;
+    if(art==='netto'){ const B=rnd(120,300)*1000, p=rnd(15,30), s=B*p/100; if(s%1) return null; ans=(B-s)*12;
+      qh=`${wer} verdient im Monat ${E(B)} brutto. Davon gehen ${E(s)} für Steuern und Versicherung ab. Wie viel verdient ${pr} netto in einem Jahr (12 Monate)?`;
+      weg=`(${eurZ(B)} ${M} ${eurZ(s)}) · 12 = ${eurZ(B-s)} · 12 = ${E(ans)}`; }
+    else if(art==='monat'){ const m=rnd(120,300)*1000, n=rnd(3,8); ans=m;
+      qh=`${wer} hat in ${n} Monaten insgesamt ${E(m*n)} verdient, jeden Monat gleich viel. Wie viel ist das im Monat?`;
+      weg=`${eurZ(m*n)} : ${n} = ${E(m)}`; }
+    else if(art==='miete'){ const m=rnd(300,950)*100+pick([0,0,50]), n=rnd(3,12); ans=m*n;
+      qh=`Die Miete für eine Wohnung beträgt ${E(m)} im Monat. Wie viel Miete ist in ${n} Monaten zu zahlen?`;
+      weg=`${eurZ(m)} · ${n} = ${E(ans)}`; }
+    else { const l=[0,1,2].map(()=>rnd(1500,3200)*100+rnd(0,99)); const S=l.reduce((a,x)=>a+x,0); if(S%3) return null; ans=S/3;
+      qh=`${wer} verdiente im Jänner ${E(l[0])}, im Februar ${E(l[1])} und im März ${E(l[2])}. Wie viel verdiente ${pr} im Durchschnitt pro Monat?`;
+      weg=`(${l.map(eurZ).join(' + ')}) : 3 = ${eurZ(S)} : 3 = ${E(ans)}`; }
+    return {kind:'zahlen', text:true, art, q:ohneTags(qh), qh, lead:'Gib auch die Einheit an!', felder:[ergFeld('Ergebnis', ans/100, '€', {text:eurZ(ans)})],
+      why:`Gerechnet: <span class="nw">${weg}.</span>`};
+  });
+}
+
+/* ---------- Plus: V3-N01 Passt die Rechnung zur Geschichte? ---------- */
+const GESCH = {
+  f1:{h:(a,b)=>`(${M}${a}) ${M} ${b}`, w:(a,b)=>-a-b, t:[(a,b)=>`Es hat ${M}${a} °C. Die Temperatur fällt um ${b} °C.`, (a,b)=>`Ein Taucher ist bei ${M}${a} m und taucht ${b} m tiefer.`]},
+  f2:{h:(a,b)=>`(${M}${a}) + ${b}`, w:(a,b)=>-a+b, t:[(a,b)=>`Das Konto steht bei ${M}${a} €. Es werden ${b} € eingezahlt.`, (a,b)=>`Ein Taucher ist bei ${M}${a} m und steigt ${b} m auf.`, (a,b)=>`Es hat ${M}${a} °C. Die Temperatur steigt um ${b} °C.`]},
+  f3:{h:(a,b)=>`${a} ${M} ${b}`, w:(a,b)=>a-b, t:[(a,b)=>`Auf dem Konto sind ${a} €. Es werden ${b} € abgehoben.`, (a,b)=>`Eine Möwe fliegt ${a} m über dem Meer und sinkt um ${b} m.`]},
+  f4:{h:(a,b)=>`${b} ${M} (${M}${a})`, w:(a,b)=>b+a, t:[(a,b)=>`Am Morgen hat es ${M}${a} °C, zu Mittag ${b} °C. Um wie viel Grad ist es wärmer geworden?`, (a,b)=>`Das Konto stand bei ${M}${a} €, jetzt steht es bei ${b} €. Um wie viel Euro ist es gestiegen?`]},
+  f5:{h:(a,b)=>`(${M}${a}) + (${M}${b})`, w:(a,b)=>-a-b, t:[(a,b)=>`Familie Huber hat ${a} € Schulden und macht noch ${b} € neue Schulden.`]}
+};
+function geschichte(){
+  return versuche(()=>{
+    const a=rnd(2,15), b=rnd(2,15); if(a===b) return null;
+    const formen=mischen(Object.keys(GESCH)).slice(0,3);
+    if(formen.includes('f1')&&formen.includes('f5')) return null;            // gleicher Wert, andere Schreibweise: zu verwirrend
+    const paare=formen.map((f,i)=>({id:'r'+i, z:'g'+i, f, h:GESCH[f].h(a,b), w:GESCH[f].w(a,b), text:pick(GESCH[f].t)(a,b)}));
+    const ans={}; paare.forEach(p=>ans[p.id]=p.z);
+    return {kind:'zuordnen', q:'Welche Rechnung passt zu welcher Geschichte? Ordne zu!', qh:'Welche Rechnung passt zu welcher Geschichte? Ordne zu!', a, b, paare,
+      dinge:mischen(paare.map(p=>({id:p.id, html:p.h, kurz:p.h}))), ziele:paare.map(p=>({id:p.z, text:p.text})), ans,
+      why:paare.map(p=>`<span class="nw">${p.text}</span> → <span class="nw">${p.h} = ${Z(p.w)}.</span>`).join(' ')};
+  });
+}
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // V3-A01 Schulden und Raten
+  schulden: () => schulden(pick(['rest','rest','rate','restRate','konto'])),
+  // V3-A02 Temperatur steigt und fällt
+  temperatur: ctx => temperatur(pick(['steigt','faellt','beides','unterschied']), ctx),
+  // V3-A03 Aufzug und Stockwerke
+  aufzug: ctx => aufzug(Math.random()<.65?'ende':'etagen', ctx),
+  // V3-A05 Bruchteil und Absenken (Pegel)
+  pegel: ctx => pegel(ctx),
+  // V3-N02 Wie weit ist es zwischen …?
+  abstand: ctx => abstand(ctx),
+  /* ---------- Plus ---------- */
+  // V3-A04 Mittelwert negativer Zahlen
+  mittelwert: () => mittelwert(),
+  // V3-A06 Kontostand mit mehreren Buchungen
+  konto: () => konto(),
+  // V3-A07 Jahresverdienst und Mittel (Gehalt)
+  gehalt: () => gehalt(),
+  // V3-N01 Passt die Rechnung zur Geschichte?
+  geschichte: () => geschichte()
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Schulden und Raten', hint:`(${M}710) + 6 · 65 = ${M}320`, types:['schulden']},
+  {id:'S2', name:'Temperatur und Stockwerke', hint:`(${M}7) + 9,3 = 2,3`, types:['temperatur','aufzug','abstand']},
+  {id:'S3', name:'Mehrstufig', hint:`1,20 m + 0,24 m ${M} 0,315 m = 1,125 m`, types:['pegel']}
+];
+const kern = ['schulden','temperatur','aufzug','pegel','abstand'];
+// Einstieg: die Rechnungs-Typen über die Form (Rechnung aus drei Möglichkeiten, Bild als Hilfe), Pegel Schritt für Schritt
+// mit Rückmeldung je Schritt, Abstand mit Merkkarte und Zahlengerade
+const leicht = ['pegel','abstand'];
+const plus = ['mittelwert','konto','gehalt','geschichte'];
+const plusHint = 'Mittelwert · Kontostand · Gehalt · Geschichte und Rechnung';
+
+/* ---------- Erklärung ---------- */
+const bspHTML = (t, kind) => `<div class="task text">${t.qh}</div>
+  <div class="ex"><b>Rechnung:</b> ${t.s1.ansHTML}</div><div class="ex">${t.weg}</div><p><b>Antwort:</b> ${t.satz}</p>
+  ${t.bildVoll?bildBox(t.bildVoll)+t.legendeVoll:''}<button class="newex" data-newex="${kind}">Neues Beispiel</button>`;
+const bsp = {a:()=>schulden(pick(['rest','konto','restRate'])), b:()=>temperatur(pick(['steigt','faellt','beides','unterschied'])), c:()=>aufzug(pick(['ende','etagen'])), d:()=>mittelwert()};
+const erklaerung = {
+  beispiele: ()=>({a:bsp.a(), b:bsp.b(), c:bsp.c(), d:bsp.d()}),
+  neu(kind,E){ E[kind]=bsp[kind](); },
+  html: E => `<section class="sheet"><h2>Sachaufgaben mit rationalen Zahlen</h2>
+    <div class="rule"><h3>1. Die Situation in eine Rechnung übersetzen</h3>
+      <ul><li><b>Negativ</b> ${chip(M)}: Schulden, ein Konto im Minus, unter 0 °C, unter dem Meeresspiegel, Untergeschoss.</li>
+        <li><b>Positiv</b> ${chip('+')}: Guthaben, über 0 °C, über dem Meer, Stockwerke über dem Erdgeschoss <span class="nw">(Erdgeschoss = 0).</span></li>
+        <li>Steigt, kommt dazu, einzahlen, hinauf: <span class="nw">${chip('+')}.</span> Fällt, geht weg, abheben, hinunter: <span class="nw">${chip(M)}.</span></li>
+        <li>Abstand oder Unterschied: <span class="nw">größerer Wert ${M} kleinerer Wert.</span></li></ul>
+      <p>So gehst du vor: Lies genau. Schreib die Rechnung mit Vorzeichen auf. Rechne aus (Vorrangregeln beachten).
+        Antworte mit Einheit (m, cm, € oder °C). Rechne Einheiten zuerst um, z.&nbsp;B. 31,5 cm = 0,315 m.</p></div>
+    <div class="rule"><h3>2. Konto und Schulden</h3>${bspHTML(E.a,'a')}</div>
+    <div class="rule"><h3>3. Temperatur</h3>${bspHTML(E.b,'b')}</div>
+    <div class="rule"><h3>4. Stockwerke</h3>${bspHTML(E.c,'c')}</div>
+    <div class="rule"><h3>5. Mittelwert</h3>
+      <p>Mittelwert = Summe aller Werte : Anzahl der Werte. Negative Werte zählen mit ihrem Vorzeichen.</p>
+      <div class="task text">${E.d.qh}</div><div class="ex">${E.d.why}</div>
+      <button class="newex" data-newex="d">Neues Beispiel</button></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
+};
+
+const lzk = {merkmal:{schulden:'sachschulden', temperatur:'sachtemperatur', aufzug:'sachstockwerk', pegel:'sachpegel', abstand:'sachabstand'},
+  aufwand:{schulden:2, temperatur:2, aufzug:2, pegel:3, abstand:1}};
+UR.kompetenzAnmelden({id:'M-RaZa-V3', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
 })(window.UR = window.UR || {});
 </script>
 <script>
