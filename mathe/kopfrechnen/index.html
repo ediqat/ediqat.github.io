@@ -227,6 +227,12 @@ body { position: relative; }
 .mlink { position: absolute; top: 3px; left: 0; right: 0; max-width: 920px; margin: 0 auto; padding: 0 16px; font-size: .85rem; pointer-events: none; }
 .mlink a { color: var(--muted); pointer-events: auto; }
 body:has(.thead) .mlink { display: none; }
+.offline .mlink { display: none; }                 /* heruntergeladene Datei: kein Link ins Netz */
+.offline-dl { flex-direction: column; align-items: flex-start; justify-content: flex-start; }
+.offline-dl p { max-width: 70ch; }
+.offline-dl code { font-size: .95em; }
+.offline-dl .btn { align-self: flex-start; text-decoration: none; display: inline-flex; align-items: center; }
+.msg.neu a { color: inherit; }
 </style>
 </head>
 <body>
@@ -1445,6 +1451,15 @@ const MAST = [0, 0.34, 0.6, 0.8, 0.92, 1];  // Beitrag eines Fachs zur Beherrsch
 const DAY = 864e5;
 const PER_AREA_CHECK = 2;
 let storageOk = true;
+// Fassung und Offline-Datei: bauen.js setzt FASSUNG ({nummer, datum}). Als heruntergeladene Datei (file:) fragt der
+// Trainer bei Internet nur die Versionsdatei der Webseite ab, ob es eine neuere Fassung gibt. Es werden keine Daten gesendet.
+const FASSUNG = {"nummer":"2026-11-21.1","datum":"2026-11-21"};
+const WEBSEITE = 'https://ediqat.github.io/mathe/kopfrechnen/';
+const OFFLINE = typeof location !== 'undefined' && location.protocol === 'file:';
+let neueFassung = null;
+const fassungTeile = n => String(n || '').split('.').map((t, i) => i ? +t || 0 : t);
+function istNeuer(a, b) { const [da, ka] = fassungTeile(a), [db, kb] = fassungTeile(b); return da !== db ? da > db : ka > kb; }
+const datumAT = d => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? `${+m[3]}.${+m[2]}.${m[1]}` : ''; };
 const blank = () => ({ v: 1, len: 25, units: {}, areas: {}, days: {}, hist: {}, checkups: [] });
 function load() {
   try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.v === 1 && s.units) return Object.assign(blank(), s); }
@@ -1719,6 +1734,18 @@ function areaTotals(id) {
   return { o, n };
 }
 
+function vOffline() {                                      // online: Download anbieten; als Datei: Fassung zeigen
+  const f = FASSUNG ? `Fassung vom ${datumAT(FASSUNG.datum)} (${esc(FASSUNG.nummer)})` : '';
+  if (OFFLINE) return f ? `<p class="hint fassung">${f}</p>` : '';
+  return `<section class="foot offline-dl"><h2 class="sec">Ohne Internet üben</h2>
+      <p>Lade den Trainer als eine Datei herunter. Sie öffnet sich per Doppelklick im Browser, auch ohne Internet. Lege sie in einen eigenen Ordner (z. B. <code>Dokumente\\Mathe</code>) und öffne sie immer mit demselben Browser.</p>
+      <p class="hint">Die Datei hat einen eigenen Lernstand, getrennt von dieser Seite. Zum Mitnehmen: hier „Lernstand sichern“, in der Datei „Lernstand laden“. Gibt es eine neue Fassung, zeigt die Datei das an, wenn der Rechner online ist. Dann hier neu herunterladen und die alte Datei ersetzen (gleicher Name, gleicher Ordner), der Lernstand bleibt erhalten.</p>
+      <a class="btn primary" href="index.html" download="Kopfrechentrainer.html">⬇ Kopfrechentrainer.html herunterladen</a>
+      ${f ? `<p class="hint">${f}</p>` : ''}</section>`;
+}
+function vNeu() {
+  return neueFassung ? `<p class="msg neu" role="status"><b>Neue Fassung vom ${datumAT(neueFassung.datum)}:</b> Auf <a href="${WEBSEITE}" target="_blank" rel="noopener">ediqat.github.io/mathe/kopfrechnen</a> herunterladen und die alte Datei damit ersetzen. Dein Lernstand bleibt erhalten.</p>` : '';
+}
 function vHome() {
   const dk = S.days[dayKey()] || { n: 0, ok: 0 }, st = streak();
   const total = totalCount(), stars = AREAS.reduce((x, a) => x + aState(a.id).lvl, 0);
@@ -1751,7 +1778,7 @@ function vHome() {
     </article>`;
   }).join('');
   const opts = `<option value="g"${histSel === 'g' ? ' selected' : ''}>Alle Bereiche</option>` + AREAS.map(a => `<option value="${a.id}"${histSel === a.id ? ' selected' : ''}>${esc(a.titel)}</option>`).join('');
-  return `<main class="wrap">
+  return `<main class="wrap">${vNeu()}
     <header class="top"><h1>Kopfrechentrainer</h1><p class="lead">Jeden Tag ein paar Minuten. Was noch wackelt, kommt öfter. Was sitzt, kommt nur noch selten.</p></header>
     <section class="today" aria-label="Heute">
       <div>
@@ -1787,6 +1814,7 @@ function vHome() {
     <div class="areas">${cards}</div>
     <section class="foot"><p>${storageOk ? 'Dein Lernstand liegt in diesem Browser.' : 'Der Browser speichert hier nichts. Bitte den Lernstand am Ende sichern.'} Beim Wechsel auf ein anderes Gerät: sichern und dort laden.</p>
       <button class="btn" data-act="data">Lernstand sichern oder laden</button></section>
+    ${vOffline()}
   </main>`;
 }
 
@@ -1940,6 +1968,13 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'Enter') { e.preventDefault(); submit(); }
 });
 
+if (OFFLINE) document.documentElement.classList.add('offline');
+if (OFFLINE && FASSUNG && navigator.onLine !== false && typeof fetch === 'function') {
+  try {
+    fetch(WEBSEITE + 'version.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
+      .then(v => { if (v && v.nummer && istNeuer(v.nummer, FASSUNG.nummer)) { neueFassung = v; if (screen === 'home') render(); } }).catch(() => { });
+  } catch (e) { }
+}
 try { if (window.claude && claude.use) claude.use('downloads').then(d => { DL = d || null; if (screen === 'data') render(); }).catch(() => { }); } catch (e) { }
 render();
 
