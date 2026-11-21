@@ -444,6 +444,16 @@ svg.kreisdia .st-t{fill:var(--text)} svg.kreisdia path+text,svg.kreisdia .st-t{p
 .pz-bild .ks-setzen{display:block}
 .ks-strich{stroke:var(--text);stroke-width:1.8}
 .minus-taste{margin-left:6px}
+/* Zwei Brüche auf einem gemeinsamen Nenner (M-RaZa-V1-A03): Zähler 1 mit Vorzeichen-Taste, Rechenzeichen, Zähler 2;
+   der Nenner wird einmal getippt und unter dem zweiten Bruch gespiegelt. Passt auf 360 px. */
+.zbfeld{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;flex-wrap:nowrap}
+.zbfeld .bfeld{flex:0 1 8ch}
+.zbop{display:flex;flex-direction:column;gap:4px}
+.zbop .sign{width:2.4rem;font-size:1.3rem;padding:2px 0}
+.zbn{display:block;text-align:center;font-size:1.15rem;font-weight:700;padding:8px 0;color:var(--muted)}
+input.term[readonly]{background:var(--ink-soft);color:var(--ink);font-weight:700}
+.zbfeld input.term::placeholder,.mfeld input.term::placeholder{font-size:.8em}
+.mfeld .bfeld{min-width:8ch}
 </style>
 </head>
 <body>
@@ -895,8 +905,10 @@ UR.zahlFelderBewerten = (felder,l,t) => felder.map(f=>{
     fehltEinheit:!!f.einheiten&&!e&&passt(v)};
 });
 // Teile einer Antwort für die Liste nach dem Check: jedes Feld grün oder rot, bei Rot mit der Lösung
+// f.rohHTML(roh) / f.ansHTML: dasselbe als HTML (z. B. Brüche mit waagrechtem Strich, Mathe 21.11.2026)
 UR.zahlStuecke = (felder,erg) => erg.map((x,i)=>({text:`${x.roh||'?'}${x.e?' '+x.e:felder[i].einheit?' '+felder[i].einheit:''}`,
-  ok:x.zahlOk&&x.einheitOk, soll:felder[i].ansText}));
+  html:felder[i].rohHTML&&x.roh&&!x.e ? felder[i].rohHTML(x.roh) : undefined,
+  ok:x.zahlOk&&x.einheitOk, soll:felder[i].ansText, sollHTML:felder[i].ansHTML}));
 UR.einheitFehltHinweis = (felder,erg) => { const l=[...new Set(erg.map((x,i)=>x.fehltEinheit&&x.zahlOk?felder[i].einheitAns:null).filter(Boolean))];
   return l.length ? T.einheitDazu(l.join(', ')) : ''; };
 // t.zeile {vor, zwischen, nach} (fachneutral, 21.11.2026): alle Felder in einer Zeile mit Text davor, dazwischen und danach,
@@ -1019,8 +1031,9 @@ const taskHTML = (t,st) => form(t).html(t, st||{stage:0});
 // t.tipp: Hinweis, der auch bei richtiger Antwort erscheint (z. B. Einheit fehlt); die Form setzt ihn beim Bewerten
 const evaluate = (t,pre,raw,self) => { t.tipp=''; return form(t).bewerten(t,pre,raw,self); };
 // Liste nach dem Check: Antworten mit mehreren Teilen zeigen jeden Teil grün (richtig) oder rot (mit der Lösung)
-const stueckHTML = s => s.ok ? `<b class="rv-ok">${esc(s.text)}</b>${s.tipp?` <span class="small muted">${T.ohneEinheit}</span>`:''}`
-  : `<b class="rv-no">${esc(s.text)}</b>${s.soll?` → ${esc(s.soll)}`:''}`;
+// s.html / s.sollHTML (optional): dasselbe als HTML, z. B. Brüche mit waagrechtem Strich
+const stueckHTML = s => s.ok ? `<b class="rv-ok">${s.html||esc(s.text)}</b>${s.tipp?` <span class="small muted">${T.ohneEinheit}</span>`:''}`
+  : `<b class="rv-no">${s.html||esc(s.text)}</b>${s.soll?` → ${s.sollHTML||esc(s.soll)}`:''}`;
 function antwortHTML(a){
   if(a.ok) return `<b class="rv-ok">${T.richtig}</b>${a.t.tipp?` <span class="small muted">${T.ohneEinheit}</span>`:''}`;
   if(a.stuecke&&a.stuecke.length) return a.stuecke.map(stueckHTML).join(' · ');
@@ -1667,7 +1680,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-21.8","datum":"21.11.2026","pruefsumme":"696be3245f3a707b"};
+UR.version = {"nummer":"2026-11-21.9","datum":"21.11.2026","pruefsumme":"8d416311c8bffd25"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -3005,10 +3018,12 @@ UR.formAnmelden('zweischritt', {
     return {ok:preOk&&valOk, preOk, valOk, stuecke, shown:`${s1Text} | ${txt(e2)}`};
   },
   loesung: t => `${t.s1.ansText} | ${t.s2.ansText}`,
+  // als HTML, wenn die Schritte es mitbringen (s1.ansHTML, s2.ansHTML, z. B. Brüche mit waagrechtem Strich, M-RaZa-V1)
+  loesungHTML: t => `${t.s1.ansHTML||esc(t.s1.ansText)} | ${t.s2.ansHTML||esc(t.s2.ansText)}`,
   papier: t => { const Pp=UR.papier, lin=f=>Pp.linie(f.label, f.einheit||'');
     const s1 = t.s1.wahl ? `<div class="pz-frage">${t.s1.label}</div>${Pp.ankreuzen(t.s1.wahl)}` : t.s1.felder.map(lin).join('');
     return {aufgabe:Pp.mitBild(`${Pp.angabe(t)}${s1}${t.s2.felder.map(lin).join('')}`, t.bild),
-      loesung:`${t.s1.ansText}<br>${t.s2.ansText}`, lead:t.lead||undefined, aufwand:2}; }
+      loesung:`${t.s1.ansHTML||t.s1.ansText}<br>${t.s2.ansHTML||t.s2.ansText}`, lead:t.lead||undefined, aufwand:2}; }
 });
 // Schritt 1 als Auswahl (t.s1.wahl = [[Wert, HTML]], t.s1.ans): allein antippen, mit Hilfe dieselben Knöpfe
 const wahlSchritt1 = t => { if(!t.s1.wahl) return t;
@@ -3374,9 +3389,97 @@ function mischFormOk(roh, o){
 function mischFeld(label, q, o={}){
   q=Q(...q); const a=Math.abs(q[0]), g=Math.floor(a/q[1]), r=a%q[1];
   const eingabe=(q[0]<0?'-':'')+(r?`${g?g+' ':''}${r}/${q[1]}`:String(g));
-  return {label, ans:qwert(q), ansText:gemText(q), ansHTML:gemHTML(q), eingabe, feldHTML:mischFeldHTML, lesen:leseMisch, bruch:true, misch:true,
+  return {label, ans:qwert(q), ansText:gemText(q), ansHTML:gemHTML(q), eingabe, feldHTML:mischFeldHTML, lesen:leseMisch, rohHTML:mischRohHTML, bruch:true, misch:true,
     formOk:(o.gekuerzt||o.gemischt)?(roh=>mischFormOk(roh,o)):undefined};
 }
+// eigene Eingabe als HTML (Liste nach dem Check): Brüche mit waagrechtem Strich
+function mischRohHTML(roh){
+  const t=mischTeile(roh); if(!t||t.leer) return '';
+  if(t.z===null) return (t.neg?M:'')+Z(t.g);
+  return `${t.neg?M:''}${t.g!==null?Z(t.g)+NB:''}${br(t.z,t.n)}`;
+}
+// Bruch ohne Ganze (Kehrbruch, unechter Bruch): Zähler über Nenner, auf Wunsch mit Vorzeichen-Taste (o.vz).
+// Nenner leer = ganze Zahl (Kehrbruch von 1/4 ist 4).
+const bruchFeldHTML = vz => id => `<div class="mfeld">${vz?vzTaste(id):''}<div class="bfeld"><input id="${id}_z" class="term" data-bteil="${id}" inputmode="numeric" placeholder="Zähler" aria-label="Zähler"><span class="bstrich" aria-hidden="true"></span><input id="${id}_n" class="term" data-bteil="${id}" inputmode="numeric" placeholder="Nenner" aria-label="Nenner"></div></div>
+  <input type="hidden" id="${id}" data-feld>`;
+function bruchFeld(label, q, o={}){
+  q=Q(...q); const a=Math.abs(q[0]);
+  const eingabe=(q[0]<0?'-':'')+(q[1]===1?String(a):`${a}/${q[1]}`);
+  return {label, ans:qwert(q), ansText:bText(q), ansHTML:bHTML(q), eingabe, feldHTML:bruchFeldHTML(!!o.vz), lesen:roh=>{ const t=mischTeile(roh); return t&&!t.leer&&t.g!==null&&t.z!==null?NaN:leseMisch(roh); },
+    rohHTML:mischRohHTML, bruch:true};
+}
+// Bruch als HTML bzw. Text ohne gemischte Zahl (unechte Brüche bleiben unecht); plus: positive mit „+“
+const bHTML = (q,plus) => { q=Q(...q); const s=q[0]<0?M:plus&&q[0]>0?'+':''; return q[1]===1 ? s+Z(Math.abs(q[0])) : s+br(Math.abs(q[0]),q[1]); };
+const bText = (q,plus) => { q=Q(...q); const s=q[0]<0?M:plus&&q[0]>0?'+':''; return q[1]===1 ? s+Z(Math.abs(q[0])) : s+(BRUCH_TEXT[`${Math.abs(q[0])}/${q[1]}`]||`${Math.abs(q[0])} durch ${q[1]}`); };
+
+/* ---------- Zwischenschritt „Klammern aufgelöst“ mit mehreren Gliedern (M-RaZa-V1-A02) ----------
+   Eingabe wie im Heft: −23 − 8 + 11 (Komma oder Punkt, − oder -). Richtig nur in der Reihenfolge der Angabe, ohne
+   Klammern und noch nicht zusammengefasst. glieder = die Zahlen mit ihrem Zeichen nach dem Auflösen, z. B. [−23, −8, 11]. */
+function gliederLesen(roh){
+  const s=String(roh??'').replace(/[−–]/g,'-').replace(/\s+/g,'').replace(/,/g,'.');
+  if(s==='') return {leer:true};
+  if(/[()]/.test(s)) return {klammer:true};
+  const m=s.match(/^[+-]?\d+(?:\.\d+)?(?:[+-]\d+(?:\.\d+)?)*$/); if(!m) return {unsinn:true};
+  return {zahlen:s.match(/[+-]?\d+(?:\.\d+)?/g).map(Number)};
+}
+const gleich = (a,b) => Math.abs(a-b)<1e-9;
+function gliederGrund(roh, glieder){
+  const g=gliederLesen(roh);
+  if(g.leer) return '';
+  if(g.klammer) return 'Schreibe den Zwischenschritt ohne Klammern.';
+  if(g.unsinn) return 'Schreibe den Zwischenschritt als Zahlen mit + und −, z. B. −23 − 8 + 11.';
+  if(g.zahlen.length<glieder.length) return 'Fasse im Zwischenschritt noch nichts zusammen: Löse nur die Klammern auf.';
+  if(g.zahlen.length===glieder.length&&g.zahlen.every((z,i)=>gleich(Math.abs(z),Math.abs(glieder[i])))) return 'Klammern auflösen: Treffen zwei Zeichen aufeinander, werden sie zu einem. Gleiche Zeichen ergeben +, verschiedene ergeben −.';
+  return 'Schreibe im Zwischenschritt die Zahlen der Angabe in derselben Reihenfolge, nur die Klammern aufgelöst.';
+}
+const gliederFeldHTML = id => `<input id="${id}" class="wide" data-feld inputmode="decimal" placeholder="?" autocomplete="off"><button type="button" class="sign" data-rins="${id}" data-zeichen="+">+</button><button type="button" class="sign" data-rins="${id}" data-zeichen="${M}">${M}</button>`;
+const gliederText = glieder => glieder.map((z,i)=>i ? `${z<0?M:'+'} ${Z(Math.abs(z))}` : Z(z)).join(' ');
+function gliederFeld(label, glieder){
+  return {label, ans:0, ansText:gliederText(glieder), eingabe:gliederText(glieder), feldHTML:gliederFeldHTML, glieder,
+    lesen:roh=>{ const g=gliederLesen(roh); if(g.leer) return null;
+      return g.zahlen&&g.zahlen.length===glieder.length&&g.zahlen.every((z,i)=>gleich(z,glieder[i])) ? 0 : 1; }};
+}
+
+/* ---------- Zwei Brüche auf einem gemeinsamen Nenner, ohne Klammern (M-RaZa-V1-A03, Lehrkraft 20.11.2026) ----------
+   Eingabe: Zähler 1 (mit Vorzeichen-Taste), Rechenzeichen (+ oder −), Zähler 2, EIN gemeinsamer Nenner (unter beiden
+   Brüchen derselbe). Versteckter Wert „[-]z1/n + z2/n“. Jeder gemeinsame Nenner zählt. a, b = die beiden Summanden mit
+   ihrem Zeichen nach dem Auflösen der Klammern (−5/8 und +7/12). o.nenner: Nenner vorgegeben (Einstieg). */
+function zweiBruchTeile(roh){
+  const s=String(roh??'').replace(/[−–]/g,'-').replace(/\s+/g,'');
+  if(s==='') return {leer:true};
+  const m=s.match(/^(-?)(\d*)\/(\d*)([+-]?)(\d*)\/(\d*)$/); if(!m) return {unsinn:true};
+  const zahl=x=>x===''?null:Number(x);
+  return {neg:m[1]==='-', z1:zahl(m[2]), n1:zahl(m[3]), op:m[4]||null, z2:zahl(m[5]), n:zahl(m[6])};
+}
+function zweiBruchGrund(roh, a, b){
+  const t=zweiBruchTeile(roh), na=Q(...a)[1], nb=Q(...b)[1];
+  if(t.leer) return '';
+  if(t.unsinn||t.z1===null||t.z2===null||t.n===null||!t.op) return 'Fülle beide Zähler, das Rechenzeichen und den gemeinsamen Nenner aus.';
+  if(!t.n||t.n%na||t.n%nb) return `Der gemeinsame Nenner muss durch ${na} und durch ${nb} teilbar sein.`;
+  const z1=(t.neg?-1:1)*t.z1, z2=(t.op==='-'?-1:1)*t.z2;
+  const ok1=qvgl(Q(z1,t.n),a)===0, ok2=qvgl(Q(z2,t.n),b)===0;
+  if(t.z1*na===Math.abs(a[0])*t.n&&t.z2*nb===Math.abs(b[0])*t.n&&(!ok1||!ok2))
+    return 'Achte auf die Zeichen: Löse zuerst die Klammern auf. Gleiche Zeichen ergeben +, verschiedene ergeben −.';
+  if(!ok1||!ok2) return `Erweitere jeden Bruch auf den Nenner ${t.n}: Zähler und Nenner mit derselben Zahl multiplizieren.`;
+  return '';
+}
+const zweiBruchFeldHTML = o => id => `<div class="zbfeld">${vzTaste(id)}<div class="bfeld"><input id="${id}_z1" class="term" data-zbteil="${id}" inputmode="numeric" placeholder="Zähler" aria-label="Zähler 1"><span class="bstrich" aria-hidden="true"></span><input id="${id}_n" class="term" data-zbteil="${id}" inputmode="numeric" placeholder="Nenner" aria-label="gemeinsamer Nenner"${o.nenner?` value="${o.nenner}" readonly`:''}></div>
+  <div class="zbop" data-zbop="${id}"><button type="button" class="sign" data-wert="+" aria-label="plus">+</button><button type="button" class="sign" data-wert="-" aria-label="minus">${M}</button></div>
+  <div class="bfeld"><input id="${id}_z2" class="term" data-zbteil="${id}" inputmode="numeric" placeholder="Zähler" aria-label="Zähler 2"><span class="bstrich" aria-hidden="true"></span><span class="zbn" data-zbn="${id}">${o.nenner||'?'}</span></div></div>
+  <input type="hidden" id="${id}" data-feld>`;
+// Text bzw. HTML einer Zeile „−15/24 + 14/24“ aus Zählern und Nenner
+const zweiBruchHTML = (z1,z2,n) => `${z1<0?M:''}${br(Math.abs(z1),n)} ${z2<0?M:'+'} ${br(Math.abs(z2),n)}`;
+function zweiBruchFeld(label, a, b, o={}){
+  a=Q(...a); b=Q(...b);
+  const n=a[1]/ggT(a[1],b[1])*b[1], z1=a[0]*n/a[1], z2=b[0]*n/b[1];
+  return {label, ans:0, ansText:`${z1<0?M:''}${Math.abs(z1)} durch ${n} ${z2<0?M:'+'} ${Math.abs(z2)} durch ${n}`, ansHTML:zweiBruchHTML(z1,z2,n),
+    eingabe:`${z1<0?'-':''}${Math.abs(z1)}/${n} ${z2<0?'-':'+'} ${Math.abs(z2)}/${n}`, feldHTML:zweiBruchFeldHTML(o), a, b, nenner:o.nenner,
+    rohHTML:roh=>{ const t=zweiBruchTeile(roh); if(t.leer||t.unsinn) return esc(String(roh??''));
+      const q=x=>x===null?'?':x; return `${t.neg?M:''}${br(q(t.z1),q(t.n))} ${t.op==='-'?M:t.op?'+':'?'} ${br(q(t.z2),q(t.n))}`; },
+    lesen:roh=>{ const t=zweiBruchTeile(roh); if(t.leer) return null; return zweiBruchGrund(roh,a,b)==='' ? 0 : 1; }};
+}
+const esc = s => UR.esc ? UR.esc(s) : String(s);
+
 // Hinweis, wenn der Wert stimmt, die Form aber nicht (Lehrkraft 20.11.2026: zählt falsch, mit Hinweis)
 function formHinweis(roh){
   const t=mischTeile(roh); if(!t||t.leer||t.z===null) return '';
@@ -3397,6 +3500,36 @@ UR.bindungen.push(app=>{ if(!app.querySelectorAll) return;   // Testumgebung ohn
     if(vz) vz.addEventListener('click',()=>{ vz.classList.toggle('an'); vz.setAttribute('aria-pressed', vz.classList.contains('an')); sync(); });
     const f=h.form; if(f) f.addEventListener('submit',sync,true);
   }
+  // Bruch ohne Ganze: Zähler und Nenner ins versteckte Feld („[-]z/n“, Nenner leer: „[-]z“)
+  const bids=[...new Set([...app.querySelectorAll('[data-bteil]')].map(e=>e.dataset.bteil))];
+  for(const id of bids){
+    const z=document.getElementById(id+'_z'), n=document.getElementById(id+'_n'), h=document.getElementById(id), vz=app.querySelector(`[data-vz="${id}"]`);
+    const sync=()=>{ const zz=z.value.trim(), nn=n.value.trim(), neg=vz&&vz.classList.contains('an');
+      const s=nn?`${zz}/${nn}`:zz; h.value=s?(neg?'-':'')+s:''; };
+    [z,n].forEach(x=>x.addEventListener('input',sync));
+    if(vz) vz.addEventListener('click',()=>{ vz.classList.toggle('an'); vz.setAttribute('aria-pressed', vz.classList.contains('an')); sync(); });
+    const f=h.form; if(f) f.addEventListener('submit',sync,true);
+  }
+  // zwei Brüche auf einem Nenner: Zähler 1, Rechenzeichen, Zähler 2, Nenner („[-]z1/n + z2/n“); der zweite Nenner zeigt den ersten
+  const zids=[...new Set([...app.querySelectorAll('[data-zbteil]')].map(e=>e.dataset.zbteil))];
+  for(const id of zids){
+    const z1=document.getElementById(id+'_z1'), z2=document.getElementById(id+'_z2'), n=document.getElementById(id+'_n'), h=document.getElementById(id);
+    const vz=app.querySelector(`[data-vz="${id}"]`), ops=[...app.querySelectorAll(`[data-zbop="${id}"] button`)], spiegel=app.querySelector(`[data-zbn="${id}"]`);
+    let op='';
+    const sync=()=>{ const a=z1.value.trim(), b=z2.value.trim(), nn=n.value.trim(), neg=vz&&vz.classList.contains('an');
+      spiegel.textContent=nn||'?';
+      h.value=a||b||nn||op ? `${neg?'-':''}${a}/${nn} ${op} ${b}/${nn}` : ''; };
+    [z1,z2,n].forEach(x=>x.addEventListener('input',sync));
+    ops.forEach(b=>b.addEventListener('click',()=>{ op=b.dataset.wert; ops.forEach(x=>{ x.classList.toggle('an',x===b); x.setAttribute('aria-pressed',x===b); }); sync(); z2.focus(); }));
+    if(vz) vz.addEventListener('click',()=>{ vz.classList.toggle('an'); vz.setAttribute('aria-pressed', vz.classList.contains('an')); sync(); });
+    const f=h.form; if(f) f.addEventListener('submit',sync,true);
+  }
+  // Zwischenschritt mit mehreren Gliedern: + und − an der Schreibstelle einfügen
+  app.querySelectorAll('[data-rins]').forEach(b=>{ const inp=document.getElementById(b.dataset.rins); if(!inp) return;
+    b.addEventListener('pointerdown',e=>e.preventDefault());
+    b.addEventListener('click',()=>{ const p=inp.selectionStart??inp.value.length, e=inp.selectionEnd??p, z=b.dataset.zeichen;
+      const vor=inp.value.slice(0,p).replace(/\s+$/,''), ein=vor?` ${z} `:z;
+      inp.value=vor+ein+inp.value.slice(e).replace(/^\s+/,''); const q=(vor+ein).length; inp.focus(); try{inp.setSelectionRange(q,q)}catch(x){} }); });
   // Vorzeichen-Taste bei einem einfachen Zahlfeld: Minus davor setzen oder wegnehmen
   app.querySelectorAll('[data-vz]').forEach(b=>{ const inp=document.getElementById(b.dataset.vz); if(!inp||inp.type==='hidden') return;
     b.addEventListener('click',()=>{ const s=inp.value.trim(); inp.value=s.startsWith('-')||s.startsWith(M)?s.slice(1):'-'+s.replace(/^\+/,''); inp.focus(); }); });
@@ -3413,7 +3546,8 @@ UR.bindungen.push(app=>{ if(!app.querySelectorAll) return;   // Testumgebung ohn
 });
 
 UR.raza = {ggT, Q, qadd, qsub, qmul, qdiv, qvgl, qwert, rund, alsQ, Z, br, gemHTML, gemText, NB,
-  vzFeld, vzFeldHTML, nurFeldHTML, minusTaste, mischFeld, mischFeldHTML, leseMisch, mischTeile, formHinweis};
+  vzFeld, vzFeldHTML, nurFeldHTML, minusTaste, mischFeld, mischFeldHTML, leseMisch, mischTeile, formHinweis,
+  mischRohHTML, bruchFeld, bHTML, bText, gliederFeld, gliederLesen, gliederGrund, gliederText, zweiBruchFeld, zweiBruchTeile, zweiBruchGrund, zweiBruchHTML};
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -4286,6 +4420,313 @@ const erklaerung = {
 const lzk = {merkmal:{begriffe:'ks_begriffe', ablesen:'ks_ablesen', quadrant:'ks_quadrant', einzeichnen:'ks_einzeichnen', zeichnen_ks:'ks_zeichnen'},
   aufwand:{begriffe:2, einzeichnen:2, ablesen:2}};
 UR.kompetenzAnmelden({id:'M-RaZa-G3', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.1 Rationale-Zahlen/M-RaZa-V1.js */
+/* Baustein M-RaZa-V1: „Ich kenne Regeln für das Rechnen mit Rationalen Zahlen und kann sie anwenden.“
+   Steckbrief: M-RaZa-V1.md, Auswahl der Lehrkraft: AUSWAHL.md (20.11.2026). Entscheidungen der Lehrkraft 20.11.2026:
+   - V1-A02 mehrere Glieder: Zwischenschritt = Klammern aufgelöst, noch nicht zusammengefasst, dann Ergebnis; richtig nur,
+     wenn beide stimmen. Einstieg: Zwischenschritt aus drei Zeilen wählen. Ganze Zahlen und Dezimalzahlen (bis zwei Stellen).
+   - V1-A03 Brüche plus/minus: Schritt 1 = beide Brüche erweitert, ohne Klammern (zwei Zähler, Rechenzeichen, EIN
+     gemeinsamer Nenner, jeder gemeinsame Nenner zählt), Schritt 2 = Ergebnis gekürzt, wenn nötig als gemischte Zahl.
+     Einstieg: gemeinsamer Nenner vorgegeben (läuft über `leicht`, weil der Kind dabei Schritt 1 selbst tippt).
+   - V1-A04 multiplizieren: Schritt 1 Vorzeichen, Schritt 2 gekürztes Ergebnis mit Vorzeichen; Kürzen über Kreuz zählt.
+   - V1-A05 dividieren: Schritt 1 = Vorzeichen wählen und Kehrbruch tippen, Schritt 2 gekürztes Ergebnis.
+     Einstieg: Kehrbruch aus drei Vorschlägen.
+   - „gekürzt“ bzw. „als gemischte Zahl“ verlangt: nicht gekürzt bzw. unechter Bruch zählt falsch, mit Hinweis.
+   - Brüche immer mit waagrechtem Strich, auch in Lösung und Rückmeldung (ansHTML, loesungHTML).
+   Antwortform 'zweischritt' (Mathe/bausteine/prozent.js) mit den Feldern aus rationale.js. */
+(function(UR){
+const {rnd, pick} = UR, M = UR.M;
+const {ggT, Q, qadd, qmul, qdiv, qwert, Z, br, gemHTML, gemText, NB, vzFeld, mischFeld, formHinweis, bruchFeld, bHTML, bText,
+  gliederFeld, gliederGrund, gliederText, zweiBruchFeld, zweiBruchGrund, zweiBruchHTML} = UR.raza;
+const {chip} = UR.mathe;
+const mischen = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; };
+function versuche(fn){ for(let n=0;n<3000;n++){ const r=fn(); if(r) return r; } throw new Error('Generator findet keine passende Aufgabe'); }
+const merk = html => `<div class="merk">${html}</div>`;
+const kgV = (a,b) => a/ggT(a,b)*b;
+const sg = x => x<0 ? M : '+';
+const vzWort = x => x<0 ? 'negativ' : 'positiv';
+// Rückmeldung: Hinweis bei Fehlern (z. B. „noch kürzen“)
+function aufg(t){
+  t.zusatzRueckmeldung = f => !f.ok&&t.hinweis ? `<div class="fb no pop"><span>${t.hinweis}</span></div>` : '';
+  return t;
+}
+const REGEL = `Gleiche Zeichen ergeben ${chip('+')}, verschiedene Zeichen ergeben ${chip(M)}.`;
+const VZ_REGEL = 'Gleiche Vorzeichen: Das Ergebnis ist positiv. Verschiedene Vorzeichen: Das Ergebnis ist negativ.';
+const LEAD_BRUCH = 'Kürze so weit wie möglich und schreibe unechte Brüche als gemischte Zahl!';
+const KUERZEN = 'Kürze so weit wie möglich und schreibe ein unechtes Ergebnis als gemischte Zahl.';
+
+/* ---------- Auswahl in einem Schritt (Vorzeichen, richtig/falsch): ein Feld der Form 'zahlen' ---------- */
+// ans = Wert der richtigen Wahl; der Feldwert ist 0, wenn richtig gewählt (die Form vergleicht Zahlen)
+const wahlFeld = (label, optionen, ans) => ({label, ans:0, wahl:true, eingabe:ans,
+  ansText:(optionen.find(o=>o[0]===ans)||[,ans])[1].replace(/<[^>]+>/g,''), ansHTML:(optionen.find(o=>o[0]===ans)||[,ans])[1],
+  feldHTML:id=>`${UR.wahlFeld('w_'+id)}${UR.wahlGruppe('w_'+id, optionen)}`, lesen:v=>v===ans?0:v?1:null});
+const VZ_WAHL = [['positiv','+ positiv'],['negativ',`${M} negativ`]];
+
+/* ---------- Zahlen in der Angabe ---------- */
+// Zahl mit Vorzeichen in Klammern, das Vorzeichen markiert: (−⅝) mit waagrechtem Strich; misch: als gemischte Zahl
+const kl = (q, misch) => { q=Q(...q); const a=[Math.abs(q[0]),q[1]]; return `(<b class="sg">${sg(q[0])}</b>${misch?gemHTML(a):bHTML(a)})`; };
+const klText = (q, misch) => { q=Q(...q); const a=[Math.abs(q[0]),q[1]]; return `(${sg(q[0])}${misch?gemText(a):bText(a)})`; };
+// Zähler ohne Kürzen hinschreiben (z. B. −1 durch 24 als Zwischenzeile)
+const roh = (z,n) => `${z<0?M:''}${br(Math.abs(z),n)}`;
+const NENNER = [2,3,4,5,6,7,8,9,10,11,12,2,3,4,5,6,8,9,10,12,14,15,16,18,20,21,24,25,27];
+// gekürzter Bruch mit Zähler bis zmax, Nenner aus NENNER; echt (Zähler < Nenner) oder unecht
+function bruch(o={}){ return versuche(()=>{ const n=o.n||pick(o.nenner||NENNER), z=o.unecht?rnd(n+1,Math.min(3*n,40)):rnd(1,Math.min(n-1,o.zmax||40));
+  return z>0&&ggT(z,n)===1 ? [z,n] : null; }); }
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // V1-A02 Mehrere Glieder vereinfachen: Zwischenschritt (Klammern aufgelöst), dann Ergebnis
+  glieder(ctx){
+    const einstieg=!!(ctx&&ctx.einstieg), dez=!einstieg&&Math.random()<.5;
+    return versuche(()=>{
+      // Beträge in Hundertsteln (exakt): Dezimalzahlen mit einer oder zwei Stellen, sonst ganze Zahlen bis 999
+      const betrag = () => dez ? (Math.random()<.4 ? rnd(1,999)*10 : rnd(1,9999)) : (einstieg||Math.random()<.5 ? rnd(1,30) : rnd(31,999))*100;
+      const g=[0,1,2].map(i=>({s:pick([1,-1]), h:betrag(), op:i?pick([1,-1]):1, kl:i>0||Math.random()<.6}));
+      if(new Set(g.map(x=>x.h)).size<3) return null;
+      if(dez&&g.every(x=>x.h%100===0)) return null;
+      if(g.slice(1).every(x=>x.s>0&&x.op>0)) return null;                 // es soll etwas aufzulösen sein
+      const gl=g.map(x=>x.op*x.s*x.h), resH=gl.reduce((a,x)=>a+x,0), v=h=>h/100;
+      if(resH===0&&Math.random()<.8) return null;
+      const glieder=gl.map(v), res=v(resH);
+      const erstes = x => x.kl ? `(<b class="sg">${sg(x.s)}</b>${Z(v(x.h))})` : `${x.s<0?M:''}${Z(v(x.h))}`;
+      const erstesT = x => x.kl ? `(${sg(x.s)}${Z(v(x.h))})` : `${x.s<0?M:''}${Z(v(x.h))}`;
+      const opS = x => x.op>0?'+':M;
+      const qh = erstes(g[0])+g.slice(1).map(x=>` <span class="pairm"><b>${opS(x)}</b> (<b>${sg(x.s)}</b></span>${Z(v(x.h))})`).join('');
+      const q = erstesT(g[0])+g.slice(1).map(x=>` ${opS(x)} (${sg(x.s)}${Z(v(x.h))})`).join('');
+      const mid = gliederText(glieder);
+      // Einstieg: drei Zeilen, in zweien ist ein Zeichen falsch aufgelöst
+      const falsch = i => gliederText(glieder.map((z,k)=>k===i?-z:z));
+      const pre = {ans:mid, optionen:mischen([mid, falsch(1), falsch(2)]).map(x=>[x,x])};
+      const aufloesen = g.slice(1).map((x,i)=>`<span class="nw">${opS(x)}&#8239;(${sg(x.s)}${Z(v(x.h))})</span> <span class="nw">wird zu ${chip(sg(glieder[i+1]),'y')}&#8239;${Z(v(x.h))}</span>`).join(', ');
+      const zw = v(gl[0]+gl[1]);
+      return aufg({kind:'zweischritt', q, qh:`${qh} =`, lead:'Löse zuerst die Klammern auf und berechne dann!', schritt:'Zwischenschritt', glieder, ergebnis:res,
+        s1:{label:'Schritt 1: Klammern auflösen (noch nicht zusammenfassen)', kurz:'Zwischenschritt', felder:[gliederFeld('Zwischenschritt ohne Klammern', glieder)], ansText:mid},
+        s2:{label:'Schritt 2: Ergebnis', felder:[vzFeld('Ergebnis', res)], ansText:Z(res)},
+        pre, alleinText:'Ab der nächsten Aufgabe schreibst du den Zwischenschritt selbst.',
+        hinweisNach:(e1)=>e1&&!e1[0].zahlOk ? gliederGrund(e1[0].roh, glieder) : '',
+        why:`Klammern auflösen: ${aufloesen}. ${REGEL} Dann von links nach rechts rechnen: ${gliederText(glieder.slice(0,2))} = ${Z(zw)}, ${Z(zw)} ${sg(glieder[2])} ${Z(Math.abs(glieder[2]))} = ${Z(res)}.`,
+        stepsh:`${qh} = ${mid} = ${Z(res)}`});
+    });
+  },
+  // V1-A03 Brüche addieren und subtrahieren: Schritt 1 erweitert ohne Klammern, Schritt 2 Ergebnis
+  plusMinus(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    return versuche(()=>{
+      const art = leicht ? 'vielfach' : pick(['vielfach','teilerfremd','kgv']);
+      const na=rnd(2,12), nb=rnd(2,12); if(na===nb) return null;
+      const vielfach=na%nb===0||nb%na===0, fremd=ggT(na,nb)===1;
+      if(art==='vielfach'&&!vielfach || art==='teilerfremd'&&!fremd || art==='kgv'&&(vielfach||fremd)) return null;
+      const k=kgV(na,nb); if(k>60) return null;
+      const a0=bruch({n:na, unecht:!leicht&&Math.random()<.2}), b0=bruch({n:nb});
+      const a=[pick([1,-1])*a0[0], na], bv=[pick([1,-1])*b0[0], nb], op=pick(['+',M]);
+      const b = op==='+' ? bv : [-bv[0], nb];                 // zweiter Summand nach dem Auflösen der Klammer
+      const res=qadd(a,b); if(res[0]===0) return null;
+      const z1=a[0]*k/na, z2=b[0]*k/nb;
+      const qh=`(<b class="sg">${sg(a[0])}</b>${br(Math.abs(a[0]),na)}) <span class="pairm"><b>${op}</b> (<b>${sg(bv[0])}</b></span>${br(Math.abs(bv[0]),nb)})`;
+      const q=`${klText(a)} ${op} ${klText(bv)}`;
+      const ohneKl = `${roh(a[0],na)} ${sg(b[0])} ${br(Math.abs(b[0]),nb)}`;
+      const zs=z1+z2, zsHTML=roh(zs,k), fertig=Q(zs,k);
+      const ende = fertig[1]===k&&Math.abs(zs)<k ? '' : ` = ${gemHTML(res)}`;
+      const s1label = leicht ? `Schritt 1: Klammern auflösen und beide Brüche auf den Nenner ${k} erweitern` : 'Schritt 1: Klammern auflösen und beide Brüche auf einen gemeinsamen Nenner erweitern';
+      const id = (x,y) => `${x}|${y}`;
+      const pre = {ans:id(z1,z2), optionen:mischen([[id(z1,z2), zweiBruchHTML(z1,z2,k)], [id(z1,-z2), zweiBruchHTML(z1,-z2,k)], [id(a[0],b[0]), zweiBruchHTML(a[0],b[0],k)]])};
+      if(new Set(pre.optionen.map(o=>o[0])).size<3) return null;
+      return aufg({kind:'zweischritt', q, qh:`${qh} =`, lead:`Berechne! ${LEAD_BRUCH}`, schritt:'Schritt 1', a, b, nenner:k, ergebnis:res,
+        papierLead:`Berechne! ${LEAD_BRUCH}`,
+        s1:{label:s1label, kurz:'Erweitert', felder:[zweiBruchFeld('', a, b, {nenner:leicht?k:undefined})],
+          ansText:`${Math.abs(z1)} durch ${k}, ${Math.abs(z2)} durch ${k}`, ansHTML:zweiBruchHTML(z1,z2,k)},
+        s2:{label:'Schritt 2: Ergebnis, vollständig gekürzt', felder:[mischFeld('Ergebnis', res, {gekuerzt:true, gemischt:true})], ansText:gemText(res), ansHTML:gemHTML(res)},
+        pre, alleinText:'Ab der nächsten Aufgabe suchst du den gemeinsamen Nenner selbst.',
+        hinweisNach:(e1,e2)=>e1&&!e1[0].zahlOk ? zweiBruchGrund(e1[0].roh, a, b) : e2[0].wertOk&&!e2[0].formOk ? formHinweis(e2[0].roh) : '',
+        why:`Klammern auflösen: <span class="nw">${op}&#8239;(${sg(bv[0])}${br(Math.abs(bv[0]),nb)})</span> <span class="nw">wird zu ${chip(sg(b[0]),'y')}&#8239;${br(Math.abs(b[0]),nb)}.</span> ${REGEL} Gemeinsamer Nenner ist ${k}, weil ${na}${NB}·${NB}${k/na} = ${k} und ${nb}${NB}·${NB}${k/nb} = ${k}. Erweitere: ${roh(a[0],na)} = ${roh(z1,k)} und ${br(Math.abs(b[0]),nb)} = ${br(Math.abs(z2),k)}. Dann die Zähler zusammenrechnen: ${z1<0?M:''}${Math.abs(z1)} ${sg(z2)} ${Math.abs(z2)} = ${zs<0?M:''}${Math.abs(zs)}.${ende?` ${KUERZEN}`:''}`,
+        stepsh:`${qh} = ${ohneKl} = ${zweiBruchHTML(z1,z2,k)} = ${zsHTML}${ende}`});
+    });
+  },
+  // V1-A04 Brüche multiplizieren: Schritt 1 Vorzeichen, Schritt 2 gekürztes Ergebnis mit Vorzeichen
+  mal(ctx){
+    const einstieg=!!(ctx&&ctx.einstieg);
+    return versuche(()=>{
+      const misch=!einstieg&&Math.random()<.3;                 // Stufe 3: erster Faktor als gemischte Zahl
+      const a0=bruch({unecht:misch, nenner:[2,3,4,5,6,8,9,10,12]}), b0=bruch({zmax:15});
+      const kreuz=ggT(a0[0],b0[1])>1||ggT(b0[0],a0[1])>1;
+      if(!kreuz&&Math.random()<.7) return null;
+      const a=[pick([1,-1])*a0[0],a0[1]], b=[pick([1,-1])*b0[0],b0[1]], res=qmul(a,b);
+      if(Math.abs(res[0])>200||qwert(a0)===qwert(b0)) return null;
+      const g1=ggT(a0[0],b0[1]), g2=ggT(b0[0],a0[1]);
+      const qh=`${kl(a,misch)} · ${kl(b)}`, q=`${klText(a,misch)} · ${klText(b)}`;
+      const vz=vzWort(res[0]), s=sg(res[0]);
+      const unecht = misch ? `${gemHTML(a0)} = ${br(a0[0],a0[1])}. ` : '';
+      const paare=[g1>1?`${a0[0]} und ${b0[1]} durch ${g1}`:'', g2>1?`${b0[0]} und ${a0[1]} durch ${g2}`:''].filter(Boolean);
+      const kreuzText = paare.length ? `Kürze über Kreuz: ${paare.join(', ')}. ` : '';
+      const zeile = (z1,n1,z2,n2) => `<b class="sg">${s}</b>${br(`${z1}${NB}·${NB}${z2}`, `${n1}${NB}·${NB}${n2}`)}`;
+      const gek = g1>1||g2>1 ? ` = ${zeile(a0[0]/g1,a0[1]/g2,b0[0]/g2,b0[1]/g1)}` : '';
+      return aufg({kind:'zweischritt', q, qh:`${qh} =`, lead:`Multipliziere! ${LEAD_BRUCH}`, schritt:'Vorzeichen', faktoren:[a,b], ergebnis:res,
+        s1:{label:'Schritt 1: Vorzeichen des Ergebnisses', kurz:'Vorzeichen', felder:[wahlFeld('', VZ_WAHL, vz)], ansText:vz, ansHTML:`${s} ${vz}`},
+        s2:{label:'Schritt 2: Ergebnis mit Vorzeichen, vollständig gekürzt', felder:[mischFeld('Ergebnis', res, {gekuerzt:true, gemischt:true})], ansText:gemText(res), ansHTML:gemHTML(res)},
+        pre:{ans:vz, optionen:VZ_WAHL}, alleinText:'Ab der nächsten Aufgabe bestimmst du das Vorzeichen und rechnest selbst.',
+        hinweisNach:(e1,e2)=>e1&&!e1[0].zahlOk ? VZ_REGEL : e2[0].wertOk&&!e2[0].formOk ? formHinweis(e2[0].roh) : '',
+        why:`${VZ_REGEL} ${unecht}Zähler mal Zähler, Nenner mal Nenner. ${kreuzText}Das Ergebnis ist ${gemHTML(res)}.`,
+        stepsh:`${qh} = ${zeile(a0[0],a0[1],b0[0],b0[1])}${gek} = ${gemHTML(res)}`});
+    });
+  },
+  // V1-A05 Brüche dividieren: Schritt 1 Vorzeichen und Kehrbruch, Schritt 2 gekürztes Ergebnis
+  durch(ctx){
+    const einstieg=!!(ctx&&ctx.einstieg);
+    return versuche(()=>{
+      const misch=!einstieg&&Math.random()<.25;
+      const a0=bruch({unecht:misch, nenner:[2,3,4,5,6,8,9,10,12,16]}), b0=bruch({zmax:15});
+      const kehr=[b0[1],b0[0]];
+      const kreuz=ggT(a0[0],kehr[1])>1||ggT(kehr[0],a0[1])>1;
+      if(!kreuz&&Math.random()<.7) return null;
+      if(qwert(a0)===qwert(b0)||qwert(a0)===qwert(kehr)) return null;
+      const a=[pick([1,-1])*a0[0],a0[1]], b=[pick([1,-1])*b0[0],b0[1]], res=qdiv(a,b);
+      if(Math.abs(res[0])>200) return null;
+      const vz=vzWort(res[0]), s=sg(res[0]);
+      const qh=`${kl(a,misch)} : ${kl(b)}`, q=`${klText(a,misch)} : ${klText(b)}`;
+      const A=bHTML(a0);
+      const zeile = (x,y) => `<b class="sg">${s}</b>${x}${NB}·${NB}${y}`;
+      const pre={ans:'k', optionen:mischen([['k',zeile(A,bHTML(kehr))], ['n',zeile(A,bHTML(b0))], ['a',zeile(bHTML([a0[1],a0[0]]),bHTML(b0))]])};
+      const g1=ggT(a0[0],kehr[1]), g2=ggT(kehr[0],a0[1]);
+      const kreuzText = g1>1||g2>1 ? 'Kürze dann über Kreuz. ' : '';
+      const unecht = misch ? `${gemHTML(a0)} = ${br(a0[0],a0[1])}. ` : '';
+      return aufg({kind:'zweischritt', q, qh:`${qh} =`, lead:`Dividiere! ${LEAD_BRUCH}`, schritt:'Schritt 1', faktoren:[a,b], ergebnis:res, kehr,
+        s1:{label:`Schritt 1: Vorzeichen und Kehrbruch (${A} mal Kehrbruch)`, kurz:'Mit dem Kehrbruch',
+          felder:[wahlFeld('Vorzeichen des Ergebnisses', VZ_WAHL, vz), bruchFeld(`Kehrbruch von ${br(b0[0],b0[1])}`, kehr)],
+          ansText:`${vz}, Kehrbruch ${bText(kehr)}`, ansHTML:`${zeile(A,bHTML(kehr))}`},
+        s2:{label:'Schritt 2: Ergebnis mit Vorzeichen, vollständig gekürzt', felder:[mischFeld('Ergebnis', res, {gekuerzt:true, gemischt:true})], ansText:gemText(res), ansHTML:gemHTML(res)},
+        pre, alleinText:'Ab der nächsten Aufgabe bestimmst du Vorzeichen und Kehrbruch selbst.',
+        hinweisNach:(e1,e2)=>e1&&!e1[0].zahlOk ? VZ_REGEL : e1&&!e1[1].zahlOk ? `Den Kehrbruch bekommst du, wenn du Zähler und Nenner tauschst: Der Kehrbruch von ${br(b0[0],b0[1])} ist ${bHTML(kehr)}.`
+          : e2[0].wertOk&&!e2[0].formOk ? formHinweis(e2[0].roh) : '',
+        why:`Durch einen Bruch dividieren heißt mit dem Kehrbruch multiplizieren. ${VZ_REGEL} ${unecht}${kreuzText}Das Ergebnis ist ${gemHTML(res)}.`,
+        stepsh:`${qh} = ${zeile(A,bHTML(kehr))} = ${gemHTML(res)}`});
+    });
+  },
+  /* ---------- Plus ---------- */
+  // V1-A06 Gemischte Zahl ↔ unechter Bruch
+  umwandeln(){
+    const n=rnd(2,12), z=versuche(()=>{ const z=rnd(1,n-1); return ggT(z,n)===1?z:null; }), g=rnd(1,9), neg=Math.random()<.5;
+    const q=[(neg?-1:1)*(g*n+z), n];
+    if(Math.random()<.5) return aufg({kind:'zahlen', q:`${neg?M:''}${g} ${bText([z,n])} als unechter Bruch`, qh:`${neg?M:''}${g}${NB}${br(z,n)} =`, lead:'Schreibe als unechten Bruch!',
+      felder:[bruchFeld('Unechter Bruch', q, {vz:true})], ergebnis:q, richtung:'unecht',
+      why:`Ganze mal Nenner plus Zähler: ${g}${NB}·${NB}${n} + ${z} = ${g*n+z}. Der Nenner bleibt ${n}.`, stepsh:`${neg?M:''}${g}${NB}${br(z,n)} = ${roh(q[0],n)}`});
+    return aufg({kind:'zahlen', q:`${bText(q)} als gemischte Zahl`, qh:`${roh(q[0],n)} =`, lead:'Schreibe als gemischte Zahl!', ergebnis:q, richtung:'gemischt',
+      felder:[mischFeld('Gemischte Zahl', q, {gemischt:true})], hinweisNach:e=>e[0].wertOk&&!e[0].formOk ? formHinweis(e[0].roh) : '',
+      why:`${g*n+z} : ${n} = ${g} Rest ${z}. Also ${g} Ganze und ${br(z,n)}.`, stepsh:`${roh(q[0],n)} = ${gemHTML(q)}`});
+  },
+  // V1-N01 Welche Zahl ist um … größer/kleiner?
+  umMehr(){
+    return versuche(()=>{
+      const x=rnd(-999,999), d=rnd(1,499), mehr=Math.random()<.5, y=mehr?x+d:x-d;
+      if(x===0||y===0||Math.abs(y)>999||x%10===0&&d%10===0) return null;
+      const X=Z(x/10), D=Z(d/10), Y=Z(y/10);
+      return aufg({kind:'zahlen', q:`Welche Zahl ist um ${D} ${mehr?'größer':'kleiner'} als ${X}?`, felder:[vzFeld('Zahl', y/10)], start:x/10, diff:d/10, mehr,
+        why:`${mehr?'Größer heißt weiter rechts auf der Zahlengeraden: plus':'Kleiner heißt weiter links auf der Zahlengeraden: minus'}. ${X} ${mehr?'+':M} ${D} = ${Y}.`,
+        steps:`${X} ${mehr?'+':M} ${D} = ${Y}`});
+    });
+  },
+  // V1-N02 Rechnung prüfen und richtigstellen
+  pruefen(){
+    return versuche(()=>{
+      const a=rnd(1,999)*pick([1,-1]), b=rnd(1,999)*pick([1,-1]), op=pick([1,-1]), art=pick(['richtig','richtig','klammer','rechnen']);
+      const b2=op*b, res=a+b2;                                  // in Zehnteln
+      if(res===0) return null;
+      const mid2 = art==='klammer' ? -b2 : b2, falschRes = art==='rechnen' ? a+b2+pick([1,-1])*pick([1,1,10,100]) : a+mid2;
+      if(art!=='richtig'&&falschRes===res) return null;
+      const v=x=>x/10, opS=op>0?'+':M;
+      const zeile = `(${sg(a)}${Z(Math.abs(v(a)))}) ${opS} (${sg(b)}${Z(Math.abs(v(b)))})`;
+      const mid = gliederText([v(a), v(mid2)]), richtigMid=gliederText([v(a), v(b2)]);
+      const stimmt = art==='richtig';
+      const ans = stimmt ? 'richtig' : 'falsch';
+      const OPT=[['richtig','richtig gerechnet'],['falsch','falsch gerechnet']];
+      const fehler = art==='klammer' ? `Die Klammer ist falsch aufgelöst: ${opS}&#8239;(${sg(b)}${Z(Math.abs(v(b)))}) wird zu ${chip(sg(b2),'y')}&#8239;${Z(Math.abs(v(b2)))}.`
+        : art==='rechnen' ? `Die Klammer ist richtig aufgelöst, aber ${mid} ist nicht ${Z(v(falschRes))}.` : 'Alles stimmt.';
+      return aufg({kind:'zweischritt', q:`${zeile} = ${mid} = ${Z(v(falschRes))}`, qh:`${zeile} = ${mid} = ${Z(v(falschRes),true)}`,
+        lead:'Wurde hier richtig gerechnet? Gib dann das richtige Ergebnis an!', schritt:'Richtig oder falsch', art, ergebnis:v(res),
+        s1:{label:'Schritt 1: Wurde richtig gerechnet?', kurz:'Die Rechnung ist', felder:[wahlFeld('', OPT, ans)], ansText:stimmt?'richtig gerechnet':'falsch gerechnet'},
+        s2:{label:'Schritt 2: das richtige Ergebnis', felder:[vzFeld('Ergebnis', v(res))], ansText:Z(v(res))},
+        pre:{ans, optionen:OPT},
+        why:`${fehler} Richtig: ${zeile} = ${richtigMid} = ${Z(v(res))}.`, steps:`${zeile} = ${richtigMid} = ${Z(v(res))}`});
+    });
+  },
+  // V1-N03 Positiv oder negativ? (nicht rechnen)
+  vorzeichen(){
+    return versuche(()=>{
+      const art=pick(['mal','durch','mal3','strich']);
+      const zahl = () => { const sgn=pick([1,-1]);
+        if(Math.random()<.5){ const b=bruch({nenner:[2,3,4,5,6,7,8,9,10,12]}); return {v:sgn*qwert(b), h:`(<b class="sg">${sg(sgn)}</b>${br(b[0],b[1])})`, t:`(${sg(sgn)}${bText(b)})`}; }
+        const d=rnd(1,99)/pick([10,10,100]); return {v:sgn*d, h:`(<b class="sg">${sg(sgn)}</b>${Z(d)})`, t:`(${sg(sgn)}${Z(d)})`}; };
+      let l, ops, v;
+      if(art==='strich'){
+        // nur Fälle, bei denen man nicht rechnen muss: beide Schritte in dieselbe Richtung
+        const pos=Math.random()<.5, muster=pick(pos?[['+',1,'+',1],['+',1,M,-1]]:[[M,-1,M,1],[M,-1,'+',-1]]);
+        const z1=zahl(), z2=zahl(); if(Math.sign(z1.v)!==muster[1]||Math.sign(z2.v)!==(muster[2]==='+'?muster[3]:-muster[3])) return null;
+        l=[z1,z2]; ops=[muster[2]]; v=z1.v+(muster[2]==='+'?1:-1)*z2.v;
+      } else {
+        l=Array.from({length:art==='mal3'?3:2}, zahl); ops=l.slice(1).map(()=>art==='durch'?':':'·');
+        v=l.reduce((p,x,i)=>i?(art==='durch'?p/x.v:p*x.v):x.v, 0);
+      }
+      const ans=v>0?'positiv':'negativ', neg=l.filter(x=>x.v<0).length;
+      const why = art==='strich'
+        ? (ans==='positiv' ? 'Zu einer positiven Zahl kommt noch etwas dazu: Das Ergebnis bleibt positiv.' : 'Von einer negativen Zahl geht es noch weiter nach links: Das Ergebnis bleibt negativ.')
+        : `Es ${neg===1?'ist':'sind'} ${neg} negative ${neg===1?'Zahl':'Zahlen'} dabei. ${neg%2?'Eine ungerade Anzahl Minus: negativ.':'Eine gerade Anzahl Minus: positiv.'}`;
+      return aufg({kind:'fragen', q:l.map(x=>x.t).reduce((s,x,i)=>i?`${s} ${ops[i-1]} ${x}`:x,''), qh:l.map(x=>x.h).reduce((s,x,i)=>i?`${s} ${ops[i-1]} ${x}`:x,''),
+        lead:'Ist das Ergebnis positiv oder negativ? Rechne nicht!', art, wert:v, gruppen:[{optionen:[['positiv','positiv'],['negativ','negativ']], ans}], why});
+    });
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Mehrere Glieder', hint:`(${M}23) ${M} (+8) ${M} (${M}11) = ${M}23 ${M} 8 + 11`, types:['glieder']},
+  {id:'S2', name:'Brüche plus und minus', hint:`(${M}${br(5,8)}) ${M} (${M}${br(7,12)}) = ${M}${br(1,24)}`, types:['plusMinus']},
+  {id:'S3', name:'Brüche mal und geteilt', hint:`(+${br(5,8)}) : (${M}${br(15,16)}) = ${M}${br(2,3)}`, types:['mal','durch']}
+];
+const kern = ['glieder','plusMinus','mal','durch'];
+// V1-A03: Einstieg mit vorgegebenem gemeinsamem Nenner (Kind tippt Schritt 1 selbst, darum als leichtere Fassung)
+const leicht = ['plusMinus'];
+const plus = ['umwandeln','umMehr','pruefen','vorzeichen'];
+const plusHint = 'Gemischte Zahl und unechter Bruch · Um … größer oder kleiner · Rechnung prüfen · Positiv oder negativ?';
+
+/* ---------- Erklärung ---------- */
+const bsp = typ => typen[typ]({modus:'check'});
+const erklaerung = {
+  beispiele: ()=>({a:bsp('glieder'), b:bsp('plusMinus'), c:bsp('mal'), d:bsp('durch')}),
+  neu(kind,E){ E[kind]=bsp({a:'glieder', b:'plusMinus', c:'mal', d:'durch'}[kind]); },
+  html: E => `<section class="sheet"><h2>Rechnen mit Rationalen Zahlen</h2>
+    <div class="rule"><h3>1. Klammern auflösen</h3>
+      <p>Treffen ein Rechenzeichen und ein Vorzeichen aufeinander, werden sie zu einem Zeichen. ${REGEL}</p>
+      <div class="tablewrap"><table class="mini zgtab"><tbody>
+        <tr><td>+&#8239;(+3)</td><td>wird zu</td><td>+ 3</td></tr><tr><td>${M}&#8239;(${M}3)</td><td>wird zu</td><td>+ 3</td></tr>
+        <tr><td>+&#8239;(${M}3)</td><td>wird zu</td><td>${M} 3</td></tr><tr><td>${M}&#8239;(+3)</td><td>wird zu</td><td>${M} 3</td></tr></tbody></table></div>
+      <p>Schreibe zuerst alles ohne Klammern hin (noch nicht zusammenfassen), dann rechne von links nach rechts.</p>
+      <div class="ex">${E.a.stepsh}</div>
+      <button class="newex" data-newex="a">Neues Beispiel</button></div>
+    <div class="rule"><h3>2. Brüche addieren und subtrahieren</h3>
+      <p>Löse die Klammern auf. Bringe dann beide Brüche auf einen <b>gemeinsamen Nenner</b> (ein Vielfaches beider Nenner):
+        Erweitere Zähler und Nenner mit derselben Zahl. Rechne die Zähler zusammen, der Nenner bleibt.
+        Kürze am Ende so weit wie möglich und schreibe einen unechten Bruch als gemischte Zahl.</p>
+      <div class="ex">${E.b.stepsh}</div>
+      <p class="small muted">${E.b.why}</p>
+      <button class="newex" data-newex="b">Neues Beispiel</button></div>
+    <div class="rule"><h3>3. Brüche multiplizieren</h3>
+      <p>${VZ_REGEL} Dann <b>Zähler mal Zähler</b> und <b>Nenner mal Nenner</b>. Kürze schon vorher, auch <b>über Kreuz</b>
+        (Zähler des einen Bruchs mit dem Nenner des anderen). Eine gemischte Zahl schreibst du zuerst als unechten Bruch.</p>
+      <div class="ex">${E.c.stepsh}</div>
+      <button class="newex" data-newex="c">Neues Beispiel</button></div>
+    <div class="rule"><h3>4. Brüche dividieren</h3>
+      <p>Durch einen Bruch dividieren heißt <b>mit dem Kehrbruch multiplizieren</b>. Den Kehrbruch bekommst du, wenn du
+        Zähler und Nenner tauschst: Der Kehrbruch von ${br(3,4)} ist ${br(4,3)}. Das Vorzeichen bestimmst du wie beim Multiplizieren.</p>
+      <div class="ex">${E.d.stepsh}</div>
+      <button class="newex" data-newex="d">Neues Beispiel</button></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
+};
+
+const lzk = {merkmal:{glieder:'klammern', plusMinus:'bruchplusminus', mal:'bruchmal', durch:'bruchdurch'}};
+UR.kompetenzAnmelden({id:'M-RaZa-V1', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
 })(window.UR = window.UR || {});
 </script>
 <script>
