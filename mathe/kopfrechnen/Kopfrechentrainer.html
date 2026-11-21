@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kopfrechentrainer – Mathe-Grundkenntnisse</title>
+<style>
+:root {
+  /* Layout: schmale Spalte zum Üben, Übersicht als Kartenraster. Farben: kühles Schulblau-Grau, Teal als Akzent, Gold nur für Stufen. */
+  --bg: #eef2f4; --card: #ffffff; --ink: #14232e; --muted: #566872; --line: #d5dee3;
+  --accent: #0b6e6e; --accent-ink: #ffffff; --gold: #e8a317;
+  --good: #1f8a4c; --good-bg: #e1f4e8; --bad: #c43d3d; --bad-bg: #fbe5e5; --warn: #d9902b;
+  --display: 'Trebuchet MS', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1a21; --card: #17252e; --ink: #e8f0f3; --muted: #93a8b3; --line: #2a3d48;
+    --accent: #3fb8b0; --accent-ink: #06201f; --gold: #f0b840;
+    --good: #4cc27f; --good-bg: #14301f; --bad: #ef7777; --bad-bg: #3a1d1d; --warn: #e8a548;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1a21; --card: #17252e; --ink: #e8f0f3; --muted: #93a8b3; --line: #2a3d48;
+  --accent: #3fb8b0; --accent-ink: #06201f; --gold: #f0b840;
+  --good: #4cc27f; --good-bg: #14301f; --bad: #ef7777; --bad-bg: #3a1d1d; --warn: #e8a548;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.45; -webkit-text-size-adjust: 100%; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; line-height: 1.15; }
+h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); }
+p { margin: 0; }
+.wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 56px; display: flex; flex-direction: column; gap: 18px; }
+.wrap.narrow { max-width: 540px; }
+.lead { color: var(--muted); max-width: 60ch; }
+.hint { color: var(--muted); font-size: .92rem; }
+.sec { font-size: 1.25rem; margin-top: 8px; }
+.top { display: flex; flex-direction: column; gap: 6px; }
+
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.btn { border: 2px solid var(--line); background: var(--card); border-radius: 12px; padding: 10px 18px; font-weight: 700; min-height: 46px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.big { font-size: 1.25rem; min-height: 60px; padding: 12px 28px; }
+.btn.ghost { background: transparent; }
+.btn.small { min-height: 38px; padding: 6px 14px; font-size: .95rem; }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+.chip { border: 2px solid var(--line); background: transparent; border-radius: 999px; padding: 4px 14px; min-height: 36px; }
+.chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.today { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 20px; grid-template-columns: 1fr; }
+@media (min-width: 720px) { .today { grid-template-columns: 1fr 1.3fr; align-items: center; } }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stats div { display: flex; flex-direction: column; gap: 2px; }
+.stats b { font-family: var(--display); font-size: 2.2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.stats span { color: var(--muted); font-size: .88rem; }
+.go { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.today .go { flex-direction: column; align-items: stretch; }
+.len { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: .92rem; }
+
+.areas { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.area { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.area h3 { font-size: 1.15rem; }
+.bsp { color: var(--muted); font-size: .92rem; margin-top: 2px; }
+.lv { display: flex; align-items: center; gap: 8px; }
+.dots { display: inline-flex; gap: 4px; }
+.dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--gold); }
+.dot.on { background: var(--gold); }
+.lvt { font-weight: 700; font-size: .95rem; }
+.step { margin-left: auto; display: inline-flex; gap: 4px; }
+.mini { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: transparent; font-weight: 700; line-height: 1; }
+.mini:hover { border-color: var(--accent); }
+.bar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: var(--line); gap: 2px; }
+.bar i { display: block; min-width: 0; }
+.b-safe { background: var(--good); } .b-prac { background: var(--accent); } .b-wob { background: var(--warn); } .b-neu { background: var(--line); }
+.bart { font-size: .88rem; color: var(--muted); }
+.foot { border-top: 1px solid var(--line); padding-top: 18px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; color: var(--muted); font-size: .92rem; }
+.foot p { max-width: 52ch; }
+
+/* Üben */
+.thead { display: flex; align-items: center; gap: 12px; }
+.prog-bar { flex: 1; height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.prog-bar i { display: block; height: 100%; background: var(--accent); transition: width .25s; }
+.cnt { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .95rem; min-width: 4.5em; text-align: right; }
+.tag { color: var(--muted); font-size: .92rem; }
+.line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px 14px; font-family: var(--display); }
+.q { font-family: var(--display); font-weight: 700; font-size: clamp(1.9rem, 8vw, 2.8rem); line-height: 1.2; font-variant-numeric: tabular-nums; }
+h2.q { font-weight: 700; }
+h2.q.small { font-size: clamp(1.3rem, 5vw, 1.7rem); font-family: var(--body); }
+.ansbox { display: inline-flex; align-items: center; min-width: 5.2ch; min-height: 1.5em; padding: 0 10px; border-bottom: 4px solid var(--accent); background: var(--card); border-radius: 8px 8px 0 0; }
+.ansbox.right { border-color: var(--good); background: var(--good-bg); }
+.ansbox.wrong { border-color: var(--bad); background: var(--bad-bg); }
+.ans { font-family: var(--display); font-weight: 700; font-size: clamp(1.9rem, 8vw, 2.8rem); font-variant-numeric: tabular-nums; min-height: 1.2em; }
+.ansbox:not(.right):not(.wrong) .ans::after { content: ''; display: inline-block; width: 3px; height: 1em; margin-left: 2px; background: var(--accent); vertical-align: -0.1em; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.unit { font-family: var(--display); font-weight: 700; font-size: clamp(1.4rem, 6vw, 2rem); color: var(--muted); }
+.pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
+.kk { min-height: 60px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); font-family: var(--display); font-weight: 700; font-size: 1.6rem; touch-action: manipulation; user-select: none; }
+.kk:active { background: var(--line); }
+.kk.fn { color: var(--muted); }
+.kk.ok { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-size: 1.2rem; }
+.opts { display: grid; gap: 10px; }
+.opt { display: flex; gap: 12px; align-items: center; text-align: left; min-height: 58px; padding: 10px 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--card); font-size: 1.1rem; }
+.opt:hover:not(:disabled) { border-color: var(--accent); }
+.opt kbd { font: 700 .85rem var(--body); border: 1px solid var(--line); border-radius: 6px; min-width: 1.7em; text-align: center; padding: 1px 4px; color: var(--muted); }
+.opt.right { border-color: var(--good); background: var(--good-bg); }
+.opt.wrong { border-color: var(--bad); background: var(--bad-bg); }
+.opt:disabled { cursor: default; color: var(--ink); }
+.fb { border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.fb.good { background: var(--good-bg); color: var(--good); font-weight: 700; }
+.fb.bad { background: var(--bad-bg); }
+.rt { font-family: var(--display); font-weight: 700; font-size: 1.15rem; }
+.why { color: var(--muted); }
+
+/* Brüche */
+.fr { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1.05; margin: 0 .12em; font-size: .8em; }
+.fr > span:first-child { border-bottom: 2px solid currentColor; padding: 0 .2em; }
+.fr > span:last-child { padding: 0 .2em; }
+
+/* Auswertung */
+.big { font-family: var(--display); font-size: 1.7rem; font-weight: 700; }
+.rows { list-style: none; margin: 0; padding: 0; background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+.rows li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--line); align-items: baseline; }
+.rows li:first-child { border-top: 0; }
+.sc { display: inline-flex; gap: 10px; align-items: baseline; font-variant-numeric: tabular-nums; }
+.cmp { font-size: .85rem; color: var(--muted); }
+.cmp.up { color: var(--good); } .cmp.down { color: var(--bad); }
+
+/* Daten */
+textarea { width: 100%; font: .85rem/1.35 ui-monospace, Menlo, Consolas, monospace; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 10px; resize: vertical; }
+.msg { background: var(--card); border-left: 4px solid var(--accent); padding: 10px 14px; border-radius: 8px; }
+.file { display: inline-flex; gap: 10px; align-items: center; font-weight: 700; flex-wrap: wrap; }
+.file input { font: inherit; font-weight: 400; max-width: 100%; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+.prog { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 10px; }
+.ptop { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; align-items: flex-end; }
+.pnum { display: flex; align-items: baseline; gap: 10px; }
+.pnum b { font-family: var(--display); font-size: 3rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.pnum span { color: var(--muted); }
+.psel { display: flex; flex-direction: column; gap: 2px; font-size: .88rem; color: var(--muted); }
+.psel select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-height: 40px; max-width: 100%; }
+.chart { width: 100%; height: auto; display: block; }
+.chart .gl { stroke: var(--line); stroke-width: 1; }
+.chart .gt { fill: var(--muted); font-size: 11px; font-family: var(--body); }
+.chart .ar { fill: var(--accent); opacity: .14; }
+.chart .lm { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+.chart .dm { fill: var(--accent); }
+.chart .la { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.chart .da { fill: var(--card); stroke: var(--muted); stroke-width: 1.5; }
+.chart .dc { fill: var(--gold); stroke: var(--card); stroke-width: 1.5; }
+.empty { padding: 18px 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: .88rem; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend.big { color: var(--ink); font-size: .95rem; }
+.sw { display: inline-block; width: 14px; height: 10px; border-radius: 3px; }
+.sw-m { background: var(--accent); } .sw-a { background: none; border-top: 2px dashed var(--muted); height: 0; }
+.sw-c { background: var(--gold); transform: rotate(45deg); width: 10px; }
+.sw-s { background: var(--good); } .sw-p { background: var(--accent); } .sw-w { background: var(--warn); } .sw-n { background: var(--line); }
+.key { display: grid; gap: 6px; }
+.ah { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.gvx { font-size: .78rem; font-weight: 700; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; color: var(--muted); white-space: nowrap; }
+.bsp { color: var(--muted); font-size: .88rem; margin: 2px 0 0; }
+.lvt { font-size: .9rem; color: var(--muted); }
+.step { margin-left: auto; display: inline-flex; gap: 6px; }
+.bart { margin: 0; font-size: .9rem; color: var(--muted); }
+.bart b { color: var(--ink); }
+.fr { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1.1; margin: 0 .15em; font-size: .9em; }
+.fr span:first-child { border-bottom: 2px solid currentColor; padding: 0 .2em; }
+.chart .gv { fill: var(--ink); font-size: 12px; font-weight: 700; font-family: var(--body); }
+.mode { display: grid; gap: 8px; }
+.mode .hint { margin: 0; }
+.wkt { margin: 14px 0 4px; }
+.wk { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; height: 56px; align-items: end; }
+.wb { display: flex; align-items: flex-end; height: 100%; background: var(--bg); border-radius: 4px; overflow: hidden; }
+.wb i { display: block; width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; }
+.ch { font-size: 1rem; margin: 14px 0 6px; }
+.prog .ch { margin-top: 0; }
+.wk { height: 84px; align-items: stretch; }
+.wc { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.wb { flex: 1; background: var(--line); height: auto; }
+.wc em { font-style: normal; font-size: .68rem; color: var(--muted); text-align: center; }
+.wc em.now { color: var(--ink); font-weight: 700; }
+.sq { display: inline-flex; align-items: stretch; vertical-align: middle; line-height: 1.2; margin: 0 .1em; }
+.rs { width: .72em; flex: none; height: auto; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: miter; vector-effect: non-scaling-stroke; }
+.rs path { vector-effect: non-scaling-stroke; }
+.rad { border-top: 1.7px solid currentColor; padding: .1em .15em 0 .08em; }
+.bar { display: block; height: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 99px; overflow: hidden; }
+.bar i { height: 100%; border-radius: 99px; }
+.mode { border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: 12px; padding: 12px 14px; background: var(--bg); }
+.mode.chk { border-left-color: var(--gold); }
+.mode .len { margin: 0; }
+.btn.checkbtn { background: var(--gold); color: #261a00; border-color: var(--gold); font-weight: 700; }
+.btn.checkbtn:hover { filter: brightness(1.06); }
+.warn { background: var(--bad-bg); border: 2px solid var(--bad); border-radius: 14px; padding: 18px; display: grid; gap: 10px; margin-top: 18px; }
+.warn h2 { font-size: 1.3rem; margin: 0; }
+.warn p { margin: 0; }
+.fbox { display: inline-flex; flex-direction: column; align-items: center; gap: 5px; vertical-align: middle; }
+.fbox .ansbox { min-width: 4.6ch; min-height: 1.5em; justify-content: center; cursor: pointer; border-bottom: 0; border-radius: 8px; border: 2px solid var(--line); }
+.fbox .ansbox.right { border-color: var(--good); } .fbox .ansbox.wrong { border-color: var(--bad); }
+.fbox .ansbox:not(.act) .ans::after { display: none; }
+.fline { align-self: stretch; height: 3px; background: currentColor; border-radius: 2px; }
+.fbox .ansbox.act { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.chart .lf { fill: none; stroke: var(--gold); stroke-width: 2.5; stroke-dasharray: 6 4; }
+.chart .df { fill: var(--gold); stroke: var(--card); stroke-width: 1.5; }
+.sw-f { background: var(--gold); }
+.line.fl { align-items: center; }
+.line.fl > .q { line-height: 1; }
+.ckopt { display: flex; flex-wrap: wrap; gap: 8px; }
+.cksel { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 12px; font-size: .92rem; }
+.cksel label { display: flex; gap: 8px; align-items: center; min-height: 32px; cursor: pointer; }
+.cksel input { width: 18px; height: 18px; accent-color: var(--gold); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.area.ready { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+.btn.up { background: var(--gold); color: #261a00; border-color: var(--gold); font-weight: 700; }
+.upbox { background: var(--card); border: 2px solid var(--gold); border-radius: 12px; padding: 12px 14px; margin: 12px 0; }
+.stats small { font-size: .9rem; color: var(--muted); font-weight: 400; }
+.stats { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
+/* Link zurück zur Downloadseite: liegt im oberen Innenabstand, verschiebt nichts; im Training ausgeblendet. */
+body { position: relative; }
+.mlink { position: absolute; top: 3px; left: 0; right: 0; max-width: 920px; margin: 0 auto; padding: 0 16px; font-size: .85rem; pointer-events: none; }
+.mlink a { color: var(--muted); pointer-events: auto; }
+body:has(.thead) .mlink { display: none; }
+.offline .mlink { display: none; }                 /* heruntergeladene Datei: kein Link ins Netz */
+.offline-dl { flex-direction: column; align-items: flex-start; justify-content: flex-start; }
+.offline-dl p { max-width: 70ch; }
+.offline-dl code { font-size: .95em; }
+.offline-dl .btn { align-self: flex-start; text-decoration: none; display: inline-flex; align-items: center; }
+.msg.neu a { color: inherit; }
+.sicher { flex-basis: 100%; margin: 0; font-size: .92rem; }
+.sicher.ok { color: var(--good); font-weight: 700; }
+.sicher.offen { color: var(--ink); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sicher .btn.small { min-height: 36px; padding: 4px 14px; }
+</style>
+</head>
+<body>
+<p class="mlink"><a href="index.html">← Kopfrechentrainer: Download und Anleitung</a></p>
+<div id="app"></div>
+<script>
+'use strict';
+// ---------- Hilfsfunktionen ----------
+const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const P = a => a[Math.floor(Math.random() * a.length)];
+const shuf = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const clean = n => Math.abs(n) > 1e6 ? Math.round(n * 1e4) / 1e4 : Math.round(n * 1e9) / 1e9;
+const gcd = (a, b) => b ? gcd(b, a % b) : a;
+function fmt(n) {
+  n = clean(n);
+  const neg = n < 0;
+  let s = String(Math.abs(n));
+  if (s.includes('e')) s = Math.abs(n).toFixed(6).replace(/0+$/, '');
+  let [i, d] = s.split('.');
+  if (i.length > 4) i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return (neg ? '−' : '') + i + (d ? ',' + d : '');
+}
+const MINUS = '−';
+
+// ---------- Bereiche ----------
+const AREAS = [
+  { id: 'mal',    titel: 'Einmaleins & Teilen',          bsp: '7 · 8,  56 : 7',             t: 6,  gvx: 'G4' },
+  { id: 'plus',   titel: 'Plus & Minus',                 bsp: '47 + 8,  100 − 64',          t: 9,  gvx: 'G4' },
+  { id: 'ganz',   titel: 'Ganze Zahlen',                 bsp: '−3 − 4,  (−2) · (−5)',       t: 10, gvx: 'G4' },
+  { id: 'stell',  titel: 'Stellenwert & Dezimalzahlen',  bsp: '3,4 · 10,  0,7 + 0,5',       t: 10, gvx: 'G2' },
+  { id: 'rund',   titel: 'Runden & Überschlag',          bsp: '3,47 auf Zehntel',           t: 12, gvx: 'V2' },
+  { id: 'mass',   titel: 'Maße umwandeln',               bsp: '2,5 m = ? cm',               t: 12, gvx: 'G2' },
+  { id: 'bruch',  titel: 'Brüche, Dezimalzahlen & Prozent', bsp: '¼ von 20,  10 % von 60',  t: 14, gvx: 'G4' },
+  { id: 'bruchr', titel: 'Bruchrechnen',                 bsp: '½ + ¼,  ⅔ · ¾',              t: 18, gvx: 'G4' },
+  { id: 'pot',    titel: 'Potenzen & Wurzeln',           bsp: '2⁵,  √144',                  t: 10, gvx: 'G4' },
+  { id: 'geo',    titel: 'Geometrie-Basics',             bsp: 'Umfang, Fläche, Winkel',     t: 20, gvx: 'G3' },
+  { id: 'gleich', titel: 'Terme & Gleichungen',          bsp: '3x = 12,  2 + 3 · 4',        t: 18, gvx: 'G2' },
+  { id: 'begr',   titel: 'Begriffe',                     bsp: 'Quotient, normal, Sekante',  t: 15, gvx: 'G2/G3' },
+  { id: 'zmeng',  titel: 'Zahlenmengen & Teilgebiete',   bsp: 'ℕ, ℤ, ℚ, Algebra?',          t: 14, gvx: 'G1/V1' },
+  { id: 'extra',  titel: 'Zahlenwerte & Kopfrechentricks', bsp: '4987 · 5013,  Tage im Jahr', t: 25, gvx: 'X1' },
+];
+const MAXL = 4;
+
+// ---------- Aufgaben-Einheiten ----------
+const UNITS = [];
+const add = (area, lvl, key, make, uniq) => UNITS.push({ key, area, lvl, make, uniq: !!uniq || key.includes(':') });
+const E = (q, a) => ({ q: q + ' =', a: clean(a), inline: true });          // Rechenausdruck
+const W = (q, a, unit) => ({ q, a: clean(a), unit: unit || '' });           // Textaufgabe
+const GL = (q, a) => ({ q, a: clean(a), pre: 'x =' });                      // Gleichung
+const MC = (q, correct, wrongs, why) => {
+  const all = shuf([correct, ...[...new Set(wrongs)].filter(w => w !== correct)]);
+  return { q, opts: all, ok: all.indexOf(correct), why: why || '' };
+};
+
+// --- Einmaleins & Teilen (Einzelfakten) ---
+function mulLvl(a, b) { if ([2, 5, 10].includes(a) || [2, 5, 10].includes(b)) return 1; return a <= 4 ? 2 : 3; }
+for (let a = 2; a <= 10; a++) for (let b = a; b <= 10; b++) {
+  const L = mulLvl(a, b);
+  add('mal', L, `mal:${a}x${b}`, () => { const f = Math.random() < .5 ? [a, b] : [b, a]; return E(`${f[0]} · ${f[1]}`, a * b); });
+  add('mal', L, `durch:${a}x${b}`, () => { const d = Math.random() < .5 ? a : b; return E(`${a * b} : ${d}`, a * b / d); });
+}
+for (const a of [11, 12]) for (let b = 2; b <= 9; b++) {
+  add('mal', 4, `mal:${a}x${b}`, () => { const f = Math.random() < .5 ? [a, b] : [b, a]; return E(`${f[0]} · ${f[1]}`, a * b); });
+  add('mal', 4, `durch:${a}x${b}`, () => { const d = Math.random() < .5 ? a : b; return E(`${a * b} : ${d}`, a * b / d); });
+}
+add('mal', 4, 'mal.zehner', () => { const a = R(2, 9) * 10, b = R(3, 9); return E(`${a} · ${b}`, a * b); });
+add('mal', 4, 'mal.zehner2', () => { const a = R(2, 9) * 10, b = R(2, 9) * 10; return E(`${a} · ${b}`, a * b); });
+add('mal', 4, 'durch.zehner', () => { const a = R(2, 9), b = R(2, 9); return E(`${a * b * 10} : ${b}`, a * 10); });
+
+// --- Plus & Minus ---
+add('plus', 1, 'plus.zue10', () => { const a = R(2, 9), b = R(11 - a, 9); return E(`${a} + ${b}`, a + b); });
+add('plus', 1, 'minus.zue10', () => { const x = R(12, 18), b = R(x - 10 + 1, 9); return E(`${x} ${MINUS} ${b}`, x - b); });
+add('plus', 1, 'plus.zehner', () => { const a = R(1, 9) * 10, b = R(1, 9) * 10; return E(`${a} + ${b}`, a + b); });
+add('plus', 1, 'minus.zehner', () => { const a = R(5, 15) * 10, b = R(1, 4) * 10; return E(`${a} ${MINUS} ${b}`, a - b); });
+add('plus', 1, 'doppelt1', () => { const n = R(6, 25); return { q: `Das Doppelte von ${n} =`, a: 2 * n, inline: true }; });
+add('plus', 1, 'halb1', () => { const n = R(3, 25) * 2; return { q: `Die Hälfte von ${n} =`, a: n / 2, inline: true }; });
+add('plus', 2, 'plus.zue2', () => { const u = R(3, 9), a = R(1, 8) * 10 + u, b = R(10 - u, 9); return E(`${a} + ${b}`, a + b); });
+add('plus', 2, 'minus.zue2', () => { const a = R(2, 9) * 10 + R(0, 4), b = R((a % 10) + 1, 9); return E(`${a} ${MINUS} ${b}`, a - b); });
+add('plus', 2, 'plus.zehner2', () => { const a = R(11, 69), b = R(1, 3) * 10; return E(`${a} + ${b}`, a + b); });
+add('plus', 2, 'ergaenze100', () => { const n = R(11, 89); return E(`100 ${MINUS} ${n}`, 100 - n); });
+add('plus', 2, 'doppelt2', () => { const n = R(26, 75); return { q: `Das Doppelte von ${n} =`, a: 2 * n, inline: true }; });
+add('plus', 2, 'halb2', () => { const n = R(13, 49) * 2; return { q: `Die Hälfte von ${n} =`, a: n / 2, inline: true }; });
+add('plus', 3, 'plus.2x2', () => { const a = R(21, 69), b = R(21, 69); return E(`${a} + ${b}`, a + b); });
+add('plus', 3, 'minus.2x2', () => { const a = R(41, 98), b = R(12, a - 10); return E(`${a} ${MINUS} ${b}`, a - b); });
+add('plus', 3, 'plus.50er', () => { const a = R(2, 9) * 50, b = R(2, 9) * 50; return E(`${a} + ${b}`, a + b); });
+add('plus', 3, 'ergaenze1000', () => { const n = R(1, 19) * 50; return E(`1000 ${MINUS} ${n}`, 1000 - n); });
+add('plus', 4, 'plus.3st', () => { const a = R(11, 89) * 10, b = R(11, 89) * 10; return E(`${a} + ${b}`, a + b); });
+add('plus', 4, 'minus.3st', () => { const a = R(51, 99) * 10, b = R(11, 50) * 10; return E(`${a} ${MINUS} ${b}`, a - b); });
+
+// --- Stellenwert & Dezimalzahlen ---
+add('stell', 1, 'mal10', () => { const n = R(2, 99); return E(`${n} · 10`, n * 10); });
+add('stell', 1, 'mal100', () => { const n = R(2, 50); return E(`${n} · 100`, n * 100); });
+add('stell', 1, 'durch10', () => { const n = R(2, 99); return E(`${n * 10} : 10`, n); });
+add('stell', 2, 'mal1000', () => { const n = R(2, 99); return E(`${n} · 1000`, n * 1000); });
+add('stell', 2, 'durch100', () => { const n = R(2, 99); return E(`${n * 100} : 100`, n); });
+add('stell', 2, 'dez.mal10', () => { const n = R(11, 99); return E(`${fmt(n / 10)} · 10`, n); });
+add('stell', 2, 'dez.durch10', () => { let n; do { n = R(11, 99); } while (n % 10 === 0); return E(`${n} : 10`, n / 10); });
+add('stell', 3, 'dez.plus', () => { const a = R(1, 9), b = R(1, 9); return E(`${fmt(a / 10)} + ${fmt(b / 10)}`, (a + b) / 10); });
+add('stell', 3, 'dez.plus2', () => { const a = R(11, 59), b = R(11, 59); return E(`${fmt(a / 10)} + ${fmt(b / 10)}`, (a + b) / 10); });
+add('stell', 3, 'dez.minus', () => { const a = R(2, 9), b = R(1, 9); return E(`${a} ${MINUS} ${fmt(b / 10)}`, a - b / 10); });
+add('stell', 3, 'dez.mal.ganz', () => { const a = R(1, 9), b = R(2, 9); return E(`${fmt(a / 10)} · ${b}`, a * b / 10); });
+add('stell', 4, 'dez.mal.dez', () => { const a = R(2, 9), b = R(2, 9); return E(`${fmt(a / 10)} · ${fmt(b / 10)}`, a * b / 100); });
+add('stell', 4, 'dez.mal100', () => { const n = R(11, 99); return E(`${fmt(n / 100)} · 100`, n); });
+add('stell', 4, 'durch0,5', () => { const n = R(2, 20); return E(`${n} : 0,5`, n * 2); });
+add('stell', 4, 'durch0,1', () => { const n = R(2, 9); return E(`${n} : 0,1`, n * 10); });
+add('stell', 4, 'dez.minus2', () => { const a = R(21, 99), b = R(11, 20); return E(`${fmt(a / 10)} ${MINUS} ${fmt(b / 10)}`, (a - b) / 10); });
+
+// --- Runden & Überschlag ---
+const r10 = n => Math.floor((n + 5) / 10) * 10, r100 = n => Math.floor((n + 50) / 100) * 100;
+add('rund', 1, 'rund.z', () => { const n = R(11, 99); return W(`${n} auf Zehner runden`, r10(n)); });
+add('rund', 1, 'rund.h', () => { const n = R(101, 999); return W(`${n} auf Hunderter runden`, r100(n)); });
+add('rund', 2, 'rund.z3', () => { const n = R(101, 999); return W(`${n} auf Zehner runden`, r10(n)); });
+add('rund', 2, 'rund.t', () => { const n = R(1001, 9999); return W(`${n} auf Tausender runden`, Math.floor((n + 500) / 1000) * 1000); });
+add('rund', 2, 'rund.ganz', () => { const w = R(1, 19), t = R(1, 9); return W(`${fmt(w + t / 10)} auf ganze Zahl runden`, t >= 5 ? w + 1 : w); });
+add('rund', 3, 'rund.zehntel', () => { const w = R(1, 19), f = R(11, 99); return W(`${fmt(w + f / 100)} auf Zehntel runden`, w + (Math.floor(f / 10) + (f % 10 >= 5 ? 1 : 0)) / 10); });
+add('rund', 3, 'rund.hundertstel', () => { const w = R(1, 9), th = R(101, 999); return W(`${fmt(w + th / 1000)} auf Hundertstel runden`, w + (Math.floor(th / 10) + (th % 10 >= 5 ? 1 : 0)) / 100); });
+add('rund', 3, 'rund.halb', () => { const w = R(1, 19), t = R(0, 9); return W(`${fmt(w + (t * 10 + 5) / 100)} auf Zehntel runden`, w + (t + 1) / 10); });
+add('rund', 4, 'ueb.plus', () => { const a = R(201, 899), b = R(101, 499); return W(`Beide Zahlen auf Hunderter runden, dann rechnen: ${a} + ${b} ≈`, r100(a) + r100(b)); });
+add('rund', 4, 'ueb.mal', () => { let a, b; do { a = R(12, 89); b = R(12, 49); } while (a % 10 === 0 || b % 10 === 0); return W(`Beide Zahlen auf Zehner runden, dann rechnen: ${a} · ${b} ≈`, r10(a) * r10(b)); });
+add('rund', 4, 'rund.t5', () => { const n = R(10001, 99999); return W(`${fmt(n)} auf Tausender runden`, Math.floor((n + 500) / 1000) * 1000); });
+
+// --- Maße umwandeln ---
+const conv = (lvl, key, from, to, f, vals) => add('mass', lvl, 'mass.' + key, () => { const v = P(vals); return { q: `${fmt(v)} ${from} =`, unit: to, a: clean(v * f), inline: true }; });
+conv(1, 'm-cm', 'm', 'cm', 100, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+conv(1, 'cm-mm', 'cm', 'mm', 10, [2, 3, 4, 5, 6, 7, 8, 9]);
+conv(1, 'km-m', 'km', 'm', 1000, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+conv(1, 'kg-g', 'kg', 'g', 1000, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+conv(1, 'min-s', 'min', 's', 60, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+conv(1, 'h-min', 'h', 'min', 60, [1, 2, 3, 4, 5]);
+conv(1, 'eur-ct', '€', 'ct', 100, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+conv(2, 'm-cm-d', 'm', 'cm', 100, [0.5, 1.5, 2.5, 3.5, 0.25, 0.75, 1.2, 0.3]);
+conv(2, 'cm-m', 'cm', 'm', 0.01, [200, 300, 450, 250, 50, 80, 120, 600]);
+conv(2, 'mm-cm', 'mm', 'cm', 0.1, [30, 45, 120, 80, 250, 70]);
+conv(2, 'g-kg', 'g', 'kg', 0.001, [2000, 3000, 1500, 500, 250, 4500]);
+conv(2, 'm-km', 'm', 'km', 0.001, [3000, 500, 2500, 7000, 1500]);
+conv(2, 'l-ml', 'l', 'ml', 1000, [1, 2, 3, 4, 5, 0.5, 1.5]);
+conv(2, 'h-min-d', 'h', 'min', 60, [0.5, 1.5, 0.25, 0.75, 2.5]);
+conv(2, 'min-h', 'min', 'h', 1 / 60, [30, 90, 45, 15, 120, 180]);
+conv(2, 'kg-g-d', 'kg', 'g', 1000, [0.5, 1.5, 0.25, 0.75, 2.5, 0.2]);
+conv(3, 't-kg', 't', 'kg', 1000, [2, 0.5, 1.5, 3, 4, 0.25]);
+conv(3, 'ml-l', 'ml', 'l', 0.001, [500, 750, 250, 1500, 2500, 100]);
+conv(3, 'dm-cm', 'dm', 'cm', 10, [3, 5, 7, 12, 25, 4.5]);
+conv(3, 'km-m-d', 'km', 'm', 1000, [1.2, 0.5, 2.5, 0.75, 3.4, 0.1]);
+conv(3, 'm-mm', 'm', 'mm', 1000, [1, 2, 3, 0.5, 1.5, 0.2]);
+conv(3, 'tag-h', 'Tag(e)', 'h', 24, [1, 2, 3, 5, 7]);
+conv(3, 'kg-t', 'kg', 't', 0.001, [2000, 500, 3500, 1000, 750]);
+conv(3, 'mm-m', 'mm', 'm', 0.001, [2000, 500, 1500, 3000, 750]);
+add('mass', 3, 'mass.hmin', () => { const h = R(1, 3), m = P([15, 20, 30, 40, 45]); return { q: `${h} h ${m} min =`, unit: 'min', a: h * 60 + m, inline: true }; });
+conv(4, 'm2-cm2', 'm²', 'cm²', 10000, [1, 2, 3, 5]);
+conv(4, 'm2-dm2', 'm²', 'dm²', 100, [1, 2, 3, 5, 7]);
+conv(4, 'cm2-mm2', 'cm²', 'mm²', 100, [1, 2, 3, 5, 9]);
+conv(4, 'ha-m2', 'ha', 'm²', 10000, [1, 2, 3, 5, 0.5]);
+conv(4, 'km2-ha', 'km²', 'ha', 100, [1, 2, 3, 5, 0.5]);
+conv(4, 'a-m2', 'a', 'm²', 100, [1, 2, 3, 5, 8]);
+conv(4, 'm3-l', 'm³', 'l', 1000, [1, 2, 3, 5, 0.5]);
+conv(4, 'dm3-cm3', 'dm³', 'cm³', 1000, [1, 2, 3, 5]);
+conv(4, 'cm3-ml', 'cm³', 'ml', 1, [5, 20, 100, 250, 500]);
+conv(4, 'l-dm3', 'l', 'dm³', 1, [2, 5, 10, 50, 250]);
+
+// --- Brüche & Prozent ---
+add('bruch', 1, 'bruch.halb', () => { const n = R(2, 20) * 2; return E(`{1/2} von ${n}`, n / 2); });
+add('bruch', 1, 'bruch.viertel', () => { const n = R(2, 10) * 4; return E(`{1/4} von ${n}`, n / 4); });
+add('bruch', 1, 'proz.50', () => { const n = R(2, 20) * 10; return E(`50 % von ${n}`, n / 2); });
+add('bruch', 1, 'proz.10', () => { const n = R(2, 20) * 10; return E(`10 % von ${n}`, n / 10); });
+const BD = [[1, 2, 0.5], [1, 4, 0.25], [3, 4, 0.75], [1, 5, 0.2], [1, 10, 0.1], [2, 5, 0.4]];
+add('bruch', 2, 'bruch.dez', () => { const [a, b, d] = P(BD); return { q: `{${a}/${b}} als Dezimalzahl =`, a: d, inline: true }; });
+add('bruch', 2, 'dez.bruch', () => {
+  const t = P(BD); const wrong = shuf(BD.filter(x => x !== t)).slice(0, 3);
+  return MC(`Welcher Bruch ist gleich ${fmt(t[2])}?`, `{${t[0]}/${t[1]}}`, wrong.map(w => `{${w[0]}/${w[1]}}`), `${t[0]} : ${t[1]} = ${fmt(t[2])}`);
+});
+add('bruch', 2, 'proz.25', () => { const n = R(2, 20) * 4; return E(`25 % von ${n}`, n / 4); });
+add('bruch', 2, 'proz.10b', () => { const n = R(2, 40) * 10; return E(`10 % von ${n}`, n / 10); });
+add('bruch', 2, 'bruch.drittel', () => { const n = R(2, 9) * 3; return E(`{1/3} von ${n}`, n / 3); });
+add('bruch', 2, 'bruch.proz', () => { const [a, b, d] = P([[1, 2, 50], [1, 4, 25], [3, 4, 75], [1, 5, 20], [1, 10, 10]]); return { q: `{${a}/${b}} sind wie viel Prozent?`, a: d, unit: '%' }; });
+add('bruch', 3, 'proz.20', () => { const p = P([20, 30, 40, 60, 70, 80, 90]), n = R(2, 20) * 10; return E(`${p} % von ${n}`, p * n / 100); });
+add('bruch', 3, 'proz.5', () => { const n = R(2, 20) * 20; return E(`5 % von ${n}`, n / 20); });
+add('bruch', 3, 'proz.75', () => { const n = R(2, 20) * 4; return E(`75 % von ${n}`, n * 3 / 4); });
+add('bruch', 3, 'bruch.erw', () => { const [a, b] = P([[1, 2], [2, 3], [3, 4], [1, 4], [3, 5], [2, 5]]), k = R(2, 5); return { q: `{${a}/${b}} = {?/${b * k}}   (Zähler gesucht)`, a: a * k, inline: false, pre: '? =' }; });
+add('bruch', 3, 'bruch.kuerz', () => { const [a, b] = P([[1, 2], [2, 3], [3, 4], [1, 4], [3, 5], [2, 5]]), k = R(2, 5); return { q: `{${a * k}/${b * k}} = {?/${b}}   (Zähler gesucht)`, a, pre: '? =' }; });
+add('bruch', 3, 'bruch.von', () => { const [a, b] = P([[3, 4], [2, 3], [3, 5], [2, 5], [3, 8], [5, 6]]), n = R(2, 8) * b; return E(`{${a}/${b}} von ${n}`, n / b * a); });
+add('bruch', 3, 'proz.anteil', () => { const n = P([4, 5, 10, 20, 25, 50]), p = R(1, n - 1); return W(`${p} von ${n} sind wie viel Prozent?`, p * 100 / n, '%'); });
+add('bruch', 4, 'proz.15', () => { const p = P([15, 12, 35, 45, 8, 6, 30]), n = R(1, 6) * (100 / gcd(p, 100)); return E(`${p} % von ${n}`, p * n / 100); });
+add('bruch', 4, 'preis.rabatt', () => { const n = R(2, 20) * 20, p = P([10, 20, 25, 50]); return W(`Ein Preis von ${n} € wird um ${p} % billiger. Neuer Preis?`, n - n * p / 100, '€'); });
+add('bruch', 4, 'bruch.vergl', () => {
+  const L = [[1, 2], [2, 3], [3, 4], [3, 5], [2, 5], [5, 8], [4, 5], [5, 6], [1, 3], [3, 8]];
+  let x, y; do { x = P(L); y = P(L); } while (x === y || x[0] * y[1] === y[0] * x[1]);
+  const bigger = x[0] * y[1] > y[0] * x[1] ? x : y;
+  const o = shuf([x, y]).map(f => `{${f[0]}/${f[1]}}`);
+  return { q: 'Welcher Bruch ist größer?', opts: o, ok: o.indexOf(`{${bigger[0]}/${bigger[1]}}`), why: `${fmt(x[0] / x[1])} und ${fmt(y[0] / y[1])}: im Kopf in Dezimalzahlen umrechnen hilft.` };
+});
+add('bruch', 4, 'bruch.dez2', () => { const [a, b, d] = P([[3, 5, 0.6], [1, 8, 0.125], [3, 10, 0.3], [7, 10, 0.7], [4, 5, 0.8], [3, 20, 0.15], [1, 20, 0.05]]); return { q: `{${a}/${b}} als Dezimalzahl =`, a: d, inline: true }; });
+
+// --- Geometrie-Basics ---
+add('geo', 1, 'geo.quadU', () => { const a = R(2, 12); return W(`Quadrat, Seite ${a} cm. Wie groß ist der Umfang?`, 4 * a, 'cm'); });
+add('geo', 1, 'geo.quadA', () => { const a = R(2, 9); return W(`Quadrat, Seite ${a} cm. Wie groß ist die Fläche?`, a * a, 'cm²'); });
+add('geo', 1, 'geo.rectA', () => { let a, b; do { a = R(2, 9); b = R(2, 9); } while (a === b); return W(`Rechteck, ${a} cm × ${b} cm. Wie groß ist die Fläche?`, a * b, 'cm²'); });
+add('geo', 1, 'geo.rectU', () => { let a, b; do { a = R(2, 12); b = R(2, 12); } while (a === b); return W(`Rechteck, ${a} cm × ${b} cm. Wie groß ist der Umfang?`, 2 * (a + b), 'cm'); });
+add('geo', 2, 'geo.dreieckW', () => { const a = R(30, 80), b = R(30, 80); return W(`Im Dreieck sind zwei Winkel ${a}° und ${b}°. Wie groß ist der dritte?`, 180 - a - b, '°'); });
+add('geo', 2, 'geo.w90', () => { const w = R(10, 80); return W(`Zwei Winkel ergeben zusammen 90°. Einer ist ${w}°. Wie groß ist der andere?`, 90 - w, '°'); });
+add('geo', 2, 'geo.w180', () => { const w = R(20, 160); return W(`Zwei Winkel ergeben zusammen 180° (gerade Linie). Einer ist ${w}°. Wie groß ist der andere?`, 180 - w, '°'); });
+add('geo', 2, 'geo.rectA2', () => { const a = R(4, 12), b = R(3, 9); return W(`Rechteck, ${a} cm × ${b} cm. Wie groß ist die Fläche?`, a * b, 'cm²'); });
+add('geo', 2, 'geo.dreieckA', () => { const g = R(2, 10) * 2, h = R(2, 9); return W(`Dreieck, Grundseite ${g} cm, Höhe ${h} cm. Wie groß ist die Fläche?`, g * h / 2, 'cm²'); });
+add('geo', 3, 'geo.r2d', () => { const r = R(2, 15); return W(`Kreis mit Radius ${r} cm. Wie lang ist der Durchmesser?`, 2 * r, 'cm'); });
+add('geo', 3, 'geo.d2r', () => { const r = R(2, 15); return W(`Kreis mit Durchmesser ${2 * r} cm. Wie lang ist der Radius?`, r, 'cm'); });
+add('geo', 3, 'geo.quadSeite', () => { const a = R(2, 15); return W(`Quadrat mit Umfang ${4 * a} cm. Wie lang ist eine Seite?`, a, 'cm'); });
+add('geo', 3, 'geo.rectSeite', () => { let a, b; do { a = R(2, 9); b = R(2, 9); } while (a === b); return W(`Rechteck mit Fläche ${a * b} cm² und einer Seite ${a} cm. Wie lang ist die andere Seite?`, b, 'cm'); });
+add('geo', 3, 'geo.viereckW', () => { const a = P([90, 80, 100, 110, 70]), b = P([60, 70, 80, 90, 100]), c = P([90, 100, 110, 120]); return W(`Im Viereck sind drei Winkel ${a}°, ${b}° und ${c}°. Wie groß ist der vierte?`, 360 - a - b - c, '°'); });
+add('geo', 3, 'geo.quader', () => { const a = R(2, 5), b = R(2, 5), c = R(2, 6); return W(`Quader, ${a} cm × ${b} cm × ${c} cm. Wie groß ist das Volumen?`, a * b * c, 'cm³'); });
+add('geo', 3, 'geo.wuerfel', () => { const a = R(2, 5); return W(`Würfel mit Kante ${a} cm. Wie groß ist das Volumen?`, a ** 3, 'cm³'); });
+add('geo', 4, 'geo.wuerfelO', () => { const a = R(2, 5); return W(`Würfel mit Kante ${a} cm. Wie groß ist die Oberfläche?`, 6 * a * a, 'cm²'); });
+add('geo', 4, 'geo.dreieckA2', () => { const g = R(3, 9), h = R(3, 9); return W(`Dreieck, Grundseite ${g} cm, Höhe ${h} cm. Wie groß ist die Fläche?`, g * h / 2, 'cm²'); });
+add('geo', 4, 'geo.rectU2', () => { let a, b; do { a = R(2, 9); b = R(2, 9); } while (a === b); return W(`Rechteck mit Fläche ${a * b} cm² und einer Seite ${a} cm. Wie groß ist der Umfang?`, 2 * (a + b), 'cm'); });
+add('geo', 4, 'geo.parallelo', () => { const g = R(3, 12), h = R(2, 9); return W(`Parallelogramm, Grundseite ${g} cm, Höhe ${h} cm. Wie groß ist die Fläche?`, g * h, 'cm²'); });
+add('geo', 4, 'geo.basis', () => { const s = R(10, 40) * 2; return W(`Gleichschenkeliges Dreieck, Winkel an der Spitze ${s}°. Wie groß ist ein Basiswinkel?`, (180 - s) / 2, '°'); });
+
+// --- Terme & Gleichungen ---
+add('gleich', 1, 'rf.punkt', () => { const a = R(2, 9), b = R(2, 6), c = R(2, 6); return E(`${a} + ${b} · ${c}`, a + b * c); });
+add('gleich', 1, 'rf.klammer', () => { const a = R(2, 6), b = R(2, 6), c = R(2, 6); return E(`(${a} + ${b}) · ${c}`, (a + b) * c); });
+add('gleich', 1, 'rf.minus', () => { const b = R(2, 6), c = R(2, 6), a = b * c + R(1, 9); return E(`${a} ${MINUS} ${b} · ${c}`, a - b * c); });
+add('gleich', 1, 'gl.add', () => { const a = R(2, 12), x = R(2, 15); return GL(`x + ${a} = ${x + a}`, x); });
+add('gleich', 2, 'gl.mul', () => { const a = R(2, 9), x = R(2, 12); return GL(`${a}x = ${a * x}`, x); });
+add('gleich', 2, 'gl.div', () => { const a = R(2, 9), b = R(2, 9); return GL(`x : ${a} = ${b}`, a * b); });
+add('gleich', 2, 'gl.sub', () => { const a = R(2, 12), b = R(2, 15); return GL(`x ${MINUS} ${a} = ${b}`, a + b); });
+add('gleich', 2, 'term.wert', () => { const a = R(2, 6), b = R(1, 9), c = R(2, 9); return { q: `Wert von ${a}x + ${b} für x = ${c}`, a: a * c + b, pre: 'Wert =' }; });
+add('gleich', 3, 'gl.2schritt', () => { const a = R(2, 6), b = R(1, 9), x = R(2, 9); return GL(`${a}x + ${b} = ${a * x + b}`, x); });
+add('gleich', 3, 'gl.2schritt-', () => { const a = R(2, 6), b = R(1, 9), x = R(3, 9); return GL(`${a}x ${MINUS} ${b} = ${a * x - b}`, x); });
+add('gleich', 3, 'gl.klammer', () => { const a = R(2, 5), b = R(1, 6), x = R(1, 8); return GL(`${a} · (x + ${b}) = ${a * (x + b)}`, x); });
+add('gleich', 3, 'term.quadrat', () => { const a = R(1, 9), c = R(2, 9); return { q: `Wert von x² + ${a} für x = ${c}`, a: c * c + a, pre: 'Wert =' }; });
+add('gleich', 4, 'gl.beide', () => { const c = R(1, 4), a = c + R(1, 4), b = R(1, 9), x = R(1, 9); return GL(`${a}x + ${b} = ${c === 1 ? '' : c}x + ${(a - c) * x + b}`, x); });
+add('gleich', 4, 'gl.neg', () => { const a = R(5, 15), b = R(1, a - 1); return GL(`x + ${a} = ${b}`, b - a); });
+add('gleich', 4, 'gl.bruch', () => { const a = R(2, 6), b = R(1, 6), x = R(2, 9) * a; return GL(`x : ${a} + ${b} = ${x / a + b}`, x); });
+add('gleich', 4, 'term.neg', () => { const a = R(2, 6), b = R(1, 9), c = R(1, 6); return { q: `Wert von ${a}x ${MINUS} ${b} für x = ${MINUS}${c}`, a: -a * c - b, pre: 'Wert =' }; });
+
+// --- Begriffe ---
+const FIX = [
+  [1, 'op.quot', 'Das Ergebnis einer Division heißt …', 'Quotient', ['Summe', 'Differenz', 'Produkt'], '12 : 3 = 4. Die 4 ist der Quotient.'],
+  [1, 'op.diff', 'Das Ergebnis einer Subtraktion heißt …', 'Differenz', ['Summe', 'Produkt', 'Quotient'], '12 − 5 = 7. Die 7 ist die Differenz.'],
+  [1, 'op.prod', 'Das Ergebnis einer Multiplikation heißt …', 'Produkt', ['Summe', 'Differenz', 'Quotient'], '3 · 4 = 12. Die 12 ist das Produkt.'],
+  [1, 'op.summe', 'Das Ergebnis einer Addition heißt …', 'Summe', ['Differenz', 'Produkt', 'Quotient'], '3 + 4 = 7. Die 7 ist die Summe.'],
+  [1, 'bruch.nenner', 'Im Bruch {3/5}: Wie heißt die 5?', 'Nenner', ['Zähler', 'Bruchstrich', 'Ganzes'], 'Der Nenner steht unten und sagt, in wie viele gleiche Teile geteilt wird.'],
+  [1, 'bruch.zaehler', 'Im Bruch {3/5}: Wie heißt die 3?', 'Zähler', ['Nenner', 'Bruchstrich', 'Ganzes'], 'Der Zähler steht oben und sagt, wie viele Teile gemeint sind.'],
+  [1, 'wink.recht', 'Wie viel Grad hat ein rechter Winkel?', '90°', ['45°', '180°', '360°'], 'Ein rechter Winkel hat 90°, wie die Ecke eines Blatts.'],
+  [1, 'wuerfel.ecken', 'Wie viele Ecken hat ein Würfel?', '8', ['6', '12', '4'], '8 Ecken, 12 Kanten und 6 Flächen.'],
+  [1, 'dreieck.gleichseitig', 'Ein Dreieck mit drei gleich langen Seiten heißt …', 'gleichseitig', ['gleichschenkelig', 'rechtwinkelig', 'stumpfwinkelig'], 'Gleichseitig: alle drei Seiten gleich lang. Gleichschenkelig: nur zwei.'],
+  [2, 'normal', 'Zwei Geraden stehen normal aufeinander. Das heißt:', 'Sie schneiden sich im rechten Winkel.', ['Sie schneiden sich nie.', 'Sie liegen übereinander.', 'Sie bilden einen 45°-Winkel.'], 'Normal = senkrecht = im rechten Winkel (90°).'],
+  [2, 'parallel', 'Zwei Geraden sind parallel. Das heißt:', 'Sie haben überall gleichen Abstand und schneiden sich nie.', ['Sie stehen im rechten Winkel.', 'Sie schneiden sich in einem Punkt.', 'Sie sind gleich lang.'], 'Parallele Geraden laufen nebeneinander her, wie Schienen.'],
+  [2, 'diagonale', 'Was ist eine Diagonale in einem Viereck?', 'Eine Verbindung zweier Ecken, die nicht nebeneinander liegen.', ['Eine der vier Seiten.', 'Die Höhe.', 'Der Mittelpunkt.'], 'Die Diagonale geht quer durch die Figur von Ecke zu gegenüberliegender Ecke.'],
+  [2, 'durchmesser', 'Der Durchmesser eines Kreises ist …', 'doppelt so lang wie der Radius.', ['halb so lang wie der Radius.', 'gleich lang wie der Radius.', 'dreimal so lang wie der Radius.'], 'd = 2 · r'],
+  [2, 'umfang', 'Der Umfang einer Figur ist …', 'die Länge ihrer Randlinie.', ['der Platz, den sie bedeckt.', 'ihre längste Diagonale.', 'ihre Höhe.'], 'Den Umfang misst man mit einer Schnur um die Figur, die Fläche mit Quadraten innen.'],
+  [2, 'flaeche.einheit', 'Eine Fläche gibt man an in …', 'cm²', ['cm', 'cm³', 'kg'], 'Länge in cm, Fläche in cm², Volumen in cm³.'],
+  [2, 'primzahl', 'Was ist eine Primzahl?', 'Eine Zahl mit genau zwei Teilern: 1 und sie selbst.', ['Jede ungerade Zahl.', 'Eine Zahl, die durch 10 teilbar ist.', 'Eine Zahl, die nur durch 2 teilbar ist.'], '2, 3, 5, 7, 11, 13 … Die 1 ist keine Primzahl.'],
+  [2, 'prozent', 'Prozent bedeutet …', 'von Hundert', ['von Tausend', 'von Zehn', 'pro Jahr'], '1 % ist ein Hundertstel.'],
+  [2, 'winkel.spitz', 'Ein spitzer Winkel ist …', 'kleiner als 90°', ['genau 90°', 'größer als 90° und kleiner als 180°', 'genau 180°'], 'Spitz < 90°, recht = 90°, stumpf zwischen 90° und 180°.'],
+  [2, 'winkel.stumpf', 'Ein stumpfer Winkel ist …', 'größer als 90° und kleiner als 180°', ['kleiner als 90°', 'genau 90°', 'genau 180°'], 'Spitz < 90°, recht = 90°, stumpf zwischen 90° und 180°.'],
+  [3, 'linear', 'Ein Zusammenhang ist linear. Das heißt:', 'Gleiche Änderung bei x bringt immer die gleiche Änderung bei y (Graph ist eine Gerade).', ['y wird immer schneller größer.', 'x und y sind immer gleich.', 'Der Graph ist eine Kurve.'], 'Beispiel: Jede Stunde Parken kostet 2 €. Der Graph ist eine Gerade.'],
+  [3, 'propo', 'Direkt proportional bedeutet:', 'Doppelt so viel x, doppelt so viel y.', ['Doppelt so viel x, halb so viel y.', 'x und y ergeben zusammen immer 100.', 'y ist immer um 2 größer als x.'], 'Beispiel: 2 kg Äpfel kosten doppelt so viel wie 1 kg.'],
+  [3, 'antiproporional', 'Umgekehrt proportional bedeutet:', 'Doppelt so viel x, halb so viel y.', ['Doppelt so viel x, doppelt so viel y.', 'y bleibt immer gleich.', 'y ist immer um 2 kleiner als x.'], 'Beispiel: Doppelt so viele Arbeiter brauchen halb so lang.'],
+  [3, 'term', 'Was ist ein Term?', 'Ein Rechenausdruck ohne Gleichheitszeichen, z. B. 3x + 2.', ['Eine Gleichung.', 'Nur eine einzelne Zahl.', 'Das Ergebnis einer Rechnung.'], 'Mit „=" wird aus zwei Termen eine Gleichung.'],
+  [3, 'gleichung', 'Was ist eine Gleichung?', 'Zwei Terme, die mit „=" verbunden sind.', ['Ein Rechenausdruck ohne „=".', 'Eine Zahl mit Komma.', 'Ein Winkel.'], 'Beispiel: 3x + 2 = 11.'],
+  [3, 'umformen', 'Was darf man bei einer Gleichung tun?', 'Auf beiden Seiten dasselbe rechnen.', ['Nur links etwas addieren.', 'Zahlen beliebig vertauschen.', 'Das Gleichheitszeichen weglassen.'], 'Die Waage bleibt im Gleichgewicht, wenn man beiden Seiten dasselbe wegnimmt oder dazugibt.'],
+  [3, 'median', 'Der Median ist …', 'der mittlere Wert, wenn man die Daten der Größe nach ordnet.', ['der häufigste Wert.', 'die Summe geteilt durch die Anzahl.', 'der größte Wert.'], 'Häufigster Wert = Modus. Summe durch Anzahl = Mittelwert.'],
+  [3, 'variable', 'Was ist die Variable in 3x + 2?', 'x', ['3', '2', '+'], 'Die Variable ist der Platzhalter für eine Zahl.'],
+  [3, 'mindestens', 'Was bedeutet „mindestens 5"?', '5 oder mehr', ['weniger als 5', 'genau 5', 'höchstens 5'], '„Höchstens 5" wäre 5 oder weniger.'],
+  [4, 'hypotenuse', 'Was ist die Hypotenuse?', 'Die längste Seite im rechtwinkeligen Dreieck, gegenüber dem rechten Winkel.', ['Die kürzeste Seite im Dreieck.', 'Die Höhe eines Dreiecks.', 'Jede beliebige Seite.'], 'Die beiden anderen Seiten heißen Katheten.'],
+  [4, 'kathete', 'Was sind die Katheten?', 'Die zwei Seiten, die den rechten Winkel bilden.', ['Die längste Seite.', 'Die Diagonalen.', 'Die Höhen.'], 'Hypotenuse = längste Seite, Katheten = die zwei anderen.'],
+  [4, 'koeffizient', 'In 5x ist die 5 der …', 'Koeffizient (der Faktor vor x).', ['Exponent.', 'Platzhalter.', 'Summand.'], 'Der Koeffizient sagt, wie oft x vorkommt.'],
+  [4, 'quadratzahl', 'Was ist eine Quadratzahl?', 'Eine Zahl, die entsteht, wenn man eine ganze Zahl mit sich selbst malnimmt.', ['Eine Zahl mit vier Stellen.', 'Eine Zahl, die durch 4 teilbar ist.', 'Eine Zahl mit zwei gleichen Ziffern.'], '1, 4, 9, 16, 25 … Beispiel: 6 · 6 = 36.'],
+  [4, 'gestreckt', 'Wie groß ist ein gestreckter Winkel?', '180°', ['90°', '270°', '360°'], 'Ein gestreckter Winkel ist eine gerade Linie. Ein Vollwinkel hat 360°.'],
+];
+for (const [lvl, key, q, ok, wr, why] of FIX) add('begr', lvl, 'begr.' + key, () => MC(q, ok, wr, why), true);
+
+add('begr', 1, 'begr.gerade', () => {
+  const ev = 2 * R(6, 49), od = []; while (od.length < 3) { const x = 2 * R(5, 49) + 1; if (!od.includes(x)) od.push(x); }
+  return MC('Welche Zahl ist gerade?', String(ev), od.map(String), 'Gerade Zahlen enden auf 0, 2, 4, 6 oder 8.');
+});
+add('begr', 2, 'begr.vielfaches', () => {
+  const k = R(3, 9), c = k * R(3, 12), w = new Set(); while (w.size < 3) { const x = k * R(2, 12) + R(1, k - 1); if (x !== c) w.add(x); }
+  return MC(`Welche Zahl ist ein Vielfaches von ${k}?`, String(c), [...w].map(String), `${c} = ${k} · ${c / k}`);
+});
+add('begr', 2, 'begr.teiler', () => {
+  const n = P([12, 18, 20, 24, 30, 36, 42]), ds = []; for (let d = 3; d <= n / 2; d++) if (n % d === 0) ds.push(d);
+  const c = P(ds), w = new Set(); while (w.size < 3) { const x = R(3, n - 1); if (n % x !== 0) w.add(x); }
+  return MC(`Welche Zahl ist ein Teiler von ${n}?`, String(c), [...w].map(String), `${n} : ${c} = ${n / c}, ohne Rest.`);
+});
+add('begr', 2, 'begr.prim', () => {
+  const c = P([11, 13, 17, 19, 23, 29, 31, 37]), w = shuf([21, 27, 33, 39, 49, 51, 57, 91]).slice(0, 3);
+  return MC('Welche Zahl ist eine Primzahl?', String(c), w.map(String), 'Die anderen lassen sich in kleinere Faktoren zerlegen, z. B. 21 = 3 · 7.');
+});
+add('begr', 3, 'begr.mittelwert', () => {
+  const m = R(6, 15), d1 = R(1, 3), d2 = R(4, 5), nums = shuf([m - d1, m + d1, m - d2, m + d2]);
+  return { q: `Mittelwert von ${nums.join(', ')} =`, a: m, inline: true };
+});
+add('begr', 3, 'begr.quadrat', () => { const n = R(2, 12); return E(`${n}²`, n * n); });
+add('begr', 4, 'begr.wurzel', () => { const n = R(2, 12); return E(`√${n * n}`, n); });
+add('begr', 4, 'begr.betrag', () => { const n = R(2, 20); return E(`|${MINUS}${n}|`, n); });
+
+
+// =====================================================================
+// Erweiterungen: mehr Vielfalt je Bereich, neue Bereiche
+// =====================================================================
+const SUPM = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '-': '⁻' };
+const sup = n => String(n).split('').map(c => SUPM[c]).join('');
+const sg = n => n < 0 ? MINUS + Math.abs(n) : String(n);          // Zahl mit echtem Minuszeichen
+const par = n => n < 0 ? `(${MINUS}${-n})` : String(n);
+const fr = (n, d) => `{${n}/${d}}`;
+const lcm = (a, b) => a / gcd(a, b) * b;
+const FR = (q, n, d, extra) => {
+  const g = gcd(Math.abs(n), d), nn = n / g, dd = d / g;
+  return Object.assign({ q, a: n / d, frac: true, ansText: dd === 1 ? String(nn) : `{${nn}/${dd}}`, inline: true }, extra || {});
+};
+const pool = (area, lvl, prefix, items, mk) => items.forEach((it, i) => add(area, lvl, `${prefix}:${i}`, () => mk(it), true));
+const GAP = (q, a) => ({ q, a: clean(a), pre: '□ =' });          // Lückenaufgabe
+const approx = (q, a, tol, extra) => Object.assign({ q, a, tol, pre: 'ca.' }, extra || {});
+const lastDigit = ds => R(2, 9) * 10 + P(ds);                       // Zahl mit bestimmter Endziffer
+
+// ---------- Einmaleins & Teilen: Lückenaufgaben, größere Zahlen ----------
+for (let a = 2; a <= 10; a++) for (let b = a; b <= 10; b++) {
+  add('mal', mulLvl(a, b), `luecke:${a}x${b}`, () => { const [x, y] = Math.random() < .5 ? [a, b] : [b, a]; return GAP(`${x} · □ = ${a * b}`, y); });
+}
+add('mal', 4, 'mal.zwei', () => { const a = R(12, 19), b = P([2, 3, 4, 5]); return E(`${a} · ${b}`, a * b); });
+add('mal', 4, 'mal.25', () => { const b = P([4, 8, 12, 16, 6, 10]); return E(`25 · ${b}`, 25 * b); });
+add('mal', 4, 'mal.15', () => { const b = R(2, 8); return E(`15 · ${b}`, 15 * b); });
+add('mal', 4, 'durch.gross', () => { const a = R(11, 19), b = P([2, 3, 4, 5]); return E(`${a * b} : ${b}`, a); });
+
+// ---------- Plus & Minus ----------
+add('plus', 1, 'plus.luecke1', () => { const a = R(3, 9), b = R(2, 9); return GAP(`${a} + □ = ${a + b}`, b); });
+add('plus', 1, 'minus.luecke1', () => { const s = R(11, 18), b = R(2, 9); return GAP(`${s} − □ = ${s - b}`, b); });
+add('plus', 1, 'erg100z', () => { const n = R(1, 9) * 10; return GAP(`${n} + □ = 100`, 100 - n); });
+add('plus', 1, 'zehner.fehlt', () => { let n; do { n = R(11, 99); } while (n % 10 === 0); return W(`Wie viel fehlt von ${n} bis zum nächsten Zehner?`, 10 - n % 10); });
+add('plus', 2, 'plus.luecke2', () => { const a = R(12, 58), b = R(12, 38); return GAP(`${a} + □ = ${a + b}`, b); });
+add('plus', 2, 'minus.luecke2', () => { const a = R(41, 95), b = R(12, 35); return GAP(`${a} − □ = ${a - b}`, b); });
+add('plus', 2, 'minus.minus', () => { const a = R(40, 99), b = R(2, 15), c = R(2, 15); return E(`${a} − ${b} − ${c}`, a - b - c); });
+add('plus', 2, 'plus.drei', () => { const a = R(3, 19), b = R(3, 19), c = R(3, 19); return E(`${a} + ${b} + ${c}`, a + b + c); });
+add('plus', 3, 'plus.luecke3', () => { const a = R(11, 89) * 10, b = R(11, 89) * 10; return GAP(`${a} + □ = ${a + b}`, b); });
+add('plus', 3, 'plus.drei3', () => { const a = R(12, 45), b = R(12, 45), c = R(12, 45); return E(`${a} + ${b} + ${c}`, a + b + c); });
+add('plus', 3, 'summe.von', () => { const a = R(21, 89), b = R(21, 89); return W(`Wie groß ist die Summe von ${a} und ${b}?`, a + b); });
+add('plus', 3, 'diff.von', () => { const a = R(51, 99), b = R(12, 50); return W(`Wie groß ist die Differenz von ${a} und ${b}?`, a - b); });
+add('plus', 4, 'plus.luecke4', () => { const a = R(111, 489) * 2, b = R(111, 489) * 2; return GAP(`${a} + □ = ${a + b}`, b); });
+add('plus', 4, 'plus.mix', () => { const a = R(11, 49) * 10, b = R(11, 49) * 10, c = R(1, 9) * 10; return E(`${a} + ${b} − ${c}`, a + b - c); });
+add('plus', 4, 'plus.tausend', () => { const a = R(1, 9) * 1000 + R(1, 9) * 100, b = R(1, 9) * 100; return E(`${a} + ${b}`, a + b); });
+add('plus', 4, 'minus.tausend', () => { const a = R(2, 9) * 1000, b = R(1, 9) * 100; return E(`${a} − ${b}`, a - b); });
+add('plus', 4, 'doppelt3', () => { const n = R(105, 450); return { q: `Das Doppelte von ${n} =`, a: 2 * n, inline: true }; });
+add('plus', 4, 'halb3', () => { const n = R(51, 249) * 2; return { q: `Die Hälfte von ${n} =`, a: n / 2, inline: true }; });
+
+// ---------- Ganze Zahlen ----------
+const gz = (lvl, key, make) => add('ganz', lvl, 'ganz.' + key, make);
+gz(1, 'gegen', () => { const n = P([-1, 1]) * R(2, 20); return { q: `Gegenzahl von ${sg(n)} =`, a: -n, inline: true }; });
+gz(1, 'betrag', () => { const n = P([-1, 1]) * R(2, 20); return { q: `|${sg(n)}| =`, a: Math.abs(n), inline: true }; });
+gz(1, 'vergl', () => { let a = -R(1, 9), b = -R(1, 9); while (a === b) b = -R(1, 9); return MC('Welche Zahl ist kleiner?', sg(Math.min(a, b)), [sg(Math.max(a, b))], 'Je weiter links auf der Zahlengeraden, desto kleiner. Bei negativen Zahlen ist die mit dem größeren Betrag kleiner.'); });
+gz(1, 'groesste', () => { const s = new Set(); while (s.size < 4) s.add(R(-9, 9)); const arr = [...s], mx = Math.max(...arr); return MC('Welche Zahl ist die größte?', sg(mx), arr.filter(x => x !== mx).map(sg), 'Positive Zahlen sind größer als negative. Bei negativen ist die mit dem kleineren Betrag größer.'); });
+gz(1, 'links', () => { const n = R(-8, 9); return { q: `Welche ganze Zahl liegt auf der Zahlengeraden direkt links von ${sg(n)}?`, a: n - 1, pre: 'Zahl =' }; });
+gz(1, 'plus1', () => { const a = R(2, 9), b = R(a + 1, 15); return E(`${MINUS}${a} + ${b}`, b - a); });
+gz(1, 'minus1', () => { const a = R(2, 9), b = R(a + 1, 15); return E(`${a} ${MINUS} ${b}`, a - b); });
+gz(1, 'abstand', () => { const n = -R(2, 15); return { q: `Wie weit ist ${sg(n)} von der Null entfernt?`, a: -n, pre: 'Abstand =' }; });
+gz(2, 'minus2', () => { const a = R(2, 9), b = R(2, 9); return E(`${MINUS}${a} ${MINUS} ${b}`, -a - b); });
+gz(2, 'plus2', () => { const a = R(5, 15), b = R(2, a - 1); return E(`${MINUS}${a} + ${b}`, b - a); });
+gz(2, 'temp', () => { const a = R(1, 8), b = R(a + 1, 15); return W(`Es hat ${a} °C und wird um ${b} Grad kälter. Wie viel °C sind es dann?`, a - b, '°C'); });
+gz(2, 'minusminus', () => { const a = R(2, 12), b = R(2, 9); return E(`${a} ${MINUS} (${MINUS}${b})`, a + b); });
+gz(2, 'plusneg', () => { const a = R(2, 12), b = R(2, 9); return E(`${a} + (${MINUS}${b})`, a - b); });
+gz(2, 'tauch', () => { const a = R(2, 9), b = R(2, 9); return W(`Ein Taucher ist auf ${MINUS}${a} m und taucht noch ${b} m tiefer. Auf welcher Höhe ist er jetzt?`, -a - b, 'm'); });
+gz(2, 'unterschied', () => { const a = R(2, 12), b = R(2, 12); return W(`Wie groß ist der Temperaturunterschied zwischen ${a} °C und ${MINUS}${b} °C?`, a + b, '°C'); });
+gz(2, 'schritte', () => { const a = R(2, 9), b = R(2, 9); return W(`Wie viele Schritte sind es auf der Zahlengeraden von ${MINUS}${a} bis ${b}?`, a + b); });
+gz(2, 'konto', () => { const a = R(1, 9) * 10, b = R(1, 15) * 10; return W(`Kontostand: ${MINUS}${a} €. Es werden ${b} € eingezahlt. Neuer Kontostand?`, b - a, '€'); });
+gz(3, 'mal1', () => { const a = R(2, 9), b = R(2, 9); return E(`(${MINUS}${a}) · ${b}`, -a * b); });
+gz(3, 'mal2', () => { const a = R(2, 9), b = R(2, 9); return E(`(${MINUS}${a}) · (${MINUS}${b})`, a * b); });
+gz(3, 'mal3', () => { const a = R(2, 9), b = R(2, 9); return E(`${a} · (${MINUS}${b})`, -a * b); });
+gz(3, 'durch1', () => { const a = R(2, 9), b = R(2, 9); return E(`${MINUS}${a * b} : ${b}`, -a); });
+gz(3, 'durch2', () => { const a = R(2, 9), b = R(2, 9); return E(`${MINUS}${a * b} : (${MINUS}${b})`, a); });
+gz(3, 'vorz', () => { const x = P([-1, 1]) * R(2, 9), y = P([-1, 1]) * R(2, 9); return MC(`Welches Vorzeichen hat das Ergebnis von ${par(x)} · ${par(y)}?`, x * y > 0 ? 'plus (+)' : 'minus (−)', [x * y > 0 ? 'minus (−)' : 'plus (+)'], 'Gleiche Vorzeichen ergeben Plus, verschiedene Vorzeichen ergeben Minus.'); });
+gz(3, 'quad', () => { const a = R(2, 9); return E(`(${MINUS}${a})²`, a * a); });
+gz(3, 'kubik', () => { const a = R(2, 4); return E(`(${MINUS}${a})³`, -(a ** 3)); });
+gz(4, 'mix1', () => { const a = R(2, 9), b = R(2, 9), c = R(1, 20); return E(`${MINUS}${a} · ${b} + ${c}`, -a * b + c); });
+gz(4, 'mix2', () => { const a = R(2, 9), b = R(2, 9), c = R(2, 6); return E(`(${MINUS}${a} + ${b}) · (${MINUS}${c})`, (-a + b) * (-c)); });
+gz(4, 'klammer', () => { const a = R(10, 30), b = R(5, 20), c = R(2, 9); return E(`${a} ${MINUS} (${b} ${MINUS} ${c})`, a - (b - c)); });
+gz(4, 'mal.gross', () => { const a = R(2, 9) * 10, b = R(2, 9); return E(`(${MINUS}${a}) · ${b}`, -a * b); });
+gz(4, 'durch.gross', () => { const a = R(2, 9), b = R(2, 9); return E(`${MINUS}${a * b * 10} : ${b}`, -a * 10); });
+gz(4, 'drei', () => { const c = R(2, 5); return E(`(${MINUS}2) · (${MINUS}3) · (${MINUS}${c})`, -6 * c); });
+gz(4, 'betragsumme', () => { const a = R(2, 12), b = R(2, 12); return E(`|${MINUS}${a}| + |${b}|`, a + b); });
+gz(4, 'betragdiff', () => { const a = R(8, 20), b = R(2, 7); return E(`|${MINUS}${a}| ${MINUS} |${MINUS}${b}|`, a - b); });
+
+// ---------- Stellenwert & Dezimalzahlen ----------
+add('stell', 1, 'stell.ziffer', () => { const n = R(1000, 99999), pos = P([['Einer', 0], ['Zehner', 1], ['Hunderter', 2], ['Tausender', 3]]); return W(`Welche Ziffer steht bei ${fmt(n)} an der ${pos[0]}stelle?`, Math.floor(n / 10 ** pos[1]) % 10); });
+add('stell', 1, 'stell.zerleg', () => { const h = R(1, 9), z = R(1, 9), e = R(1, 9); return E(`${h} Hunderter + ${z} Zehner + ${e} Einer`, h * 100 + z * 10 + e); });
+add('stell', 1, 'stell.tausender', () => { const t = R(1, 9), h = R(1, 9); return E(`${t} Tausender + ${h} Hunderter`, t * 1000 + h * 100); });
+add('stell', 1, 'stell.luecke', () => { const n = R(2, 40); return GAP(`${n} · □ = ${n * 100}`, 100); });
+add('stell', 1, 'stell.zehntel', () => W('Wie viele Zehntel sind ein Ganzes?', 10));
+add('stell', 1, 'stell.durchluecke', () => { const n = R(2, 40); return GAP(`${n * 10} : □ = ${n}`, 10); });
+add('stell', 2, 'dez.ziffer', () => { const w = R(1, 99), t = R(1, 9), h = R(1, 9), x = w + t / 10 + h / 100; const k = P([['Zehntel', t], ['Hundertstel', h]]); return W(`Welche Ziffer steht bei ${fmt(x)} an der ${k[0]}stelle?`, k[1]); });
+add('stell', 2, 'dez.mal100b', () => { const n = R(11, 99); return E(`${fmt(n / 10)} · 100`, n * 10); });
+add('stell', 2, 'stell.durch1000', () => { const n = R(2, 99); return E(`${n * 1000} : 1000`, n); });
+add('stell', 2, 'stell.luecke2', () => { const n = R(11, 99); return GAP(`${fmt(n / 10)} · □ = ${n}`, 10); });
+add('stell', 2, 'dez.verg', () => { const a = R(1, 9), b = R(11, 99); let x = a / 10, y = b / 100; if (x === y) y += 0.01; const big = Math.max(x, y); return MC('Welche Zahl ist größer?', fmt(big), [fmt(Math.min(x, y))], 'Zahlen mit gleich vielen Nachkommastellen vergleichen: 0,5 = 0,50.'); });
+add('stell', 2, 'dez.zwischen', () => { const a = R(1, 8), x = a / 10, y = (a + 2) / 10; return W(`Welche Zahl liegt genau in der Mitte von ${fmt(x)} und ${fmt(y)}?`, (x + y) / 2); });
+add('stell', 3, 'dez.minus3', () => { const a = R(21, 59), b = R(11, 20); return E(`${fmt(a / 10)} ${MINUS} ${fmt(b / 10)}`, (a - b) / 10); });
+add('stell', 3, 'dez.durch.ganz', () => { const a = R(2, 9), b = R(2, 9); return E(`${fmt(a * b / 10)} : ${b}`, a / 10); });
+add('stell', 3, 'dez.erg', () => { const a = R(1, 9); return GAP(`${fmt(a / 10)} + □ = 1`, 1 - a / 10); });
+add('stell', 3, 'dez.halb', () => { const n = R(2, 19) * 2; return W(`Wie groß ist die Hälfte von ${fmt(n / 10)}?`, n / 20); });
+add('stell', 3, 'dez.doppelt', () => { const n = R(11, 49); return W(`Wie groß ist das Doppelte von ${fmt(n / 10)}?`, n / 5); });
+add('stell', 3, 'dez.mal0,5', () => { const n = R(2, 9) * 2; return E(`${n} · 0,5`, n / 2); });
+add('stell', 4, 'dez.mal.dez3', () => { const a = R(2, 9), b = R(2, 9); return E(`${a} · ${fmt(b / 100)}`, a * b / 100); });
+add('stell', 4, 'dez.durch.dez', () => { const a = R(2, 9), b = R(2, 9); return E(`${fmt(a * b / 10)} : ${fmt(b / 10)}`, a); });
+add('stell', 4, 'durch0,25', () => { const n = R(2, 9); return E(`${n} : 0,25`, n * 4); });
+add('stell', 4, 'dez.mal0,25', () => { const n = R(2, 9) * 4; return E(`${n} · 0,25`, n / 4); });
+add('stell', 4, 'dez.periodisch', () => { const c = P([['1/3 = 0,333…', '{1/3}'], ['2/3 = 0,666…', '{2/3}'], ['1/6 = 0,1666…', '{1/6}']]); return MC('Welcher Bruch ergibt eine periodische Dezimalzahl?', c[1], ['{1/2}', '{1/4}', '{1/5}'], `${c[0]}: Eine Ziffer wiederholt sich unendlich oft.`); });
+
+// ---------- Runden & Überschlag ----------
+function bigRound(intStr, fracStr, k) {
+  if (k >= 0) { const v = BigInt(intStr), m = 10n ** BigInt(k); if (k === 0) return Number(v + (fracStr[0] >= '5' ? 1n : 0n)); return Number(((v + m / 2n) / m) * m); }
+  const j = -k; let s = BigInt(intStr + fracStr.slice(0, j)); if (fracStr[j] >= '5') s += 1n;
+  const str = s.toString().padStart(j + 1, '0'); return Number(str.slice(0, -j) + '.' + str.slice(-j));
+}
+const rnd = n => String(R(0, 9)).repeat(0) + String(n);
+function randNum(intLen, fracLen) { let i = String(R(1, 9)); for (let x = 1; x < intLen; x++) i += R(0, 9); let f = ''; for (let x = 0; x < fracLen; x++) f += R(0, 9); return [i, f]; }
+const ST = [['Zehner', 1], ['Hunderter', 2], ['Tausender', 3], ['Zehntausender', 4], ['Hunderttausender', 5], ['Millionen', 6]];
+add('rund', 1, 'rund.z.halb', () => { const n = R(1, 9) * 10 + 5; return W(`${n} auf Zehner runden`, r10(n)); });
+add('rund', 1, 'rund.h.halb', () => { const n = R(1, 9) * 100 + 50; return W(`${n} auf Hunderter runden`, r100(n)); });
+add('rund', 1, 'rund.zeh.mc', () => { const n = R(11, 99); const r = r10(n); return MC(`Auf welchen Zehner wird ${n} gerundet?`, String(r), [String(r + 10), String(r - 10), String(r + 20)].filter(x => +x > 0), 'Endziffer 0 bis 4: abrunden. Endziffer 5 bis 9: aufrunden.'); });
+add('rund', 1, 'rund.abauf', () => { const n = R(11, 99); return MC(`${n} auf Zehner runden: Wird auf- oder abgerundet?`, n % 10 >= 5 ? 'aufgerundet' : 'abgerundet', [n % 10 >= 5 ? 'abgerundet' : 'aufgerundet'], 'Ab Endziffer 5 wird aufgerundet.'); });
+add('rund', 1, 'rund.hun.mc', () => { const n = R(101, 999); const r = r100(n); return MC(`Auf welchen Hunderter wird ${n} gerundet?`, String(r), [String(r + 100), String(r - 100), String(r + 200)].filter(x => +x > 0), 'Auf die Zehnerstelle schauen: 0 bis 4 abrunden, 5 bis 9 aufrunden.'); });
+add('rund', 2, 'rund.geld', () => { const e = R(2, 49), c = R(1, 99); return W(`Runde ${fmt(e + c / 100)} € auf ganze Euro`, c >= 50 ? e + 1 : e, '€'); });
+add('rund', 2, 'rund.ganz2', () => { const w = R(10, 99), t = R(1, 9); return W(`${fmt(w + t / 10)} auf ganze Zahl runden`, t >= 5 ? w + 1 : w); });
+add('rund', 2, 'rund.kg', () => { const k = R(2, 9), g = R(1, 9) * 100 + R(0, 9) * 10; return W(`${k} kg ${g} g: auf ganze Kilogramm runden`, g >= 500 ? k + 1 : k, 'kg'); });
+add('rund', 2, 'rund.endziffer', () => MC('Bis zu welcher Endziffer wird beim Runden abgerundet?', '4', ['5', '3', '6'], 'Bei 0, 1, 2, 3, 4 wird abgerundet, ab 5 aufgerundet.'));
+add('rund', 2, 'rund.t.mc', () => { const n = R(1001, 9999), r = Math.floor((n + 500) / 1000) * 1000; return MC(`${fmt(n)} auf Tausender gerundet ergibt …`, fmt(r), [fmt(r + 1000), fmt(r - 1000), fmt(Math.floor(n / 100) * 100)].filter((x, i, a) => a.indexOf(x) === i && x !== fmt(r)), 'Auf die Hunderterstelle schauen.'); });
+add('rund', 3, 'rund.dez.mc', () => { const w = R(1, 9), t = R(0, 8), x = w + (t * 10 + R(1, 9)) / 100; const r = bigRound(String(Math.floor(x)), fmt(x).split(',')[1] || '0', -1); return MC(`${fmt(x)} auf Zehntel gerundet ergibt …`, fmt(r), [fmt(r + 0.1), fmt(r - 0.1), fmt(Math.floor(x))].filter((v, i, a) => a.indexOf(v) === i && v !== fmt(r)).slice(0, 3), 'Auf die Hundertstelstelle schauen.'); });
+add('rund', 3, 'rund.h.gross', () => { const n = R(1001, 9999); return W(`${fmt(n)} auf Hunderter runden`, r100(n)); });
+add('rund', 3, 'rund.stw.klein', () => { const [nm, k] = P(ST.slice(0, 5)), [i, f] = randNum(k + R(1, 2), 0); return W(`${fmt(Number(i))} auf ${nm} runden`, bigRound(i, '0', k)); });
+add('rund', 3, 'rund.tausendstel', () => { const w = R(1, 9), th = R(1001, 9999); return W(`${fmt(w + th / 10000)} auf Tausendstel runden`, w + (Math.floor(th / 10) + (th % 10 >= 5 ? 1 : 0)) / 1000); });
+add('rund', 4, 'rund.stw.gross', () => { const [nm, k] = P(ST), [i, f] = randNum(R(8, 10), 0); return W(`${fmt(Number(i))} auf ${nm === 'Millionen' ? 'Millionen' : nm} runden`, bigRound(i, '0', k)); });
+add('rund', 4, 'rund.stw.dez', () => { const [nm, k] = P([['Zehntel', -1], ['Hundertstel', -2], ['Tausendstel', -3], ['ganze Zahl', 0], ['Zehner', 1]]), [i, f] = randNum(R(4, 8), 4); return W(`${fmt(Number(i + '.' + f))} auf ${nm} runden`, bigRound(i, f, k)); });
+const sig2 = x => Number(x.toPrecision(3));
+add('rund', 4, 'ueb.minus', () => { const a = R(5000, 9999), b = R(1000, 3999); return approx(`Überschlage im Kopf: ${a} − ${b} ≈`, a - b, 0.12, { inline: true, pre: undefined, q: `Überschlage im Kopf: ${a} − ${b} ≈` }); });
+add('rund', 4, 'ueb.mal2', () => { const a = lastDigit([1, 2, 8, 9]), b = lastDigit([1, 2, 8, 9]); return approx(`Überschlage im Kopf: ${a} · ${b} ≈`, a * b, 0.2, { inline: true, pre: undefined }); });
+add('rund', 4, 'ueb.durch', () => { const a = R(210, 990) / 10, b = R(105, 299) * 10; return approx(`Überschlage im Kopf: ${fmt(a)} : ${fmt(b)} ≈`, a / b, 0.25, { inline: true, pre: undefined }); });
+add('rund', 4, 'ueb.einheit', () => { const a = R(2, 9) * 1000 + R(1, 9) * 100 + P([0, 50, 90]), b = R(2, 9) * 1000 + R(8, 9) * 100 + R(90, 99); return approx(`Überschlage im Kopf: ${a} cm · ${b} cm ≈`, a * b / 10000, 0.15, { inline: true, pre: undefined, unit: 'm²' }); });
+add('rund', 4, 'ueb.quad', () => { const a = P([9.7, 9.8, 9.9, 10.1, 10.2]), b = P([5.8, 5.9, 6.1, 6.2]); return approx(`Überschlage im Kopf: ${fmt(a)}² − ${fmt(b)}² ≈`, a * a - b * b, 0.15, { inline: true, pre: undefined }); });
+
+// ---------- Maße umwandeln ----------
+pool('mass', 1, 'mass.einh', [['Ein Bleistift ist 17 … lang.', 'cm', ['m', 'km', 'dm']], ['Von Wien nach Graz sind es etwa 200 …', 'km', ['m', 'cm', 'mm']], ['Ein Apfel wiegt etwa 150 …', 'g', ['kg', 't', 'mg']], ['Ein Auto wiegt etwa 1 200 …', 'kg', ['g', 't', 'mg']], ['Eine Badewanne fasst etwa 150 …', 'l', ['ml', 'm³', 'cm³']], ['Eine Schulstunde dauert 50 …', 'min', ['s', 'h', 'Tage']], ['Ein Klassenzimmer ist etwa 8 … lang.', 'm', ['cm', 'km', 'mm']], ['Eine Tasse fasst etwa 250 …', 'ml', ['l', 'm³', 'dl']]],
+  it => MC(`Welche Einheit passt? ${it[0]}`, it[1], it[2], 'Setze jede Einheit ein und prüfe, ob die Zahl dazu passt.'));
+pool('mass', 3, 'mass.vorsilbe', [['Kilo', 'tausend'], ['Hekto', 'hundert'], ['Deka', 'zehn'], ['Dezi', 'ein Zehntel'], ['Zenti', 'ein Hundertstel'], ['Milli', 'ein Tausendstel']],
+  it => { const all = ['tausend', 'hundert', 'zehn', 'ein Zehntel', 'ein Hundertstel', 'ein Tausendstel']; return MC(`Die Vorsilbe „${it[0]}“ bedeutet …`, it[1], shuf(all.filter(x => x !== it[1])).slice(0, 3), `${it[0]}meter = ${it[1]} Meter`); });
+add('mass', 2, 'mass.hm', () => { const n = R(2, 9); return W(`${n} Hektometer sind wie viele Meter?`, n * 100, 'm'); });
+add('mass', 2, 'mass.dm', () => { const n = R(2, 9); return W(`${n * 10} Dezimeter sind wie viele Meter?`, n, 'm'); });
+
+// ---------- Brüche, Dezimalzahlen & Prozent ----------
+add('bruch', 1, 'bruch.ganz', () => { const d = R(2, 9); return E(`${fr(d, d)}`, 1); });
+add('bruch', 1, 'proz.100', () => { const n = R(2, 99); return E(`100 % von ${n}`, n); });
+add('bruch', 1, 'proz.1', () => { const n = R(2, 9) * 100; return E(`1 % von ${n}`, n / 100); });
+add('bruch', 1, 'bruch.fuenftel', () => { const n = R(2, 9) * 5; return E(`${fr(1, 5)} von ${n}`, n / 5); });
+add('bruch', 1, 'proz.mc', () => MC('50 % entsprechen …', '{1/2}', ['{1/4}', '{1/5}', '{2/3}'], '50 von 100 ist die Hälfte.'));
+add('bruch', 1, 'bruch.dreiviertel', () => { const n = R(2, 10) * 4; return E(`${fr(3, 4)} von ${n}`, n * 3 / 4); });
+add('bruch', 2, 'bruch.zehntel', () => { const n = R(2, 9) * 10; return E(`${fr(1, 10)} von ${n}`, n / 10); });
+add('bruch', 2, 'dez.proz', () => { const [x, p] = P([[0.5, 50], [0.25, 25], [0.1, 10], [0.75, 75], [0.2, 20], [1, 100]]); return W(`${fmt(x)} sind wie viel Prozent?`, p, '%'); });
+add('bruch', 2, 'proz.20x', () => { const n = R(2, 20) * 5; return E(`20 % von ${n}`, n / 5); });
+add('bruch', 3, 'proz.200', () => { const n = R(2, 20) * 10; return E(`200 % von ${n}`, 2 * n); });
+add('bruch', 3, 'dez.proz3', () => { const [x, p] = P([[0.3, 30], [0.05, 5], [0.45, 45], [0.6, 60], [0.9, 90], [0.01, 1]]); return W(`${fmt(x)} sind wie viel Prozent?`, p, '%'); });
+add('bruch', 3, 'bruch.erw2', () => { const [a, b] = P([[1, 2], [2, 3], [3, 4], [1, 4], [3, 5]]), k = R(2, 5); return { q: `${fr(a, b)} = ${fr(a * k, '?')}   (Nenner gesucht)`, a: b * k, pre: '? =' }; });
+add('bruch', 4, 'proz.gw', () => { const [p, v] = P([[10, R(2, 9)], [20, R(2, 9)], [25, R(2, 12)], [50, R(2, 20)]]); return W(`${p} % eines Betrags sind ${v}. Wie viel sind 100 %?`, v * 100 / p); });
+add('bruch', 4, 'proz.plus', () => { const n = R(2, 20) * 10, p = P([10, 20, 50]); return W(`${n} € werden um ${p} % mehr. Neuer Betrag?`, n + n * p / 100, '€'); });
+add('bruch', 4, 'proz.mwst', () => { const n = R(2, 20) * 5; return W(`Preis ${n} € ohne Steuer, dazu 20 % Mehrwertsteuer. Endpreis?`, n * 1.2, '€'); });
+add('bruch', 4, 'proz.diff', () => { const n = P([50, 100, 200, 25]), p = P([10, 20, 50, 25, 40]); return W(`Der Wert steigt von ${n} auf ${fmt(n + n * p / 100)}. Um wie viel Prozent?`, p, '%'); });
+add('bruch', 4, 'proz.halbiert', () => W('Ein Preis wird halbiert. Um wie viel Prozent ist er billiger?', 50, '%'));
+
+// ---------- Bruchrechnen ----------
+const br = (lvl, key, make) => add('bruchr', lvl, 'br.' + key, make);
+br(1, 'plus', () => { const d = R(3, 10), a = R(1, d - 2), b = R(1, d - 1 - a); return FR(`${fr(a, d)} + ${fr(b, d)} =`, a + b, d); });
+br(1, 'minus', () => { const d = R(3, 10), a = R(2, d - 1), b = R(1, a - 1); return FR(`${fr(a, d)} − ${fr(b, d)} =`, a - b, d); });
+br(1, 'eins.minus', () => { const d = R(3, 10), a = R(1, d - 1); return FR(`1 − ${fr(a, d)} =`, d - a, d); });
+br(1, 'ganze.teile', () => { const [d, nm] = P([[2, 'Halbe'], [3, 'Drittel'], [4, 'Viertel'], [5, 'Fünftel'], [10, 'Zehntel']]), k = R(2, 4); return { q: `Wie viele ${nm} sind ${k} Ganze?`, a: k * d, pre: 'Anzahl =' }; });
+br(1, 'unecht.ganz', () => { const d = R(2, 6), k = R(2, 5); return { q: `${fr(k * d, d)} =`, a: k, inline: true }; });
+br(1, 'dreimal', () => { const d = R(3, 9); return FR(`${fr(1, d)} + ${fr(1, d)} + ${fr(1, d)} =`, 3, d); });
+br(1, 'erg', () => { const d = R(4, 10), a = R(1, d - 2); return { q: `${fr(a, d)} + ${fr('?', d)} = 1   (Zähler gesucht)`, a: d - a, pre: '? =' }; });
+br(1, 'vergl', () => { const d = R(5, 12); let a = R(1, d - 1), b = R(1, d - 1); while (a === b) b = R(1, d - 1); const m = Math.max(a, b), s = Math.min(a, b); return MC('Welcher Bruch ist größer?', fr(m, d), [fr(s, d)], 'Bei gleichem Nenner ist der Bruch mit dem größeren Zähler größer.'); });
+br(2, 'ungl.plus', () => { const [a, b, c, d] = P([[1, 2, 1, 4], [1, 2, 3, 4], [1, 4, 1, 8], [1, 2, 1, 8], [1, 3, 1, 6], [2, 3, 1, 6], [3, 4, 1, 8]]); return FR(`${fr(a, b)} + ${fr(c, d)} =`, a * d + c * b, b * d); });
+br(2, 'ungl.minus', () => { const [a, b, c, d] = P([[3, 4, 1, 2], [3, 4, 1, 4], [7, 8, 1, 2], [5, 6, 1, 3], [2, 3, 1, 6], [1, 2, 1, 4], [5, 8, 1, 4]]); return FR(`${fr(a, b)} − ${fr(c, d)} =`, a * d - c * b, b * d); });
+br(2, 'mal.ganz', () => { const [a, d] = P([[1, 4], [1, 3], [2, 3], [3, 4], [1, 5], [2, 5], [1, 6]]), n = R(2, 5); return FR(`${fr(a, d)} · ${n} =`, a * n, d); });
+br(2, 'doppelt', () => { const [a, d] = P([[1, 4], [3, 8], [1, 3], [2, 5], [3, 10], [1, 8]]); return FR(`Das Doppelte von ${fr(a, d)} =`, 2 * a, d); });
+br(2, 'halbe', () => { const [a, d] = P([[1, 2], [1, 4], [3, 4], [1, 3], [2, 3], [1, 5]]); return FR(`Die Hälfte von ${fr(a, d)} =`, a, 2 * d); });
+br(2, 'kuerzen', () => { const [a, b] = P([[1, 2], [2, 3], [3, 4], [1, 4], [3, 5], [2, 5], [5, 6]]), k = R(2, 5); return FR(`Kürze vollständig: ${fr(a * k, b * k)} =`, a, b, { red: true }); });
+br(2, 'gem', () => { const d = R(2, 5), w = R(1, 3), n = R(1, d - 1); return { q: `${w}${fr(n, d)} als unechter Bruch ${fr('?', d)}   (Zähler gesucht)`, a: w * d + n, pre: '? =' }; });
+br(2, 'plus3', () => { const L = P([[[1, 4], [1, 4], [1, 2]], [[1, 8], [3, 8], [1, 2]], [[1, 6], [1, 6], [1, 3]], [[1, 10], [3, 10], [1, 5]]]); const den = L.reduce((x, y) => lcm(x, y[1]), 1), num = L.reduce((x, y) => x + y[0] * den / y[1], 0); return FR(L.map(x => fr(x[0], x[1])).join(' + ') + ' =', num, den); });
+br(3, 'ungl.plus3', () => { const [a, b, c, d] = P([[1, 2, 1, 3], [1, 3, 1, 4], [1, 2, 2, 3], [3, 4, 1, 3], [1, 6, 1, 2], [2, 5, 1, 2], [1, 4, 1, 5]]); return FR(`${fr(a, b)} + ${fr(c, d)} =`, a * d + c * b, b * d); });
+br(3, 'mal', () => { const [a, b, c, d] = P([[1, 2, 1, 3], [2, 3, 3, 4], [1, 2, 1, 2], [3, 4, 2, 5], [2, 3, 1, 4], [4, 5, 5, 8], [1, 3, 3, 5]]); return FR(`${fr(a, b)} · ${fr(c, d)} =`, a * c, b * d); });
+br(3, 'durch.ganz', () => { const [a, b] = P([[1, 2], [3, 4], [2, 3], [1, 3], [3, 5]]), n = R(2, 5); return FR(`${fr(a, b)} : ${n} =`, a, b * n); });
+br(3, 'ganz.durch.br', () => { const [a, b] = P([[1, 2], [1, 3], [1, 4], [1, 5], [2, 3]]), n = R(2, 6); return FR(`${n} : ${fr(a, b)} =`, n * b, a); });
+br(3, 'kehrwert', () => { const [a, b] = P([[2, 3], [3, 4], [1, 2], [5, 6], [3, 8], [4, 5]]); return FR(`Kehrwert von ${fr(a, b)} =`, b, a); });
+br(3, 'ganz.mal.br', () => { const [a, b] = P([[1, 2], [2, 3], [3, 4], [1, 4], [3, 5]]), n = R(2, 8); return FR(`${n} · ${fr(a, b)} =`, n * a, b); });
+br(3, 'von.br', () => { const [a, b, c, d] = P([[1, 2, 1, 2], [1, 2, 2, 3], [1, 3, 1, 2], [3, 4, 1, 2]]); return FR(`${fr(a, b)} von ${fr(c, d)} =`, a * c, b * d); });
+br(3, 'ungl.minus3', () => { const [a, b, c, d] = P([[2, 3, 1, 2], [3, 4, 1, 3], [1, 2, 1, 3], [4, 5, 1, 2], [5, 6, 1, 2]]); return FR(`${fr(a, b)} − ${fr(c, d)} =`, a * d - c * b, b * d); });
+br(4, 'durch.br', () => { const [a, b, c, d] = P([[1, 2, 1, 4], [3, 4, 3, 8], [2, 3, 1, 3], [1, 2, 3, 4], [2, 5, 4, 5], [3, 5, 1, 10]]); return FR(`${fr(a, b)} : ${fr(c, d)} =`, a * d, b * c); });
+br(4, 'klammer', () => { const [a, b, c, d, k] = P([[1, 2, 1, 4, 2], [1, 3, 1, 6, 3], [1, 2, 1, 3, 6], [3, 4, 1, 2, 4]]); return FR(`(${fr(a, b)} + ${fr(c, d)}) · ${k} =`, (a * d + c * b) * k, b * d); });
+br(4, 'potenz', () => { const [a, b] = P([[1, 2], [2, 3], [3, 4], [1, 3], [3, 5]]); return FR(`(${fr(a, b)})² =`, a * a, b * b); });
+br(4, 'summe3', () => { const L = P([[[1, 2], [1, 3], [1, 6]], [[1, 2], [1, 4], [1, 8]], [[2, 3], [1, 6], [1, 6]], [[1, 4], [1, 3], [1, 6]]]); const den = L.reduce((x, y) => lcm(x, y[1]), 1), num = L.reduce((x, y) => x + y[0] * den / y[1], 0); return FR(L.map(x => fr(x[0], x[1])).join(' + ') + ' =', num, den); });
+br(4, 'vergl4', () => { const L = [[1, 2], [2, 3], [3, 4], [3, 5], [2, 5], [5, 8], [4, 5], [5, 6], [1, 3], [3, 8]]; let x, y; do { x = P(L); y = P(L); } while (x === y || x[0] * y[1] === y[0] * x[1]); const big = x[0] * y[1] > y[0] * x[1] ? x : y; const o = shuf([x, y]).map(v => fr(v[0], v[1])); return { q: 'Welcher Bruch ist größer?', opts: o, ok: o.indexOf(fr(big[0], big[1])), why: 'Kreuzweise vergleichen oder in Dezimalzahlen umrechnen.' }; });
+br(4, 'gem.mal', () => { const w = R(1, 3), [n, d] = P([[1, 2], [1, 3], [1, 4]]), k = R(2, 4); return FR(`${w}${fr(n, d)} · ${k} =`, (w * d + n) * k, d); });
+br(4, 'ungl.minus4', () => { const [a, b, c, d] = P([[7, 8, 1, 3], [5, 6, 1, 4], [3, 4, 2, 5], [5, 8, 1, 3], [2, 3, 1, 4]]); return FR(`${fr(a, b)} − ${fr(c, d)} =`, a * d - c * b, b * d); });
+br(4, 'dez.bruch', () => { const [a, b, x] = P([[3, 4, 0.25], [1, 2, 0.5], [1, 4, 0.75], [3, 10, 0.2], [1, 5, 0.3]]); return FR(`${fr(a, b)} + ${fmt(x)} =`, 0, 1, { a: a / b + x, ansText: fmt(a / b + x), frac: false }); });
+
+// ---------- Potenzen & Wurzeln ----------
+const po = (lvl, key, make) => add('pot', lvl, 'pot.' + key, make);
+po(1, 'q1', () => { const n = R(2, 10); return E(`${n}²`, n * n); });
+po(1, '10hoch', () => { const k = R(2, 5); return E(`10${sup(k)}`, 10 ** k); });
+po(1, '2hoch', () => { const k = R(2, 4); return E(`2${sup(k)}`, 2 ** k); });
+po(1, 'wurzel', () => { const n = R(2, 10); return E(`√${n * n}`, n); });
+po(1, 'basis', () => { const b = R(2, 9), e = R(2, 5); return MC(`In ${b}${sup(e)}: Wie heißt die Zahl ${b}?`, 'Basis (Grundzahl)', ['Exponent (Hochzahl)', 'Wurzel', 'Produkt'], 'Die Basis sagt, was man mit sich selbst malnimmt. Der Exponent sagt, wie oft.'); });
+po(1, 'exp', () => { const b = R(2, 9), e = R(2, 5); return MC(`In ${b}${sup(e)}: Wie heißt die Zahl ${e}?`, 'Exponent (Hochzahl)', ['Basis (Grundzahl)', 'Wurzel', 'Produkt'], 'Der Exponent sagt, wie oft die Basis als Faktor vorkommt.'); });
+po(1, 'alsPotenz', () => { const b = R(2, 9), k = R(2, 5); return { q: `${Array(k).fill(b).join(' · ')} = ${b}ⁿ   (Hochzahl n gesucht)`, a: k, pre: 'n =' }; });
+po(1, 'eins', () => { const b = P([0, 1]), e = R(2, 6); return E(`${b}${sup(e)}`, b ** e); });
+po(2, 'q2', () => { const n = R(11, 15); return E(`${n}²`, n * n); });
+po(2, 'kubik', () => { const n = R(2, 5); return E(`${n}³`, n ** 3); });
+po(2, 'wurzel2', () => { const n = R(11, 15); return E(`√${n * n}`, n); });
+po(2, '2hoch2', () => { const k = R(5, 8); return E(`2${sup(k)}`, 2 ** k); });
+po(2, '10hoch2', () => { const k = R(5, 7); return E(`10${sup(k)}`, 10 ** k); });
+po(2, '3hoch', () => { const k = R(3, 4); return E(`3${sup(k)}`, 3 ** k); });
+po(2, 'kubikwurzel', () => { const n = R(2, 5); return E(`∛${n ** 3}`, n); });
+po(2, 'zehner', () => { const n = R(2, 5) * 10; return E(`${n}²`, n * n); });
+po(2, 'sum', () => { const a = R(2, 6), b = R(2, 6); return E(`${a}² + ${b}²`, a * a + b * b); });
+po(3, 'dez', () => { const n = R(2, 9); return E(`${fmt(n / 10)}²`, n * n / 100); });
+po(3, 'zehner.gross', () => { const n = R(2, 9) * 100; return E(`${n}²`, n * n); });
+po(3, 'wdez', () => { const n = R(2, 9); return E(`√${fmt(n * n / 100)}`, n / 10); });
+po(3, 'hoch01', () => { const b = R(2, 9), e = P([0, 1]); return E(`${b}${sup(e)}`, b ** e); });
+po(3, 'sumdiff', () => { const a = R(5, 9), b = R(2, 4); return E(`${a}² ${MINUS} ${b}²`, a * a - b * b); });
+po(3, 'wsumme', () => { const a = R(2, 6), b = R(2, 6); return E(`√${a * a} + √${b * b}`, a + b); });
+po(3, 'wurzel3', () => { const n = R(16, 20); return E(`√${n * n}`, n); });
+po(3, 'zweihoch', () => { const k = R(9, 10); return E(`2${sup(k)}`, 2 ** k); });
+po(4, 'q15', () => { const n = P([15, 25, 35, 45]); return E(`${n}²`, n * n); });
+po(4, 'wgross', () => { const n = P([15, 20, 25, 30, 40]); return E(`√${n * n}`, n); });
+po(4, 'w10', () => { const k = P([2, 4, 6]); return E(`√${10 ** k}`, 10 ** (k / 2)); });
+po(4, 'negexp', () => { const [t, v] = P([['10' + sup(-1), 0.1], ['10' + sup(-2), 0.01], ['10' + sup(-3), 0.001], ['2' + sup(-1), 0.5], ['2' + sup(-2), 0.25]]); return E(t, v); });
+po(4, 'gemischt', () => { const a = R(2, 3), p = R(2, 3), q = R(2, 3); return E(`${a}${sup(p)} · ${a + 1}${sup(q)}`, a ** p * (a + 1) ** q); });
+po(4, 'pyth', () => { const [a, b, c] = P([[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15]]); return E(`√(${a * a} + ${b * b})`, c); });
+po(4, 'hoch10', () => { const [b, e] = P([[2, 10], [3, 5], [5, 4], [4, 5]]); return E(`${b}${sup(e)}`, b ** e); });
+po(4, 'wprodukt', () => { const [a, b] = P([[8, 2], [18, 2], [12, 3], [27, 3], [50, 2], [20, 5]]); return E(`√${a} · √${b}`, Math.sqrt(a * b)); });
+
+// ---------- Geometrie-Basics ----------
+add('geo', 1, 'geo.dreieckU', () => { const a = R(3, 9), b = R(3, 9), c = R(Math.abs(a - b) + 1, a + b - 1); return W(`Dreieck mit den Seiten ${a} cm, ${b} cm und ${c} cm. Wie groß ist der Umfang?`, a + b + c, 'cm'); });
+add('geo', 1, 'geo.gleichseitigU', () => { const a = R(2, 12); return W(`Gleichseitiges Dreieck, Seite ${a} cm. Wie groß ist der Umfang?`, 3 * a, 'cm'); });
+add('geo', 1, 'geo.sechseckU', () => { const a = R(2, 9); return W(`Regelmäßiges Sechseck, Seite ${a} cm. Wie groß ist der Umfang?`, 6 * a, 'cm'); });
+add('geo', 1, 'geo.einheitU', () => MC('In welcher Einheit gibt man einen Umfang an?', 'cm', ['cm²', 'cm³', 'kg'], 'Umfang ist eine Länge.'));
+add('geo', 1, 'geo.winkelDreieck', () => W('Wie groß ist die Winkelsumme in jedem Dreieck?', 180, '°'));
+add('geo', 1, 'geo.ecken', () => { const [nm, k] = P([['Dreieck', 3], ['Viereck', 4], ['Fünfeck', 5], ['Sechseck', 6], ['Achteck', 8]]); return W(`Wie viele Ecken hat ein ${nm}?`, k); });
+add('geo', 2, 'geo.rechtwDreieck', () => { const a = R(2, 8) * 2, b = R(2, 9); return W(`Rechtwinkeliges Dreieck mit den Katheten ${a} cm und ${b} cm. Wie groß ist die Fläche?`, a * b / 2, 'cm²'); });
+add('geo', 2, 'geo.gleichseitigW', () => W('Wie groß ist jeder Winkel in einem gleichseitigen Dreieck?', 60, '°'));
+add('geo', 2, 'geo.scheitel', () => { const w = R(20, 160); return W(`Zwei Geraden schneiden sich. Ein Winkel hat ${w}°. Wie groß ist der gegenüberliegende Winkel (Scheitelwinkel)?`, w, '°'); });
+add('geo', 2, 'geo.quadFlaeche', () => { const a = R(10, 15); return W(`Quadrat, Seite ${a} cm. Wie groß ist die Fläche?`, a * a, 'cm²'); });
+add('geo', 3, 'geo.rectU3', () => { let a, b; do { a = R(2, 9); b = R(2, 9); } while (a === b); return W(`Rechteck mit Umfang ${2 * (a + b)} cm. Eine Seite ist ${a} cm. Wie lang ist die andere Seite?`, b, 'cm'); });
+add('geo', 3, 'geo.quadSeiteA', () => { const a = R(3, 12); return W(`Quadrat mit Fläche ${a * a} cm². Wie lang ist eine Seite?`, a, 'cm'); });
+add('geo', 4, 'geo.quaderO', () => { const a = R(2, 4), b = R(2, 4), c = R(2, 5); return W(`Quader, ${a} cm × ${b} cm × ${c} cm. Wie groß ist die Oberfläche?`, 2 * (a * b + a * c + b * c), 'cm²'); });
+add('geo', 4, 'geo.pyth', () => { const [a, b, c] = P([[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15]]); return W(`Rechtwinkeliges Dreieck, Katheten ${a} cm und ${b} cm. Wie lang ist die Hypotenuse?`, c, 'cm'); });
+add('geo', 4, 'geo.kreisU', () => { const r = R(2, 12); return W(`Kreis mit Radius ${r} cm. Wie groß ist der Umfang ungefähr, wenn du mit π ≈ 3 rechnest?`, 6 * r, 'cm'); });
+add('geo', 4, 'geo.prismaV', () => { const g = R(2, 9) * 5, h = R(2, 8); return W(`Prisma, Grundfläche ${g} cm², Höhe ${h} cm. Wie groß ist das Volumen?`, g * h, 'cm³'); });
+
+// ---------- Terme & Gleichungen ----------
+add('gleich', 1, 'gl.add2', () => { const a = R(2, 12), x = R(2, 15); return GL(`${a} + x = ${a + x}`, x); });
+add('gleich', 1, 'gl.sub1', () => { const a = R(2, 9), b = R(2, 15); return GL(`x ${MINUS} ${a} = ${b}`, a + b); });
+add('gleich', 1, 'rf.durch', () => { const b = R(2, 9), a = R(2, 9), c = R(2, 9); return E(`${a * b} : ${b} + ${c}`, a + c); });
+add('gleich', 1, 'rf.zwei', () => { const a = R(2, 6), b = R(2, 6), c = R(2, 6), d = R(2, 6); return E(`${a} · ${b} + ${c} · ${d}`, a * b + c * d); });
+add('gleich', 1, 'term.mc', () => { const x = P(['x', 'a', 'n']); return MC(`Die Summe aus ${x} und 5 schreibt man …`, `${x} + 5`, [`5${x}`, `${x} ${MINUS} 5`, `${x} : 5`], 'Summe = plus.'); });
+add('gleich', 1, 'term.mc2', () => MC('Das Dreifache von x schreibt man …', '3x', ['x + 3', 'x : 3', 'x³'], '„Dreifache“ heißt mal 3.'));
+add('gleich', 2, 'term.wert2', () => { const a = R(2, 6), b = R(1, 9), c = R(3, 9); return { q: `Wert von ${a}x ${MINUS} ${b} für x = ${c}`, a: a * c - b, pre: 'Wert =' }; });
+add('gleich', 2, 'term.mc3', () => MC('Die Hälfte von x schreibt man …', 'x : 2', ['2x', 'x ' + MINUS + ' 2', 'x²'], 'Hälfte = durch 2.'));
+add('gleich', 2, 'rf.potenz', () => { const a = R(2, 9), b = R(2, 5); return E(`${a} + ${b}²`, a + b * b); });
+add('gleich', 2, 'rf.klammer2', () => { const a = R(2, 6), b = R(2, 6), c = R(2, 6); return E(`${a} · (${b} + ${c})`, a * (b + c)); });
+add('gleich', 2, 'gl.probe', () => { const a = R(2, 6), b = R(1, 9), x = R(2, 8), ja = Math.random() < .5, c = a * x + b + (ja ? 0 : P([-1, 1]) * R(1, 3)); const test = x; return MC(`Ist x = ${x} die Lösung von ${a}x + ${b} = ${c}?`, ja ? 'Ja' : 'Nein', [ja ? 'Nein' : 'Ja'], `Einsetzen: ${a} · ${x} + ${b} = ${a * x + b}.`); });
+add('gleich', 3, 'term.vf', () => { const a = R(2, 9); let b = R(2, 9); while (b === a) b = R(2, 9); return MC(`${a}x + ${b}x =`, `${a + b}x`, [`${a * b}x`, `${a + b}x²`, `${a + b}`], 'Gleiche Variablen: Zahlen davor addieren.'); });
+add('gleich', 3, 'term.vf2', () => { const a = R(6, 12), b = R(2, 5); return MC(`${a}x ${MINUS} ${b}x =`, `${a - b}x`, [`${a * b}x`, `${a - b}`, `${a - b}x²`], 'Gleiche Variablen: Zahlen davor subtrahieren.'); });
+add('gleich', 3, 'term.klammer', () => { const a = R(2, 5), b = R(2, 6); return MC(`${a}(x + ${b}) =`, `${a}x + ${a * b}`, [`${a}x + ${b}`, `${a + 1}x + ${a * b}`, `x + ${a * b}`], 'Jeder Summand in der Klammer wird mit der Zahl davor multipliziert.'); });
+add('gleich', 3, 'gl.klammer2', () => { const a = R(2, 5), b = R(1, 6), x = R(b + 1, 10); return GL(`${a} · (x ${MINUS} ${b}) = ${a * (x - b)}`, x); });
+add('gleich', 3, 'gl.text', () => { const x = R(2, 12), b = R(1, 9); return W(`Ich denke mir eine Zahl, verdopple sie und addiere ${b}. Das Ergebnis ist ${2 * x + b}. Welche Zahl habe ich mir gedacht?`, x); });
+add('gleich', 3, 'gl.text2', () => { const x = R(2, 12), b = R(1, 9); return W(`Das Dreifache einer Zahl, vermindert um ${b}, ist ${3 * x - b}. Wie heißt die Zahl?`, x); });
+add('gleich', 4, 'gl.x2', () => { const n = R(2, 12); return { q: `x² = ${n * n}   (x ist positiv)`, a: n, pre: 'x =' }; });
+add('gleich', 4, 'term.vf3', () => { const a = R(2, 6), b = R(2, 9); let c = R(2, 6); while (c === a) c = R(2, 6); return MC(`${a}x + ${b} + ${c}x =`, `${a + c}x + ${b}`, [`${a + c + b}x`, `${a * c}x + ${b}`, `${a + c}x²+${b}`], 'Gleiche Variablen zusammenfassen: x-Terme mit x-Termen, Zahlen mit Zahlen.'); });
+add('gleich', 4, 'gl.umstellen', () => MC('Die Formel A = a · b soll nach b umgestellt werden. Das ergibt …', 'b = A : a', ['b = A · a', 'b = A − a', 'b = a : A'], 'Auf beiden Seiten durch a teilen.'));
+add('gleich', 4, 'gl.ungleich', () => { const a = R(2, 9), b = R(a + 3, a + 12); return { q: `x + ${a} > ${b}   Welche ganze Zahl ist das kleinste x?`, a: b - a + 1, pre: 'x =' }; });
+add('gleich', 4, 'gl.neg2', () => { const a = R(2, 6), b = R(2, 9); return GL(`${a}x = ${MINUS}${a * b}`, -b); });
+
+// =====================================================================
+// Begriffe (aus dem Wegweiser „Mathe Know How – Grundkenntnisse“)
+// =====================================================================
+const FIX2 = [
+  [1, 'faktor', 'In 6 · 7 heißen 6 und 7 …', 'Faktoren', ['Summanden', 'Quotienten', 'Differenzen'], 'Bei einer Multiplikation heißen die Zahlen Faktoren, das Ergebnis Produkt.'],
+  [1, 'strecke', 'Was hat genau zwei Endpunkte?', 'Eine Strecke', ['Eine Gerade', 'Ein Strahl', 'Ein Winkel'], 'Strecke: begrenzt. Strahl: ein Anfang, kein Ende. Gerade: weder Anfang noch Ende.'],
+  [1, 'strahl', 'Was hat einen Anfangspunkt und geht in eine Richtung unbegrenzt weiter?', 'Ein Strahl', ['Eine Strecke', 'Eine Gerade', 'Ein Kreis'], 'Wie ein Lichtstrahl: Er beginnt an einem Punkt.'],
+  [1, 'gerade.linie', 'Was hat weder Anfang noch Ende?', 'Eine Gerade', ['Eine Strecke', 'Ein Strahl', 'Ein Punkt'], 'Eine Gerade ist unbegrenzt in beide Richtungen.'],
+  [1, 'waagrecht', 'Eine waagrechte Linie heißt auch …', 'horizontal', ['vertikal', 'normal', 'diagonal'], 'Waagrecht = horizontal, senkrecht = vertikal.'],
+  [1, 'senkrecht', 'Eine senkrechte Linie heißt auch …', 'vertikal', ['horizontal', 'parallel', 'diagonal'], 'Waagrecht = horizontal, senkrecht = vertikal.'],
+  [1, 'quader.flaechen', 'Wie viele Flächen hat ein Quader?', '6', ['4', '8', '12'], '6 Flächen, 12 Kanten, 8 Ecken.'],
+  [1, 'kugel', 'Welcher Körper hat keine Kanten und keine Ecken?', 'Die Kugel', ['Der Würfel', 'Die Pyramide', 'Der Quader'], 'Die Kugel ist rundherum gekrümmt.'],
+  [1, 'vorzeichen', 'Wie heißt das Zeichen „−“ vor der Zahl −5?', 'Vorzeichen', ['Betrag', 'Gegenzahl', 'Exponent'], 'Das Vorzeichen sagt, ob eine Zahl positiv oder negativ ist.'],
+  [1, 'gegenzahl', 'Die Gegenzahl von −8 ist …', '8', ['−8', '0', '{1/8}'], 'Die Gegenzahl hat dasselbe Zahlenstück, aber das andere Vorzeichen.'],
+  [1, 'zirkel', 'Womit zeichnet man einen Kreis?', 'Zirkel', ['Geodreieck', 'Lineal', 'Maßband'], 'Der Zirkel hat eine feste Spitze und einen Zeichenstift.'],
+  [1, 'geodreieck', 'Womit misst und zeichnet man Winkel?', 'Geodreieck', ['Zirkel', 'Lineal', 'Taschenrechner'], 'Das Geodreieck hat eine Winkelskala.'],
+  [2, 'potenz.basis', 'In 5³ heißt die 5 …', 'Basis (Grundzahl)', ['Exponent (Hochzahl)', 'Wurzel', 'Faktor'], '5³ = 5 · 5 · 5. Die Basis wird mit sich selbst multipliziert.'],
+  [2, 'potenz.exp', 'In 5³ heißt die 3 …', 'Exponent (Hochzahl)', ['Basis (Grundzahl)', 'Wurzel', 'Produkt'], 'Der Exponent sagt, wie oft die Basis als Faktor vorkommt.'],
+  [2, 'periodisch', 'Was bedeutet „periodisch“ bei 0,333 …?', 'Eine Ziffer(nfolge) wiederholt sich immer wieder.', ['Die Zahl ist negativ.', 'Die Zahl hat genau drei Stellen.', 'Die Zahl ist ganz.'], '{1/3} = 0,333 … Die 3 wiederholt sich unendlich oft.'],
+  [2, 'grundwert', 'Bei „20 % von 50 = 10“ ist die 50 der …', 'Grundwert', ['Prozentsatz', 'Prozentwert', 'Faktor'], 'Grundwert = das Ganze (100 %).'],
+  [2, 'prozentsatz', 'Bei „20 % von 50 = 10“ sind die 20 % der …', 'Prozentsatz', ['Grundwert', 'Prozentwert', 'Exponent'], 'Prozentsatz = wie viel Prozent.'],
+  [2, 'prozentwert', 'Bei „20 % von 50 = 10“ ist die 10 der …', 'Prozentwert (Prozentanteil)', ['Grundwert', 'Prozentsatz', 'Exponent'], 'Prozentwert = der Teil, der herauskommt.'],
+  [2, 'nullpunkt', 'Wie heißt die Zahl 0 auf der Zahlengeraden?', 'Nullpunkt', ['Endpunkt', 'Mittelpunkt', 'Anfangswert'], 'Der Nullpunkt trennt positive und negative Zahlen.'],
+  [2, 'normale', 'Was ist eine Normale zu einer Geraden g?', 'Eine Gerade im rechten Winkel zu g', ['Eine Gerade mit gleichem Abstand zu g', 'Eine Strecke durch den Mittelpunkt', 'Eine gebogene Linie'], 'Normal = im rechten Winkel.'],
+  [2, 'parallele', 'Was ist eine Parallele zu einer Geraden g?', 'Eine Gerade mit überall gleichem Abstand zu g', ['Eine Gerade im rechten Winkel zu g', 'Eine Gerade, die g schneidet', 'Die Hälfte von g'], 'Parallele Geraden schneiden einander nie.'],
+  [2, 'eckpunkt', 'Wie heißt der Punkt, an dem zwei Seiten einer Figur zusammentreffen?', 'Eckpunkt', ['Mittelpunkt', 'Berührpunkt', 'Nullpunkt'], 'Dreieck: 3 Eckpunkte.'],
+  [2, 'figurKoerper', 'Welche Aussage stimmt?', 'Ein Würfel ist ein Körper, ein Quadrat ist eine Figur.', ['Ein Würfel ist eine Figur, ein Quadrat ist ein Körper.', 'Beide sind Körper.', 'Beide sind nur Linien.'], 'Figuren sind flach (2D), Körper sind räumlich (3D).'],
+  [2, 'vieleck', 'Was ist ein Vieleck?', 'Eine ebene Figur mit geraden Seiten, z. B. Dreieck oder Sechseck', ['Eine runde Figur', 'Ein Körper mit vielen Ecken', 'Ein Kreis'], 'Dreieck, Viereck, Fünfeck … sind Vielecke.'],
+  [2, 'mantel', 'Beim Drehzylinder heißt die gebogene Außenfläche …', 'Mantel', ['Grundfläche', 'Deckfläche', 'Kante'], 'Grundfläche und Deckfläche sind die zwei Kreise.'],
+  [2, 'volumen', 'Rauminhalt ist ein anderes Wort für …', 'Volumen', ['Oberfläche', 'Umfang', 'Länge'], 'Volumen misst man in cm³ oder m³.'],
+  [2, 'oberflaeche', 'Die Summe aller Begrenzungsflächen eines Körpers heißt …', 'Oberfläche', ['Volumen', 'Umfang', 'Raumdiagonale'], 'Oberfläche misst man in cm² oder m².'],
+  [2, 'zahlengerade', 'Auf der Zahlengeraden liegen größere Zahlen …', 'weiter rechts', ['weiter links', 'weiter oben', 'in der Mitte'], 'Links sind die kleineren Zahlen, rechts die größeren.'],
+  [3, 'sekante', 'Eine Gerade schneidet einen Kreis in zwei Punkten. Sie heißt …', 'Sekante', ['Tangente', 'Passante', 'Radius'], 'Sekante: 2 gemeinsame Punkte.'],
+  [3, 'tangente', 'Eine Gerade berührt einen Kreis in genau einem Punkt. Sie heißt …', 'Tangente', ['Sekante', 'Passante', 'Durchmesser'], 'Tangente: 1 gemeinsamer Punkt.'],
+  [3, 'passante', 'Eine Gerade hat mit dem Kreis keinen Punkt gemeinsam. Sie heißt …', 'Passante', ['Sekante', 'Tangente', 'Radius'], 'Passante: 0 gemeinsame Punkte. Sie „passiert“ den Kreis.'],
+  [3, 'raumdiagonale', 'Was ist eine Raumdiagonale?', 'Die Verbindung zweier Ecken quer durch den Körper', ['Die Diagonale einer Seitenfläche', 'Eine Kante', 'Die Höhe'], 'Sie geht durch das Innere, z. B. beim Würfel von unten vorne links nach oben hinten rechts.'],
+  [3, 'symmetrieachse', 'Was ist eine Symmetrieachse?', 'Eine Gerade, an der man die Figur spiegeln kann, sodass sie auf sich selbst fällt', ['Eine Seite der Figur', 'Der Umfang der Figur', 'Der Mittelpunkt'], 'Ein Quadrat hat 4 Symmetrieachsen.'],
+  [3, 'kongruent', 'Kongruent heißt …', 'deckungsgleich', ['ähnlich, aber größer oder kleiner', 'parallel', 'normal aufeinander'], 'Kongruente Figuren sind gleich in Form und Größe.'],
+  [3, 'aehnlich', 'Ähnliche Figuren haben …', 'dieselbe Form, aber nicht unbedingt dieselbe Größe', ['dieselbe Größe, aber andere Form', 'denselben Umfang', 'nichts gemeinsam'], 'Eine Karte ist dem Gelände ähnlich.'],
+  [3, 'winkelbuchstaben', 'Mit welchen Buchstaben benennt man Winkel meistens?', 'α, β, γ', ['a, b, c', 'A, B, C', 'x, y, z'], 'a, b, c sind meist Seiten, A, B, C Eckpunkte.'],
+  [3, 'massstab', 'Maßstab 1 : 100. Das heißt: 1 cm auf dem Plan sind in Wirklichkeit …', '100 cm', ['10 cm', '1000 cm', '1 cm'], '100 cm sind 1 m.'],
+  [3, 'pythagoras', 'Der Satz des Pythagoras gilt für …', 'rechtwinkelige Dreiecke', ['alle Dreiecke', 'alle Vierecke', 'Kreise'], 'a² + b² = c², wobei c die Hypotenuse ist.'],
+  [3, 'ellipse', 'Eine Ellipse sieht aus wie …', 'ein gedrückter Kreis (Oval)', ['ein Quadrat', 'ein Dreieck', 'eine Gerade'], 'Ein Kreis ist ein Sonderfall der Ellipse.'],
+  [3, 'drehzylinder', 'Welcher Körper hat zwei Kreisflächen und einen Mantel?', 'Der Drehzylinder', ['Der Drehkegel', 'Die Kugel', 'Das Prisma'], 'Grund- und Deckfläche sind Kreise.'],
+  [3, 'drehkegel', 'Welcher Körper hat eine Kreisfläche als Grundfläche und eine Spitze?', 'Der Drehkegel', ['Der Drehzylinder', 'Die Kugel', 'Der Quader'], 'Eine Eiswaffel ist ein Kegel.'],
+  [3, 'pyramide', 'Welcher Körper hat ein Vieleck als Grundfläche und Dreiecke, die in einer Spitze zusammenlaufen?', 'Die Pyramide', ['Das Prisma', 'Der Drehzylinder', 'Die Kugel'], 'Die Seitenflächen laufen in der Spitze zusammen.'],
+  [3, 'prisma', 'Welcher Körper hat zwei gleiche, parallele Vielecke als Grund- und Deckfläche?', 'Das Prisma', ['Die Pyramide', 'Der Drehkegel', 'Die Kugel'], 'Z. B. ein Dreiecksprisma oder ein Quader.'],
+  [4, 'proportional.beispiel', 'Welches Beispiel ist direkt proportional?', 'Doppelt so viele Äpfel kosten doppelt so viel.', ['Doppelt so viele Arbeiter brauchen halb so lang.', 'Eine Person ist doppelt so alt wie ihr Kind.', 'Das Alter und die Schuhgröße.'], 'Direkt proportional: gleicher Faktor bei beiden Größen.'],
+  [4, 'dreieckarten', 'Ein Dreieck mit einem rechten Winkel heißt …', 'rechtwinkelig', ['gleichseitig', 'spitzwinkelig', 'stumpfwinkelig'], 'Rechtwinkelig: ein Winkel hat genau 90°.'],
+  [4, 'dreieckarten2', 'Ein Dreieck mit zwei gleich langen Seiten heißt …', 'gleichschenkelig', ['gleichseitig', 'rechtwinkelig', 'unregelmäßig'], 'Die gleich langen Seiten heißen Schenkel.'],
+];
+for (const [lvl, key, q, ok, wr, why] of FIX2) add('begr', lvl, 'begr.' + key, () => MC(q, ok, wr, why), true);
+add('begr', 2, 'begr.ordnung', () => {
+  let a = R(1, 99) / 10, b = R(1, 99) / 100; if (a === b) b += 0.01;
+  const z = a > b ? '>' : '<';
+  return MC(`Welches Zeichen passt? ${fmt(a)} □ ${fmt(b)}`, z, ['>', '<', '='].filter(x => x !== z), 'Größere Zahl: Das Zeichen öffnet sich zu ihr hin.');
+});
+add('begr', 2, 'begr.ordnung2', () => {
+  const a = R(-9, 9), b = R(-9, 9); if (a === b) return MC('Welches Zeichen passt? 3 □ 3', '=', ['<', '>'], 'Gleich große Zahlen: =.');
+  const z = a > b ? '>' : '<';
+  return MC(`Welches Zeichen passt? ${sg(a)} □ ${sg(b)}`, z, ['>', '<', '='].filter(x => x !== z), 'Auf der Zahlengeraden: Was weiter rechts liegt, ist größer.');
+});
+
+// =====================================================================
+// Zahlenmengen & Teilgebiete
+// =====================================================================
+const TG = ['Arithmetik', 'Algebra', 'Geometrie', 'Statistik'];
+pool('zmeng', 1, 'zm.teil', [
+  ['Den Umfang eines Rechtecks berechnen', 'Geometrie'], ['Die Gleichung 3x + 2 = 11 lösen', 'Algebra'], ['Den Mittelwert einer Messreihe bestimmen', 'Statistik'],
+  ['Mit Brüchen rechnen', 'Arithmetik'], ['Einen Winkel mit dem Geodreieck zeichnen', 'Geometrie'], ['Eine Tabelle als Säulendiagramm darstellen', 'Statistik'],
+  ['Einen Term mit Variablen vereinfachen', 'Algebra'], ['345 + 678 berechnen', 'Arithmetik'], ['Das Volumen eines Würfels berechnen', 'Geometrie'],
+  ['Den Median bestimmen', 'Statistik'], ['Prozent berechnen', 'Arithmetik'], ['Eine Formel nach einer Variablen umstellen', 'Algebra']],
+  it => MC(`Zu welchem Teilgebiet der Mathematik gehört: ${it[0]}?`, it[1], TG.filter(x => x !== it[1]), 'Arithmetik = Rechnen mit Zahlen, Algebra = Rechnen mit Variablen, Geometrie = Figuren und Körper, Statistik = Daten.'));
+pool('zmeng', 1, 'zm.was', [['Arithmetik', 'Rechnen mit Zahlen und Rechenarten'], ['Algebra', 'Rechnen mit Variablen, Termen und Gleichungen'], ['Geometrie', 'Figuren, Körper, Längen, Flächen und Winkel'], ['Statistik', 'Daten sammeln, darstellen und auswerten']],
+  it => { const all = [['Rechnen mit Zahlen und Rechenarten'], ['Rechnen mit Variablen, Termen und Gleichungen'], ['Figuren, Körper, Längen, Flächen und Winkel'], ['Daten sammeln, darstellen und auswerten']].map(x => x[0]); return MC(`Womit beschäftigt sich die ${it[0]}?`, it[1], all.filter(x => x !== it[1]), 'Die vier Teilgebiete: Arithmetik, Algebra, Geometrie, Statistik.'); });
+const ZM = ['natürliche Zahlen', 'ganze Zahlen', 'rationale Zahlen', 'irrationale Zahlen'];
+const zmQ = it => MC(`Zu welcher kleinsten Zahlenmenge gehört ${it[0]}?`, it[1], ZM.filter(x => x !== it[1]), it[2] || 'Natürlich ⊂ ganz ⊂ rational ⊂ reell. Irrationale Zahlen sind keine Brüche.');
+pool('zmeng', 2, 'zm.menge2', [['5', 'natürliche Zahlen'], ['12', 'natürliche Zahlen'], ['−3', 'ganze Zahlen'], ['−10', 'ganze Zahlen'], ['{1/2}', 'rationale Zahlen'], ['0,75', 'rationale Zahlen']], zmQ);
+pool('zmeng', 2, 'zm.def', [['natürlichen Zahlen', '1, 2, 3, 4, …'], ['ganzen Zahlen', '… −2, −1, 0, 1, 2 …'], ['rationalen Zahlen', 'alle Brüche und Dezimalzahlen mit Ende oder Periode'], ['irrationalen Zahlen', 'Zahlen wie √2 und π, die man nicht als Bruch schreiben kann'], ['reellen Zahlen', 'alle Zahlen der Zahlengeraden']],
+  it => { const all = ['1, 2, 3, 4, …', '… −2, −1, 0, 1, 2 …', 'alle Brüche und Dezimalzahlen mit Ende oder Periode', 'Zahlen wie √2 und π, die man nicht als Bruch schreiben kann', 'alle Zahlen der Zahlengeraden']; return MC(`Was gehört zu den ${it[0]}?`, it[1], shuf(all.filter(x => x !== it[1])).slice(0, 3), 'Jede Menge enthält die vorherige.'); });
+pool('zmeng', 3, 'zm.menge3', [['−2,5', 'rationale Zahlen'], ['{3/4}', 'rationale Zahlen'], ['√2', 'irrationale Zahlen'], ['π', 'irrationale Zahlen'], ['−7', 'ganze Zahlen'], ['0,333 … (die 3 wiederholt sich)', 'rationale Zahlen'], ['100', 'natürliche Zahlen'], ['−{1/3}', 'rationale Zahlen']], zmQ);
+pool('zmeng', 3, 'zm.aussage3', [['Jede natürliche Zahl ist auch eine ganze Zahl.', true], ['Jede ganze Zahl lässt sich als Bruch schreiben.', true], ['π ist eine rationale Zahl.', false], ['Jede rationale Zahl ist eine ganze Zahl.', false], ['−5 ist eine natürliche Zahl.', false]],
+  it => MC(`Stimmt diese Aussage? „${it[0]}“`, it[1] ? 'Stimmt' : 'Stimmt nicht', [it[1] ? 'Stimmt nicht' : 'Stimmt'], 'Mengen: ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ. Irrationale Zahlen liegen außerhalb von ℚ.'));
+pool('zmeng', 4, 'zm.menge4', [['√9', 'natürliche Zahlen', '√9 = 3, also eine natürliche Zahl.'], ['−√4', 'ganze Zahlen', '−√4 = −2.'], ['√0,25', 'rationale Zahlen', '√0,25 = 0,5 = ½.'], ['√5', 'irrationale Zahlen', '5 ist keine Quadratzahl. √5 hat unendlich viele Stellen ohne Periode.'], ['2π', 'irrationale Zahlen', 'π ist irrational, 2π auch.'], ['0,101001000100001 … (immer eine Null mehr)', 'irrationale Zahlen', 'Keine Periode, daher irrational.'], ['{6/3}', 'natürliche Zahlen', '{6/3} = 2.']], zmQ);
+pool('zmeng', 4, 'zm.aussage4', [['√2 lässt sich als Bruch schreiben.', false], ['Die reellen Zahlen enthalten alle anderen Zahlenmengen.', true], ['Irrationale Zahlen haben unendlich viele Nachkommastellen ohne Periode.', true]],
+  it => MC(`Stimmt diese Aussage? „${it[0]}“`, it[1] ? 'Stimmt' : 'Stimmt nicht', [it[1] ? 'Stimmt nicht' : 'Stimmt'], 'Mengen: ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ.'));
+
+// =====================================================================
+// Zahlenwerte & Kopfrechentricks (X1)
+// =====================================================================
+const exf = (lvl, tag, list) => list.forEach((it, i) => add('extra', lvl, `ex.${tag}:${i}`, () => ({ q: it[0], a: it[1], pre: it[4] ? 'ca.' : 'Antwort =', unit: it[2] || '', tol: it[3] || 0 }), true));
+exf(1, 'f1', [['Wie viele Tage hat ein normales Jahr?', 365], ['Wie viele Tage hat ein Schaltjahr?', 366], ['Wie viele Monate hat ein Jahr?', 12], ['Wie viele Wochen hat ein Jahr (ungefähr)?', 52], ['Wie viele Stunden hat ein Tag?', 24], ['Wie viele Minuten hat eine Stunde?', 60], ['Wie viel Grad hat ein Vollwinkel?', 360], ['Wie groß ist die Winkelsumme im Dreieck?', 180], ['Wie viele Kanten hat ein Würfel?', 12]]);
+exf(2, 'f2', [['Wie viele Sekunden hat eine Stunde?', 3600], ['Wie viele Minuten hat ein Tag?', 1440], ['Wie viele Stunden hat eine Woche?', 168], ['Wie viele Gramm hat eine Tonne?', 1000000], ['Wie viele Millimeter hat ein Kilometer?', 1000000], ['Wie viele Quadratmeter hat ein Hektar?', 10000], ['Wie viel wiegt 1 Liter Wasser ungefähr?', 1, 'kg'], ['Wie viel wiegt 1 m³ Wasser?', 1000, 'kg']]);
+exf(3, 'f3', [['Wie viele Sekunden hat ein Tag?', 86400], ['Wie viele Stunden hat ein Jahr (365 Tage)?', 8760], ['Wie viele Minuten hat ein Jahr (365 Tage)?', 525600], ['Wie viele cm² hat 1 m²?', 10000], ['Wie lang ist der Äquator ungefähr?', 40000, 'km', 0.05, 1], ['Wie viele Tage braucht die Erde für einen Umlauf um die Sonne (ungefähr)?', 365]]);
+add('extra', 2, 'ex.t11', () => { const n = R(12, 89); return E(`${n} · 11`, n * 11); });
+add('extra', 2, 'ex.t5', () => { const n = R(6, 48) * 2; return E(`${n} · 5`, n * 5); });
+add('extra', 2, 'ex.t4', () => { const n = R(12, 49); return E(`${n} · 4`, n * 4); });
+add('extra', 2, 'ex.t99', () => { const n = R(3, 9); return E(`${n} · 99`, n * 99); });
+add('extra', 2, 'ex.t50', () => { const n = R(2, 9) * 2; return E(`${n} · 50`, n * 50); });
+add('extra', 2, 'ex.t9', () => { const n = R(12, 40); return E(`${n} · 9`, n * 9); });
+add('extra', 3, 'ex.sq5', () => { const n = P([15, 25, 35, 45, 55, 65, 75, 85, 95]); return E(`${n}²`, n * n); });
+add('extra', 3, 'ex.t25', () => { const n = R(2, 12) * 4; return E(`${n} · 25`, n * 25); });
+add('extra', 3, 'ex.diff2', () => { const n = P([20, 30, 40, 50, 100]), d = R(1, 5); return E(`${n - d} · ${n + d}`, n * n - d * d); });
+add('extra', 3, 'ex.gauss', () => { const n = P([10, 20, 30]); return E(`1 + 2 + 3 + … + ${n}`, n * (n + 1) / 2); });
+add('extra', 3, 'ex.t101', () => { const n = R(12, 99); return E(`${n} · 101`, n * 101); });
+add('extra', 3, 'ex.t15', () => { const n = R(3, 20) * 2; return E(`${n} · 15`, n * 15); });
+add('extra', 4, 'ex.diff2b', () => { const n = P([500, 1000, 5000, 2000]), d = R(2, 13); return E(`${n - d} · ${n + d}`, n * n - d * d); });
+add('extra', 4, 'ex.gauss100', () => { const n = P([50, 100]); return E(`1 + 2 + 3 + … + ${n}`, n * (n + 1) / 2); });
+add('extra', 4, 'ex.t1,5', () => { const n = R(5, 40) * 2; return E(`${n} · 1,5`, n * 1.5); });
+add('extra', 4, 'ex.fermi.aequator', () => ({ q: 'Du gehst jeden Tag 40 km. Wie viele Tage brauchst du für den Äquator (40 000 km)?', a: 1000, pre: 'Tage =' }));
+add('extra', 4, 'ex.fermi.milliarde', () => { const m = P([50000, 100000, 20000]); return { q: `Du hast 1 Milliarde Euro und gibst jeden Monat ${fmt(m)} € aus. Wie viele Monate reicht das Geld?`, a: 1e9 / m, pre: 'Monate =' }; });
+add('extra', 4, 'ex.fermi.becken', () => ({ q: 'Rundes Becken: Durchmesser 6 m, Tiefe 1,5 m, zu 90 % gefüllt. Wie viele Tonnen Wasser sind ungefähr drin?', a: 38.2, tol: 0.1, pre: 'ca.', unit: 't' }));
+add('extra', 4, 'ex.fermi.diag', () => ({ q: 'Quadratisches Spielfeld, Seite 30 m. Wie lang ist die Diagonale ungefähr?', a: 42.4, tol: 0.05, pre: 'ca.', unit: 'm' }));
+add('extra', 4, 'ex.fermi.puls', () => ({ q: 'Dein Herz schlägt etwa 70-mal pro Minute. Wie oft schlägt es ungefähr an einem Tag?', a: 100800, tol: 0.1, pre: 'ca.' }));
+
+// ---- ext3: Satz des Pythagoras in vielen Formen (Gleichung mit wechselnden Buchstaben, Umformungen, Hypotenuse erkennen, rechtwinkelig?, Rechnen mit Alltagskontext)
+const PSETS = [['a', 'b', 'c'], ['p', 'q', 'r'], ['x', 'y', 'z'], ['k', 'l', 'm'], ['u', 'v', 'w']];
+const TRI = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25], [20, 21, 29], [9, 40, 41], [6, 8, 10]];
+const pythSet = () => { const s = P(PSETS), sw = Math.random() < 0.5; return sw ? [s[1], s[0], s[2]] : s; };   // [Kathete, Kathete, Hypotenuse]
+const sq2 = v => v + '²';
+
+add('geo', 3, 'pyth.formel', () => {
+  const [a, b, c] = pythSet();
+  const q = P([
+    `Ein rechtwinkeliges Dreieck hat die Katheten ${a} und ${b} und die Hypotenuse ${c}. Welche Gleichung stimmt?`,
+    `Im rechtwinkeligen Dreieck ist ${c} die längste Seite (Hypotenuse), ${a} und ${b} sind die Katheten. Was gilt?`,
+    `Satz des Pythagoras: Die Hypotenuse heißt ${c}. Welche Gleichung ist richtig?`]);
+  return MC(q, `${sq2(a)} + ${sq2(b)} = ${sq2(c)}`, [`${a} + ${b} = ${c}`, `${sq2(a)} − ${sq2(b)} = ${sq2(c)}`, `${sq2(c)} + ${sq2(a)} = ${sq2(b)}`], `Die Quadrate der Katheten ergeben zusammen das Quadrat der Hypotenuse: ${sq2(a)} + ${sq2(b)} = ${sq2(c)}.`);
+});
+add('geo', 3, 'pyth.worte', () => MC(P(['Der Satz des Pythagoras sagt in Worten:', 'Was besagt der Satz des Pythagoras?', 'Im rechtwinkeligen Dreieck gilt: Das Quadrat über der Hypotenuse ist …']),
+  'gleich der Summe der Quadrate über den Katheten', ['gleich dem Produkt der Katheten', 'gleich der Summe der beiden Katheten', 'gleich der Differenz der Quadrate über den Katheten'], 'Fläche des Hypotenusenquadrats = Fläche des einen Kathetenquadrats + Fläche des anderen.'));
+add('geo', 3, 'pyth.umform', () => {
+  const [a, b, c] = pythSet();
+  const forms = [[`${sq2(c)} − ${sq2(a)} = ${sq2(b)}`], [`${sq2(c)} − ${sq2(b)} = ${sq2(a)}`], [`${sq2(b)} = ${sq2(c)} − ${sq2(a)}`], [`${sq2(a)} = ${sq2(c)} − ${sq2(b)}`]];
+  return MC(P([`Es gilt ${sq2(a)} + ${sq2(b)} = ${sq2(c)}. Welche Gleichung folgt daraus?`, `Aus ${sq2(a)} + ${sq2(b)} = ${sq2(c)} wird umgeformt. Welche Gleichung stimmt auch?`]),
+    P(forms)[0], [`${sq2(c)} + ${sq2(a)} = ${sq2(b)}`, `${sq2(a)} − ${sq2(c)} = ${sq2(b)}`, `${c} − ${a} = ${b}`], 'Subtrahiere auf beiden Seiten ein Kathetenquadrat. Das Quadrat der Hypotenuse steht immer allein vorne oder hinter dem Minus.');
+});
+add('geo', 3, 'pyth.hyp', () => {
+  const T = P([['A', 'B', 'C'], ['P', 'Q', 'R'], ['X', 'Y', 'Z'], ['D', 'E', 'F']]), i = R(0, 2), s = T.map(v => v.toLowerCase());
+  return MC(`Im Dreieck ${T.join('')} liegt der rechte Winkel bei ${T[i]}. Welche Seite ist die Hypotenuse?`, s[i], s.filter((_, k) => k !== i), `Die Hypotenuse liegt dem rechten Winkel gegenüber. Gegenüber von ${T[i]} liegt die Seite ${s[i]}.`);
+});
+add('geo', 3, 'pyth.recht', () => {
+  const t = P(TRI).map(v => v * R(1, 2)), s = t.slice();
+  if (Math.random() < 0.5) s[R(0, 2)] += P([-1, 1, 2]);
+  const m = Math.max(...s), rest = s.filter((v, k) => k !== s.indexOf(m)), stimmt = rest[0] * rest[0] + rest[1] * rest[1] === m * m;
+  return MC(`Ein Dreieck hat die Seiten ${shuf(s.slice()).join(' cm, ')} cm. Ist es rechtwinkelig?`, stimmt ? 'Ja' : 'Nein', [stimmt ? 'Nein' : 'Ja'],
+    `Quadrate der beiden kürzeren Seiten addieren und mit dem Quadrat der längsten vergleichen: ${rest[0]}² + ${rest[1]}² = ${rest[0] * rest[0] + rest[1] * rest[1]}, ${m}² = ${m * m}.`);
+});
+add('geo', 3, 'pyth.quad', () => {
+  const t = P(TRI), k = P([1, 1, 2]), a = t[0] * k, b = t[1] * k;
+  if (Math.random() < 0.5) return W(`Die Katheten sind ${a} cm und ${b} cm lang. Wie groß ist a² + b²?`, a * a + b * b, 'cm²');
+  const c = t[2] * k; return W(`Es gilt c² = ${c * c} cm². Wie lang ist die Hypotenuse c?`, c, 'cm');
+});
+// Rechnen mit Alltagskontext
+const ctx = (a, b) => P([
+  () => [`Rechtwinkeliges Dreieck, Katheten ${a} cm und ${b} cm. Wie lang ist die Hypotenuse?`, 'cm'],
+  () => [`Ein Rechteck ist ${a} cm lang und ${b} cm breit. Wie lang ist die Diagonale?`, 'cm'],
+  () => [`Eine Leiter steht ${a} dm von der Wand entfernt und reicht ${b} dm hoch. Wie lang ist die Leiter?`, 'dm'],
+  () => [`Eine Rampe überwindet ${b} m Höhe auf ${a} m waagrechter Länge. Wie lang ist die Rampe?`, 'm'],
+  () => [`Ein Weg geht ${a} m nach Osten und dann ${b} m nach Norden. Wie weit ist es in gerader Linie zum Start zurück?`, 'm']])();
+add('geo', 4, 'pyth.hypnum', () => { const t = P(TRI), k = P([1, 1, 2, 3]); const [q, u] = ctx(t[0] * k, t[1] * k); return W(q, t[2] * k, u); });
+add('geo', 4, 'pyth.kathnum', () => {
+  const t = P(TRI), k = P([1, 1, 2]), [a, b, c] = [t[0] * k, t[1] * k, t[2] * k], x = Math.random() < 0.5 ? a : b, y = x === a ? b : a;
+  return P([
+    () => W(`Die Hypotenuse eines rechtwinkeligen Dreiecks ist ${c} cm lang, eine Kathete ${x} cm. Wie lang ist die andere Kathete?`, y, 'cm'),
+    () => W(`Ein Rechteck hat die Diagonale ${c} cm und eine Seite ${x} cm. Wie lang ist die andere Seite?`, y, 'cm'),
+    () => W(`Eine ${c} m lange Leiter steht ${x} m von der Wand entfernt. Wie hoch reicht sie?`, y, 'm')])();
+});
+add('geo', 4, 'pyth.wahl', () => {
+  const [a, b, c] = pythSet(), t = P(TRI), [va, vc] = [t[0], t[2]];
+  return MC(`Gesucht ist die Kathete ${b}. Gegeben sind die Hypotenuse ${c} = ${vc} cm und die Kathete ${a} = ${va} cm. Welche Rechnung stimmt?`, `${b} = √(${vc}² − ${va}²)`,
+    [`${b} = √(${vc}² + ${va}²)`, `${b} = ${vc} − ${va}`, `${b} = √(${va}² − ${vc}²)`], `Eine Kathete: Quadrat der Hypotenuse minus Quadrat der anderen Kathete, dann die Wurzel ziehen.`);
+});
+
+// ---- ext4: gleiches Wissen, wechselnde Fragen: Prozent, Flächen/Umfang/Volumen, Winkel, Umstellen, Zahlenrätsel, Statistik, Dreisatz
+const V = fns => P(fns)();
+const DEZ = p => String(p / 100).replace('.', ',');           // 15 -> "0,15"
+
+// ===== Prozent =====
+add('bruch', 3, 'proz.formel', () => {
+  const t = P([
+    ['den Prozentwert', 'Grundwert · Prozentsatz', ['Grundwert : Prozentsatz', 'Prozentsatz − Grundwert', 'Prozentwert · Grundwert']],
+    ['den Prozentsatz', 'Prozentwert : Grundwert', ['Grundwert : Prozentwert', 'Prozentwert · Grundwert', 'Grundwert − Prozentwert']],
+    ['den Grundwert', 'Prozentwert : Prozentsatz', ['Prozentwert · Prozentsatz', 'Prozentsatz : Prozentwert', 'Prozentwert − Prozentsatz']]]);
+  return MC(P([`Wie berechnet man ${t[0]}? (Prozentsatz als Dezimalzahl oder Bruch)`, `Welche Rechnung liefert ${t[0]}?`, `Du suchst ${t[0]}. Was rechnest du?`]), t[1], t[2], 'Merke: Prozentwert = Grundwert · Prozentsatz. Alles andere folgt durch Umstellen.');
+});
+add('bruch', 3, 'proz.rechnung', () => {
+  const g = P([40, 60, 80, 120, 200, 250]), p = P([10, 15, 20, 25, 30, 40]);
+  return V([
+    () => MC(`Du sollst ${p} % von ${g} berechnen. Welche Rechnung passt?`, `${g} · ${DEZ(p)}`, [`${g} : ${DEZ(p)}`, `${g} · ${p}`, `${g} + ${DEZ(p)}`], `${p} % = ${DEZ(p)}, und „von“ heißt mal.`),
+    () => MC(`Ein Pullover kostet ${g} €. Er ist um ${p} % billiger. Welche Rechnung gibt den neuen Preis?`, `${g} · ${DEZ(100 - p)}`, [`${g} · ${DEZ(p)}`, `${g} − ${DEZ(p)}`, `${g} : ${DEZ(100 - p)}`], `Neuer Preis = ${100 - p} % vom alten: ${g} · ${DEZ(100 - p)}.`),
+    () => MC(`Ein Preis von ${g} € steigt um ${p} %. Welche Rechnung gibt den neuen Preis?`, `${g} · ${(100 + p) / 100}`.replace('.', ','), [`${g} · ${DEZ(p)}`, `${g} + ${p}`, `${g} : ${(100 + p) / 100}`.replace('.', ',')], `Neuer Preis = ${100 + p} % vom alten.`)]);
+});
+add('bruch', 3, 'proz.kontext', () => {
+  const tot = P([20, 25, 40, 50, 200]), pp = P([10, 20, 25, 30, 40, 50, 60, 75].filter(p => (tot * p) % 100 === 0)), part = tot * pp / 100;
+  return W(V([
+    () => `In einer Klasse mit ${tot} Kindern sind ${part} krank. Wie viel Prozent sind das?`,
+    () => `Bei einem Test gab es ${tot} Punkte. Mara hat ${part} erreicht. Wie viel Prozent sind das?`,
+    () => `Von ${tot} Befragten antworten ${part} mit „Ja“. Wie viel Prozent sind das?`,
+    () => `${part} von ${tot} Lampen sind kaputt. Wie viel Prozent sind das?`]), part / tot * 100, '%');
+});
+add('bruch', 4, 'proz.gwkontext', () => {
+  const p = P([10, 20, 25, 50]), g = P([40, 60, 80, 120, 200]), w = g * p / 100;
+  return W(V([
+    () => `${p} % einer Menge sind ${w}. Wie groß ist die ganze Menge?`,
+    () => `${w} Kinder sind ${p} % aller Kinder einer Schule. Wie viele Kinder hat die Schule?`,
+    () => `Eine Anzahlung von ${w} € sind ${p} % des Preises. Wie teuer ist die Ware?`]), g, '');
+});
+
+// ===== Flächen, Umfang, Volumen =====
+const FIG = {
+  2: [['eines Rechtecks', 'Fläche', 'a · b', ['a + b', '2 · (a + b)', 'a : b']], ['eines Rechtecks', 'Umfang', '2 · (a + b)', ['a · b', 'a + b', '2 · a · b']], ['eines Quadrats', 'Umfang', '4 · a', ['a · a', '2 · a', 'a + 4']], ['eines Quadrats', 'Fläche', 'a · a', ['4 · a', '2 · a', 'a + a']]],
+  3: [['eines Dreiecks', 'Fläche', 'g · h : 2', ['g · h', 'g + h : 2', '(g + h) · 2']], ['eines Parallelogramms', 'Fläche', 'g · h', ['g · h : 2', 'g + h', 'a · b : 2']], ['eines Würfels', 'Volumen', 'a · a · a', ['a · a', '3 · a', '6 · a · a']], ['eines Quaders', 'Volumen', 'a · b · c', ['a + b + c', 'a · b', '2 · (a · b + a · c + b · c)']], ['eines Würfels', 'Oberfläche', '6 · a · a', ['a · a · a', '4 · a · a', '6 · a']]],
+  4: [['eines Trapezes', 'Fläche', '(a + c) · h : 2', ['a · c · h : 2', '(a + c) · h', 'a + c + h : 2']], ['eines Kreises', 'Fläche', 'r · r · π', ['2 · r · π', 'd · π', 'r · π']], ['eines Kreises', 'Umfang', '2 · r · π', ['r · r · π', 'r · π', '2 · r']], ['eines Prismas', 'Volumen', 'G · h', ['G : h', 'G + h', 'G · h : 2']], ['eines Drehzylinders', 'Volumen', 'r · r · π · h', ['2 · r · π · h', 'r · π · h', 'r · r · π']]]
+};
+for (const l of [2, 3, 4]) add('geo', l, `fl.formel${l}`, () => {
+  const [fig, was, f, w] = P(FIG[l]);
+  return V([
+    () => MC(`Welche Formel berechnet ${was === 'Fläche' ? 'die Fläche' : was === 'Umfang' ? 'den Umfang' : was === 'Volumen' ? 'das Volumen' : 'die Oberfläche'} ${fig}?`, f, w, 'Überlege dir die Figur und prüfe mit einem Beispiel.'),
+    () => MC(`Wozu gehört die Formel ${was.charAt(0) === 'F' ? 'A' : was === 'Umfang' ? 'U' : was === 'Volumen' ? 'V' : 'O'} = ${f}?`, `${was} ${fig}`, FIG[l].filter(x => x[2] !== f).slice(0, 3).map(x => `${x[1]} ${x[0]}`), 'Die Buchstaben verraten, welche Größe und welche Figur gemeint sind.')]);
+});
+add('geo', 2, 'fl.kontext', () => V([
+  () => { const a = R(3, 9), b = R(a + 1, 12); return W(`Ein Beet ist ${a} m lang und ${b} m breit. Wie viel Meter Zaun braucht man ringsherum?`, 2 * (a + b), 'm'); },
+  () => { const a = R(3, 9), b = R(2, 8); return W(`Ein Raum ist ${a} m lang und ${b} m breit. Wie viele Quadratmeter Boden sind das?`, a * b, 'm²'); },
+  () => { const a = R(3, 9); return W(`Ein quadratischer Tisch hat die Seitenlänge ${a} dm. Wie groß ist seine Fläche?`, a * a, 'dm²'); },
+  () => { const a = P([20, 30, 40, 50]), b = P([20, 30, 40]), c = P([20, 30, 40, 50]); return W(`Ein Aquarium ist ${a} cm lang, ${b} cm breit und ${c} cm hoch. Wie viele Liter fasst es? (1 l = 1 000 cm³)`, a * b * c / 1000, 'l'); }]));
+add('geo', 4, 'fl.hoehe', () => {
+  const g = P([4, 6, 8, 10, 12]), h = R(3, 9), a = g * h;
+  return V([
+    () => W(`Ein Parallelogramm hat die Fläche ${a} cm² und die Grundseite ${g} cm. Wie hoch ist es?`, h, 'cm'),
+    () => W(`Ein Dreieck hat die Fläche ${a / 2} cm² und die Grundseite ${g} cm. Wie lang ist die Höhe?`, h, 'cm')]);
+});
+
+// ===== Winkel =====
+add('geo', 2, 'wk.neben', () => { const x = P([30, 40, 55, 65, 70, 110, 125]); return W(V([
+  () => `Zwei Nebenwinkel ergeben zusammen 180°. Ein Winkel ist ${x}°. Wie groß ist der andere?`,
+  () => `Auf einer Geraden liegen zwei Winkel nebeneinander. Einer hat ${x}°. Wie groß ist der andere?`]), 180 - x, '°'); });
+add('geo', 3, 'wk.gleichschenklig', () => { const s = P([40, 50, 80, 100, 20, 30]), b = (180 - s) / 2; return V([
+  () => W(`Ein gleichschenkeliges Dreieck hat an der Spitze ${s}°. Wie groß ist jeder Basiswinkel?`, b, '°'),
+  () => W(`Ein gleichschenkeliges Dreieck hat zwei Basiswinkel zu je ${b}°. Wie groß ist der Winkel an der Spitze?`, s, '°')]); });
+add('geo', 3, 'wk.viereck', () => { const a = P([70, 80, 90, 100]), b = P([60, 75, 85, 95]), c = P([80, 90, 110, 120]); return W(`Ein Viereck hat die Winkel ${a}°, ${b}° und ${c}°. Wie groß ist der vierte Winkel?`, 360 - a - b - c, '°'); });
+add('geo', 4, 'wk.aussen', () => { const a = P([40, 50, 60, 35]), b = P([45, 65, 70, 80]); return W(`Zwei Innenwinkel eines Dreiecks sind ${a}° und ${b}°. Wie groß ist der Außenwinkel beim dritten Eckpunkt?`, a + b, '°'); });
+
+// ===== Umstellen und Zahlenrätsel =====
+const UF = [
+  { f: (l) => `${l.A} = ${l.a} · ${l.b}`, t: { a: l => `${l.A} : ${l.b}`, b: l => `${l.A} : ${l.a}` }, w: { a: l => [`${l.A} · ${l.b}`, `${l.b} : ${l.A}`, `${l.A} − ${l.b}`], b: l => [`${l.A} · ${l.a}`, `${l.a} : ${l.A}`, `${l.A} − ${l.a}`] }, n: ['A', 'a', 'b'] },
+  { f: l => `${l.A} = ${l.a} : ${l.b}`, t: { a: l => `${l.A} · ${l.b}`, b: l => `${l.a} : ${l.A}` }, w: { a: l => [`${l.A} : ${l.b}`, `${l.b} : ${l.A}`, `${l.A} + ${l.b}`], b: l => [`${l.A} : ${l.a}`, `${l.A} · ${l.a}`, `${l.a} · ${l.A}`] }, n: ['A', 'a', 'b'] },
+  { f: l => `${l.A} = ${l.a} + ${l.b}`, t: { a: l => `${l.A} − ${l.b}`, b: l => `${l.A} − ${l.a}` }, w: { a: l => [`${l.b} − ${l.A}`, `${l.A} + ${l.b}`, `${l.A} : ${l.b}`], b: l => [`${l.a} − ${l.A}`, `${l.A} + ${l.a}`, `${l.A} : ${l.a}`] }, n: ['A', 'a', 'b'] },
+  { f: l => `${l.A} = 2 · (${l.a} + ${l.b})`, t: { a: l => `${l.A} : 2 − ${l.b}`, b: l => `${l.A} : 2 − ${l.a}` }, w: { a: l => [`${l.A} − 2 − ${l.b}`, `${l.A} : 2 + ${l.b}`, `${l.A} · 2 − ${l.b}`], b: l => [`${l.A} − 2 − ${l.a}`, `${l.A} : 2 + ${l.a}`, `${l.A} · 2 − ${l.a}`] }, n: ['U', 'a', 'b'] }
+];
+add('gleich', 4, 'umst.mc', () => {
+  const k = P([0, 1, 2, 3]), nm = k === 3 ? P([['U', 'a', 'b'], ['U', 'l', 'b']]) : P([['A', 'a', 'b'], ['s', 'v', 't'], ['P', 'G', 'p'], ['V', 'x', 'y']]);
+  const F = UF[k], L = { A: nm[0], a: nm[1], b: nm[2] }, tg = P(['a', 'b']);
+  return MC(P([`Die Formel ${F.f(L)} soll nach ${L[tg]} umgestellt werden. Das ergibt …`, `Stelle ${F.f(L)} nach ${L[tg]} um. Welches Ergebnis stimmt?`, `Aus ${F.f(L)} folgt für ${L[tg]}:`]), `${L[tg]} = ${F.t[tg](L)}`, F.w[tg](L).map(x => `${L[tg]} = ${x}`), 'Mache jede Rechnung auf beiden Seiten rückgängig: Plus mit Minus, Mal mit Durch.');
+});
+add('gleich', 3, 'umst.num', () => V([
+  () => { const v = P([30, 40, 50, 60, 80]), t = R(2, 5); return W(`Es gilt s = v · t. Mit v = ${v} km/h und t = ${t} h. Wie groß ist s?`, v * t, 'km'); },
+  () => { const v = P([30, 40, 50, 60]), t = R(2, 5); return W(`Es gilt s = v · t. Mit s = ${v * t} km und v = ${v} km/h. Wie groß ist t?`, t, 'h'); },
+  () => { const a = R(3, 9), b = R(2, 8); return W(`Es gilt A = a · b. Mit A = ${a * b} cm² und a = ${a} cm. Wie groß ist b?`, b, 'cm'); },
+  () => { const a = R(3, 9), b = R(2, 8); return W(`Es gilt U = 2 · (a + b). Mit a = ${a} cm und b = ${b} cm. Wie groß ist U?`, 2 * (a + b), 'cm'); }]));
+add('gleich', 3, 'zahlenraten', () => {
+  const x = R(2, 12), k = P([2, 3, 4]), m = R(1, 9);
+  return W(V([
+    () => `Ich denke mir eine Zahl, multipliziere sie mit ${k} und addiere ${m}. Das Ergebnis ist ${k * x + m}. Welche Zahl habe ich mir gedacht?`,
+    () => `Ich denke mir eine Zahl und addiere ${m}. Dann multipliziere ich mit ${k}. Ergebnis: ${(x + m) * k}. Welche Zahl war es?`,
+    () => `Ich denke mir eine Zahl, multipliziere sie mit ${k} und subtrahiere ${m}. Das Ergebnis ist ${k * x - m}. Welche Zahl war es?`,
+    () => `Das Doppelte einer Zahl ist um ${m} größer als ${2 * x - m}. Wie heißt die Zahl?`,
+    () => `Die Summe aus einer Zahl und ihrem Doppelten ist ${3 * x}. Wie heißt die Zahl?`]), x, '');
+});
+
+// ===== Statistik und Dreisatz (Extra) =====
+add('extra', 3, 'st.mittel', () => { const n = P([4, 5]), m = R(6, 14); let arr; do { arr = []; for (let i = 0; i < n - 1; i++) arr.push(R(m - 4, m + 4)); arr.push(n * m - arr.reduce((a, b) => a + b, 0)); } while (arr[n - 1] < 1 || arr[n - 1] > 30); return W(`Berechne den Mittelwert: ${shuf(arr).join(', ')}.`, m, ''); });
+add('extra', 3, 'st.median', () => { const n = P([5, 7]); const arr = new Set(); while (arr.size < n) arr.add(R(1, 30)); const a = [...arr]; const s = a.slice().sort((x, y) => x - y); return W(`Bestimme den Median: ${a.join(', ')}.`, s[(n - 1) / 2], ''); });
+add('extra', 3, 'st.spann', () => { const a = Array.from({ length: P([4, 5, 6]) }, () => R(1, 40)); return W(`Wie groß ist die Spannweite (größter minus kleinster Wert)? ${a.join(', ')}`, Math.max(...a) - Math.min(...a), ''); });
+add('extra', 4, 'st.median2', () => { const arr = new Set(); while (arr.size < 6) arr.add(R(1, 20)); const a = [...arr], s = a.slice().sort((x, y) => x - y); const m = (s[2] + s[3]) / 2; return W(`Bestimme den Median (bei gerader Anzahl: Mitte der beiden mittleren Werte): ${a.join(', ')}.`, m, ''); });
+const euro = v => (Math.round(v * 100) / 100).toFixed(2).replace('.', ',');
+add('extra', 3, 'dreisatz', () => {
+  const n = P([2, 3, 4, 5]), e = P([0.5, 0.8, 1.2, 1.5, 2, 2.5, 4]), m = P([6, 8, 10, 12]);
+  return V([
+    () => W(`${n} Hefte kosten ${euro(n * e)} €. Wie viel kosten ${m} Hefte?`, m * e, '€'),
+    () => W(`${n} Kilogramm Äpfel kosten ${euro(n * e)} €. Was kosten ${m} Kilogramm?`, m * e, '€'),
+    () => W(`Ein Auto verbraucht auf ${n * 100} km ${n * 6} Liter. Wie viel Liter braucht es auf ${m * 100} km?`, m * 6, 'l'),
+    () => W(`Ein Wasserhahn füllt in ${n} Minuten ${n * 8} Liter. Wie viele Liter sind es in ${m} Minuten?`, m * 8, 'l')]);
+});
+
+// ---- ext5: gleiches Wissen, wechselnde Fragen: Kreis, Maße, Bruchrechnen
+// ===== Kreis =====
+add('geo', 2, 'kreis.begriff', () => {
+  const t = P([
+    ['Wie nennt man die Strecke vom Mittelpunkt zum Kreisrand?', 'Radius', ['Durchmesser', 'Sehne', 'Umfang']],
+    ['Wie nennt man die Strecke durch den Mittelpunkt von Rand zu Rand?', 'Durchmesser', ['Radius', 'Umfang', 'Mittelpunkt']],
+    ['Wie nennt man die Länge der Linie rund um den Kreis?', 'Umfang', ['Radius', 'Durchmesser', 'Fläche']],
+    ['Was ist der Durchmesser im Vergleich zum Radius?', 'doppelt so lang', ['halb so lang', 'gleich lang', 'viermal so lang']],
+    ['Wie viele Mittelpunkte hat ein Kreis?', 'einen', ['zwei', 'keinen', 'unendlich viele']]]);
+  return MC(t[0], t[1], t[2], 'Radius r = Mittelpunkt bis Rand, Durchmesser d = 2 · r, Umfang u = rund herum.');
+});
+add('geo', 3, 'kreis.kontext', () => {
+  const r = P([2, 3, 4, 5, 6, 8, 10, 12]);
+  return V([
+    () => W(`Ein Teller hat den Radius ${r} cm. Wie breit ist er (Durchmesser)?`, 2 * r, 'cm'),
+    () => W(`Ein Rad hat den Durchmesser ${2 * r} cm. Wie lang ist die Speiche vom Mittelpunkt zum Rand (Radius)?`, r, 'cm'),
+    () => W(`Eine runde Pizza hat ${2 * r} cm Durchmesser. Wie groß ist ihr Radius?`, r, 'cm'),
+    () => W(`Ein Kreis hat den Radius ${r} m. Wie breit ist der Platz an der breitesten Stelle?`, 2 * r, 'm')]);
+});
+add('geo', 4, 'kreis.flaeche', () => {
+  const r = P([1, 2, 3, 4, 5, 10]);
+  return V([
+    () => W(`Ein Kreis hat den Radius ${r} cm. Wie groß ist die Fläche? Rechne mit π ≈ 3.`, 3 * r * r, 'cm²'),
+    () => W(`Ein runder Teppich hat den Radius ${r} m. Wie viele m² Fläche hat er ungefähr? (π ≈ 3)`, 3 * r * r, 'm²')]);
+});
+add('geo', 4, 'kreis.rueck', () => {
+  const d = P([2, 4, 5, 10, 20, 50]);
+  return V([
+    () => W(`Der Umfang eines Kreises ist ungefähr ${3 * d} cm (π ≈ 3). Wie groß ist der Durchmesser?`, d, 'cm'),
+    () => W(`Ein Rad rollt einmal ab und legt ${3 * d} cm zurück (π ≈ 3). Wie groß ist sein Durchmesser?`, d, 'cm')]);
+});
+add('geo', 4, 'kreis.formel', () => {
+  const t = P([
+    ['Welche Formel gehört zum Umfang eines Kreises?', '2 · r · π', ['r · r · π', 'r · π', '2 · r']],
+    ['Welche Formel gehört zur Fläche eines Kreises?', 'r · r · π', ['2 · r · π', 'd · π', '2 · r']],
+    ['Mit welcher Formel berechnet man den Umfang über den Durchmesser?', 'd · π', ['d · d · π', 'd : π', '2 · d']]]);
+  return MC(t[0], t[1], t[2], 'u = 2 · r · π = d · π, A = r · r · π.');
+});
+
+// ===== Maße =====
+add('mass', 2, 'mass.kontext', () => {
+  const a = P([2, 3, 4, 5]), cut = P([20, 40, 50, 60]);
+  return V([
+    () => W(`Ein Seil ist ${a} m lang. Es werden ${cut} cm abgeschnitten. Wie viele cm bleiben übrig?`, a * 100 - cut, 'cm'),
+    () => W(`Ein Brett ist ${a} m lang. Davon wurden ${cut} cm abgesägt. Wie viele cm sind noch da?`, a * 100 - cut, 'cm'),
+    () => W(`Lena läuft ${a} km und dann noch ${cut * 10} m. Wie viele Meter läuft sie insgesamt?`, a * 1000 + cut * 10, 'm')]);
+});
+add('mass', 2, 'mass.vergl', () => {
+  const t = P([
+    ['3 km', '2 500 m', '3 km'], ['150 cm', '1 m', '150 cm'], ['2 kg', '1 500 g', '2 kg'], ['700 ml', '1 l', '1 l'],
+    ['90 min', '1 h', '90 min'], ['4 m', '350 cm', '4 m'], ['2 t', '1 500 kg', '2 t'], ['50 cm', '1 m', '1 m']]);
+  const w = t.slice(0, 2).filter(x => x !== t[2])[0];
+  return MC(P([`Was ist mehr: ${t[0]} oder ${t[1]}?`, `Welche Angabe ist größer?`]).replace('Welche Angabe ist größer?', `Welche Angabe ist größer: ${t[0]} oder ${t[1]}?`), t[2], [w, 'beide gleich', 'lässt sich nicht vergleichen'], 'Erst auf dieselbe Einheit umrechnen, dann vergleichen.');
+});
+add('mass', 3, 'mass.rechnen', () => {
+  const m = R(1, 3), c = P([20, 40, 50, 80]), d = P([15, 25, 35, 60]);
+  return V([
+    () => W(`${m} m ${c} cm + ${d} cm = ? Gib das Ergebnis in cm an.`, m * 100 + c + d, 'cm'),
+    () => W(`Ein Band ist ${m} m ${c} cm lang. Wie viele cm sind das?`, m * 100 + c, 'cm'),
+    () => W(`${m} kg ${c * 10} g sind wie viele Gramm?`, m * 1000 + c * 10, 'g')]);
+});
+add('mass', 3, 'mass.zeit', () => {
+  const h = R(7, 15), m1 = P([0, 15, 30, 45]), add_ = P([20, 35, 40, 50]);
+  const tot = m1 + add_, h2 = h + Math.floor(tot / 60), m2 = tot % 60;
+  const T = (a, b) => `${a}:${String(b).padStart(2, '0')}`;
+  return V([
+    () => W(`Der Unterricht beginnt um ${T(h, m1)} Uhr und endet um ${T(h2, m2)} Uhr. Wie viele Minuten dauert er?`, add_, 'min'),
+    () => W(`Ein Zug fährt um ${T(h, m1)} Uhr ab und kommt um ${T(h2, m2)} Uhr an. Wie viele Minuten ist er unterwegs?`, add_, 'min')]);
+});
+add('mass', 4, 'mass.zimmer', () => {
+  const a = P([3, 4, 5, 6]), b = P([4, 5, 6, 8]);
+  return V([
+    () => W(`Ein Zimmer ist ${a} m lang und ${b} m breit. Wie viele m² hat der Boden?`, a * b, 'm²'),
+    () => W(`Ein Beet ist ${a} m lang und ${b} m breit. Wie groß ist seine Fläche?`, a * b, 'm²'),
+    () => W(`Ein Becken ist ${a} m lang, ${b} m breit und 1 m tief. Wie viele m³ Wasser passen hinein?`, a * b, 'm³')]);
+});
+add('mass', 4, 'mass.liter', () => {
+  const t = P([[1, 1000, 'cm³'], [2, 2000, 'cm³'], [5, 5, 'dm³'], [10, 10, 'dm³'], [3, 3, 'dm³']]);
+  return V([
+    () => W(`Ein Würfel mit 1 dm Kantenlänge fasst genau 1 Liter. Wie viele Liter fassen ${t[0]} solcher Würfel?`, t[0], 'l'),
+    () => W(`${t[0]} l Wasser entsprechen wie viele dm³?`, t[0], 'dm³'),
+    () => W(`${t[0]} dm³ sind wie viele cm³?`, t[0] * 1000, 'cm³')]);
+});
+
+// ===== Bruchrechnen =====
+add('bruchr', 2, 'br.wort', () => {
+  const d = P([4, 5, 6, 8, 10]), a = R(1, 2), b = R(1, 2);
+  const e = pick => pick;
+  return V([
+    () => FR(`Ben isst ${fr(a, d)} einer Pizza, Mia isst ${fr(b, d)}. Wie viel haben beide zusammen gegessen?`, a + b, d, { inline: false }),
+    () => FR(`Von einer Torte sind ${fr(a + b, d)} gegessen. Wie viel ist noch übrig?`, d - a - b, d, { inline: false }),
+    () => FR(`Eine Flasche ist zu ${fr(a + b, d)} voll. Es werden ${fr(a, d)} getrunken. Wie viel ist noch drin?`, b, d, { inline: false })]);
+});
+add('bruchr', 2, 'br.von.ganz', () => {
+  const d = P([2, 3, 4, 5, 10]), n = R(1, d - 1), k = R(2, 6) * d;
+  return V([
+    () => W(`${fr(n, d)} von ${k} € sind wie viel Euro?`, k / d * n, '€'),
+    () => W(`Eine Klasse hat ${k} Kinder. ${fr(n, d)} fahren mit dem Bus. Wie viele Kinder sind das?`, k / d * n, ''),
+    () => W(`${fr(n, d)} von ${k} Metern sind wie viele Meter?`, k / d * n, 'm')]);
+});
+add('bruchr', 3, 'br.regel', () => {
+  const t = P([
+    ['Wie addiert man Brüche mit gleichem Nenner?', 'Zähler addieren, Nenner bleibt', ['Zähler und Nenner addieren', 'Nenner addieren, Zähler bleibt', 'Zähler multiplizieren']],
+    ['Wie multipliziert man zwei Brüche?', 'Zähler mal Zähler, Nenner mal Nenner', ['Zähler addieren, Nenner mal Nenner', 'gleichnamig machen und Zähler multiplizieren', 'Nenner mal Zähler']],
+    ['Wie dividiert man durch einen Bruch?', 'mit dem Kehrwert multiplizieren', ['den Nenner halbieren', 'beide Zähler dividieren', 'gleichnamig machen und Zähler subtrahieren']],
+    ['Was muss man tun, bevor man Brüche mit verschiedenen Nennern addiert?', 'gleichnamig machen', ['kürzen', 'den Kehrwert bilden', 'die Nenner addieren']],
+    ['Was passiert beim Kürzen?', 'Zähler und Nenner werden durch dieselbe Zahl geteilt', ['nur der Zähler wird geteilt', 'Zähler und Nenner werden addiert', 'der Bruch wird größer']]]);
+  return MC(t[0], t[1], t[2], 'Merke die Regeln: gleicher Nenner addieren, mal = oben mal oben und unten mal unten, durch = mal Kehrwert.');
+});
+add('bruchr', 3, 'br.fehler', () => {
+  const t = P([
+    ['{1/2} + {1/3}', '{5/6}', ['{2/5}', '{2/6}', '{1/5}']],
+    ['{1/4} + {1/4}', '{1/2}', ['{2/8}', '{1/8}', '{1/16}']],
+    ['{2/3} · {3/4}', '{1/2}', ['{5/7}', '{6/7}', '{8/9}']],
+    ['{3/4} − {1/4}', '{1/2}', ['{2/8}', '{3/4}', '{1/4}']],
+    ['{1/2} : {1/4}', '2', ['{1/8}', '{1/2}', '8']]]);
+  return MC(`Welches Ergebnis ist richtig? ${t[0]} =`, t[1], t[2], 'Nachrechnen: Nenner gleich machen, kürzen, am Ende vereinfachen.');
+});
+add('bruchr', 4, 'br.rest', () => {
+  const d = P([4, 5, 6, 8]), a = R(1, d - 2), b = R(1, d - 1 - a);
+  return V([
+    () => FR(`Anna hat ${fr(a, d)} einer Tafel Schokolade gegessen und Ben ${fr(b, d)}. Wie viel ist noch übrig?`, d - a - b, d, { inline: false }),
+    () => FR(`Von einem Kuchen essen Gäste zuerst ${fr(a, d)}, dann noch ${fr(b, d)}. Welcher Anteil bleibt?`, d - a - b, d, { inline: false })]);
+});
+
+// ---- ext6: gleiches Wissen, wechselnde Fragen: Rechnen, Einmaleins, ganze Zahlen, Stellenwert, Runden, Potenzen, Gleichungen, Zahlenmengen, Tricks
+const FMT = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+// ===== Plus/Minus =====
+add('plus', 2, 'plus.text', () => {
+  const a = R(12, 48), b = R(11, 39);
+  return V([
+    () => W(`Tom hat ${a} Sticker und bekommt ${b} dazu. Wie viele hat er jetzt?`, a + b, ''),
+    () => W(`Im Bus sitzen ${a + b} Personen. ${b} steigen aus. Wie viele bleiben?`, a, ''),
+    () => W(`In einer Packung sind ${a} Stifte, in der anderen ${b}. Wie viele sind es zusammen?`, a + b, ''),
+    () => W(`Mara spart ${a} €. Sie braucht ${a + b} €. Wie viel fehlt noch?`, b, '€')]);
+});
+add('plus', 3, 'plus.strategie', () => {
+  const t = P([
+    ['98 + 47', '100 + 47 − 2', ['98 + 47 − 2', '100 + 47 + 2', '98 − 47 + 2']],
+    ['199 + 36', '200 + 36 − 1', ['200 + 36 + 1', '199 + 36 − 1', '200 − 36 − 1']],
+    ['75 − 29', '75 − 30 + 1', ['75 − 30 − 1', '75 − 20 + 9 + 1', '75 + 30 − 1']],
+    ['302 − 198', '302 − 200 + 2', ['302 − 200 − 2', '302 + 200 + 2', '300 − 198 + 2']]]);
+  return MC(`Welche Rechnung hilft beim Kopfrechnen von ${t[0]}?`, t[1], t[2], 'Auf eine runde Zahl rechnen und den Unterschied danach ausgleichen.');
+});
+add('plus', 4, 'plus.schaetzen', () => {
+  const a = R(300, 900), b = R(200, 700), ra = Math.round(a / 100) * 100, rb = Math.round(b / 100) * 100, r = ra + rb;
+  return MC(`Wie groß ist ${a} + ${b} ungefähr?`, FMT(r), [FMT(r + 200), FMT(r - 200), FMT(r + 500)], `Runde auf Hunderter: ${ra} + ${rb} = ${r}.`);
+});
+
+// ===== Einmaleins =====
+add('mal', 2, 'mal.text', () => {
+  const a = R(3, 9), b = R(4, 9);
+  return V([
+    () => W(`Eine Packung hat ${a} Kekse. Wie viele Kekse sind in ${b} Packungen?`, a * b, ''),
+    () => W(`${a * b} Schüler sitzen in Gruppen zu je ${a}. Wie viele Gruppen gibt es?`, b, ''),
+    () => W(`Ein Bus hat ${a} Reihen mit je ${b} Plätzen. Wie viele Plätze gibt es?`, a * b, ''),
+    () => W(`${a * b} Äpfel werden auf ${b} Kisten gleich verteilt. Wie viele sind in einer Kiste?`, a, '')]);
+});
+add('mal', 3, 'mal.teilbar', () => {
+  const t = P([[2, 'die letzte Ziffer gerade ist'], [5, 'die letzte Ziffer 0 oder 5 ist'], [10, 'die letzte Ziffer 0 ist'], [3, 'die Quersumme durch 3 teilbar ist'], [9, 'die Quersumme durch 9 teilbar ist']]);
+  const wr = ['die letzte Ziffer gerade ist', 'die letzte Ziffer 0 oder 5 ist', 'die letzte Ziffer 0 ist', 'die Quersumme durch 3 teilbar ist', 'die Quersumme durch 9 teilbar ist'].filter(x => x !== t[1]);
+  return MC(`Eine Zahl ist durch ${t[0]} teilbar, wenn …`, t[1], shuf(wr).slice(0, 3), 'Teilbarkeitsregeln: 2, 5, 10 über die letzte Ziffer; 3 und 9 über die Quersumme.');
+});
+add('mal', 3, 'mal.teilbarja', () => {
+  const k = P([3, 9]), n = k * R(12, 60), bad = n + 1;
+  const ok = V([() => true, () => false]), z = ok ? n : bad;
+  return MC(`Ist ${z} durch ${k} teilbar?`, (ok ? 'ja' : 'nein'), [ok ? 'nein' : 'ja', 'nur durch 2', 'nur durch 10'], `Quersumme von ${z} ist ${String(z).split('').reduce((x, y) => x + +y, 0)}.`);
+});
+add('mal', 4, 'mal.text2', () => {
+  const a = P([12, 15, 25]), b = P([4, 8, 12]);
+  return V([
+    () => W(`Ein Heft kostet ${a} Cent. Was kosten ${b} Hefte in Cent?`, a * b, 'Cent'),
+    () => W(`Ein Kasten hat ${a} Flaschen. Wie viele Flaschen sind in ${b} Kästen?`, a * b, ''),
+    () => W(`Eine Klasse bestellt ${b} Pizzen zu je ${a} Stück. Wie viele Stück sind das?`, a * b, '')]);
+});
+
+// ===== Ganze Zahlen =====
+add('ganz', 2, 'ganz.vorzeichen', () => {
+  const a = R(2, 9), b = R(2, 9);
+  const t = P([['(−' + a + ') · (−' + b + ')', 'positiv'], ['(−' + a + ') · ' + b, 'negativ'], [a + ' · (−' + b + ')', 'negativ'], ['(−' + a * b + ') : (−' + a + ')', 'positiv']]);
+  return MC(`Welches Vorzeichen hat das Ergebnis von ${t[0]}?`, t[1], [t[1] === 'positiv' ? 'negativ' : 'positiv', 'null', 'es kommt auf die Zahlen an'], 'Gleiche Vorzeichen: plus. Verschiedene: minus.');
+});
+add('ganz', 3, 'ganz.text', () => {
+  const a = R(3, 12), b = R(a + 1, 20);
+  return V([
+    () => W(`Um 6 Uhr hat es −${a} °C, bis Mittag steigt die Temperatur um ${b} Grad. Wie warm ist es dann?`, b - a, '°C'),
+    () => W(`Ein Aufzug fährt von Ebene −${a} hinauf zu Ebene ${b}. Wie viele Ebenen fährt er nach oben?`, a + b, ''),
+    () => W(`Konto: ${a * 10} €. Es werden ${b * 10} € abgebucht. Wie hoch ist der Kontostand?`, a * 10 - b * 10, '€'),
+    () => W(`Ein Berg ist ${b * 100} m hoch, ein Tal liegt bei −${a * 10} m. Wie groß ist der Höhenunterschied?`, b * 100 + a * 10, 'm')]);
+});
+add('ganz', 4, 'ganz.ordnen', () => {
+  const v = shuf([R(-9, -6), R(-5, -2), R(-1, 1), R(3, 6)]);
+  const sorted = [...v].sort((x, y) => x - y);
+  return MC(`Welche Zahl ist die kleinste: ${v.map(sg).join(', ')}?`, sg(sorted[0]), v.filter(x => x !== sorted[0]).map(sg).slice(0, 3), 'Auf der Zahlengeraden liegt die kleinste Zahl ganz links.');
+});
+
+// ===== Stellenwert & Dezimalzahlen =====
+add('stell', 2, 'stell.einkauf', () => {
+  const p = P([0.5, 0.8, 1.2, 1.5, 2.5]), n = R(3, 8), tot = Math.round(p * n * 100) / 100;
+  return V([
+    () => W(`Ein Eis kostet ${fmt(p)} €. Was kosten ${n} Eis?`, tot, '€'),
+    () => W(`Ein Stift kostet ${fmt(p)} €. Was kosten ${n} Stifte?`, tot, '€'),
+    () => W(`${n} Brötchen kosten zusammen ${fmt(tot)} €. Was kostet ein Brötchen?`, p, '€')]);
+});
+add('stell', 3, 'stell.zahl', () => {
+  const a = R(2, 9), b = R(2, 9), c = R(2, 9);
+  const z = Number(`${a}.${b}${c}`);
+  return V([
+    () => MC(`Welche Zahl hat ${a} Einer, ${b} Zehntel und ${c} Hundertstel?`, fmt(z), [fmt(Number(`${a}.${c}${b}`) + (b === c ? 0.01 : 0)), fmt(Number(`${b}.${a}${c}`) + (a === b ? 0.01 : 0)), fmt(Number(`${a}.0${b}${c}`) + 0.001)], 'Nach dem Komma: Zehntel, Hundertstel, Tausendstel.'),
+    () => W(`Schreibe als Dezimalzahl: ${a} Einer und ${b}${c} Hundertstel.`, z, '')]);
+});
+add('stell', 4, 'stell.ordnen', () => {
+  const h = [...new Set([R(1, 9) * 10, R(11, 99), R(1, 9) + 10, R(1, 9)])];   // in Hundertsteln
+  const v = h.map(x => x / 100);
+  const l = P([[true, 'größte'], [false, 'kleinste']]);
+  const sh = [...h].sort((x, y) => x - y), ch = l[0] ? sh[sh.length - 1] : sh[0], c = ch / 100;
+  return MC(`Welche Zahl ist die ${l[1]}: ${v.map(fmt).join('; ')}?`, fmt(c), h.filter(x => x !== ch).map(x => fmt(x / 100)).slice(0, 3), 'Vergleiche Stelle für Stelle von links.');
+});
+
+// ===== Runden =====
+add('rund', 2, 'rund.kontext', () => {
+  const n = R(1200, 9800) + R(1, 49);
+  const h = Math.round(n / 100) * 100;
+  return V([
+    () => MC(`Eine Stadt hat ${FMT(n)} Einwohner. Auf Hunderter gerundet sind das …`, FMT(h), [FMT(h + 100), FMT(h - 100), FMT(Math.round(n / 1000) * 1000 + (Math.round(n / 1000) * 1000 === h ? 1000 : 0))], 'Schau auf die Zehnerstelle: 5 oder mehr rundet auf.'),
+    () => W(`Ein Stadion fasst ${FMT(n)} Zuschauer. Auf Hunderter gerundet?`, h, '')]);
+});
+add('rund', 3, 'rund.sinnvoll', () => {
+  const t = P([
+    ['Die Schulstrecke ist 1 482 m lang. Wie sagt man im Alltag?', 'etwa 1,5 km', ['etwa 14 km', 'etwa 1 000 m', 'genau 1 km']],
+    ['Ein Buch kostet 19,95 €. Wie sagt man im Alltag?', 'etwa 20 €', ['etwa 19 €', 'etwa 10 €', 'etwa 25 €']],
+    ['Ein Berg ist 2 996 m hoch. Wie sagt man im Alltag?', 'etwa 3 000 m', ['etwa 2 000 m', 'etwa 2 900 m', 'etwa 3 500 m']]]);
+  return MC(t[0], t[1], t[2], 'Runde auf eine sinnvolle Stelle.');
+});
+add('rund', 4, 'rund.fehler', () => {
+  const t = P([
+    ['4,25 auf Zehntel', '4,3', ['4,2', '4,0', '4,5']],
+    ['3,949 auf Zehntel', '3,9', ['4,0', '3,95', '3,8']],
+    ['0,996 auf Hundertstel', '1,00', ['0,99', '0,90', '0,10']]]);
+  return MC(`Welches Ergebnis ist richtig? ${t[0]} gerundet ergibt …`, t[1], t[2], 'Nur die Stelle rechts der Rundungsstelle entscheidet.');
+});
+
+// ===== Potenzen =====
+add('pot', 2, 'pot.flaeche', () => {
+  const a = R(3, 12);
+  return V([
+    () => W(`Ein Quadrat hat die Seitenlänge ${a} cm. Wie groß ist die Fläche?`, a * a, 'cm²'),
+    () => W(`Ein quadratischer Raum ist ${a} m lang und ${a} m breit. Wie viele m² hat er?`, a * a, 'm²'),
+    () => W(`Die Fläche eines Quadrats ist ${a * a} cm². Wie lang ist eine Seite?`, a, 'cm')]);
+});
+add('pot', 3, 'pot.schreib', () => {
+  const t = P([[2, 3], [3, 2], [2, 4], [5, 2], [10, 3]]);
+  const prod = Array(t[1]).fill(t[0]).join(' · ');
+  return MC(`Wie schreibt man ${prod} als Potenz?`, `${t[0]}${sup(t[1])}`, [`${t[1]}${sup(t[0])}`, `${t[0]} · ${t[1]}`, `${t[0] + t[1]}`], 'Basis = die Zahl, die man mehrfach multipliziert; Hochzahl = wie oft.');
+});
+add('pot', 3, 'pot.zehnerp', () => {
+  const k = R(2, 6), n = '1' + '0'.repeat(k);
+  return V([
+    () => W(`10${sup(k)} = ?`, Number(n), ''),
+    () => MC(`Wie schreibt man ${FMT(n)} als Zehnerpotenz?`, `10${sup(k)}`, [`10${sup(k + 1)}`, `10${sup(k - 1)}`, `${k} · 10`], 'Die Hochzahl zählt die Nullen.')]);
+});
+add('pot', 4, 'pot.wurzelkontext', () => {
+  const a = R(4, 15);
+  return V([
+    () => W(`Ein quadratischer Platz hat ${a * a} m². Wie lang ist eine Seite?`, a, 'm'),
+    () => W(`Welche Zahl ergibt mit sich selbst multipliziert ${a * a}?`, a, ''),
+    () => W(`Berechne √${a * a}.`, a, '')]);
+});
+
+// ===== Gleichungen =====
+add('gleich', 3, 'gl.alter', () => {
+  const a = R(5, 12), d = R(3, 9);
+  return V([
+    () => W(`Lena ist ${d} Jahre älter als Tim. Tim ist ${a}. Wie alt ist Lena?`, a + d, ''),
+    () => W(`In 5 Jahren ist Tim ${a + 5}. Wie alt ist Tim jetzt?`, a, ''),
+    () => W(`Lena ist ${a + d}, Tim ist ${a}. Wie viele Jahre ist Lena älter?`, d, '')]);
+});
+add('gleich', 3, 'gl.rechteck', () => {
+  const a = R(3, 10), b = R(2, 9) + a;
+  return V([
+    () => W(`Der Umfang eines Rechtecks ist ${2 * (a + b)} cm, die Länge ${b} cm. Wie breit ist es?`, a, 'cm'),
+    () => W(`Die Fläche eines Rechtecks ist ${a * b} cm², die Breite ${a} cm. Wie lang ist es?`, b, 'cm')]);
+});
+add('gleich', 4, 'gl.probe2', () => {
+  const x = R(2, 9), a = R(2, 5), b = R(1, 9), c = a * x + b, w = x + P([1, 2, -1]);
+  return MC(`Welche Zahl löst ${a}x + ${b} = ${c}?`, String(x), [...new Set([w, x + 3, x - 1].filter(t => t !== x))].slice(0, 3).map(String), `Probe: ${a} · ${x} + ${b} = ${c}.`);
+});
+add('gleich', 4, 'gl.fehler', () => {
+  const x = R(2, 9), a = R(2, 5), b = R(1, 9), c = a * x + b;
+  return MC(`Bei ${a}x + ${b} = ${c} rechnet jemand zuerst ${c} − ${b}. Was ist der nächste Schritt?`, `durch ${a} teilen`, [`mal ${a} nehmen`, `${a} abziehen`, `${b} addieren`], 'Erst die Zahl ohne x auf die andere Seite, dann durch den Faktor vor x teilen.');
+});
+
+// ===== Zahlenmengen =====
+add('zmeng', 2, 'zm.zuordnen', () => {
+  const t = P([['7', 'ℕ'], ['0', 'ℕ'], ['−4', 'ℤ'], ['0,5', 'ℚ'], ['{1/3}', 'ℚ'], ['√2', 'ℝ']]);
+  const opts = ['ℕ', 'ℤ', 'ℚ', 'ℝ'];
+  return MC(`Zu welcher kleinsten Zahlenmenge gehört ${t[0]}?`, t[1], opts.filter(o => o !== t[1]), 'ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ.');
+});
+add('zmeng', 3, 'zm.nicht', () => {
+  const t = P([['ℕ', '−3', ['0', '5', '12']], ['ℤ', '0,5', ['−3', '0', '8']], ['ℚ', '√2', ['{1/4}', '0,3', '−2']]]);
+  return MC(`Welche Zahl gehört nicht zu ${t[0]}?`, t[1], t[2], 'Prüfe, ob die Zahl in der Menge liegt.');
+});
+add('zmeng', 4, 'zm.aussage', () => {
+  const t = P([
+    ['Jede ganze Zahl ist auch eine rationale Zahl.', 'wahr'], ['Jede rationale Zahl ist eine ganze Zahl.', 'falsch'],
+    ['0 gehört zu den ganzen Zahlen.', 'wahr'], ['√2 ist eine rationale Zahl.', 'falsch'], ['−5 ist eine natürliche Zahl.', 'falsch']]);
+  return MC(`Stimmt die Aussage? „${t[0]}“`, t[1], [t[1] === 'wahr' ? 'falsch' : 'wahr', 'nicht entscheidbar', 'nur manchmal'], 'ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ.');
+});
+
+// ===== Extra: Rechentricks =====
+add('extra', 3, 'ex.trick', () => {
+  const t = P([
+    ['Wie rechnet man 36 · 5 geschickt?', '36 · 10 : 2', ['36 · 10 · 2', '36 + 5 · 10', '36 : 5 · 10']],
+    ['Wie rechnet man 48 · 25 geschickt?', '48 : 4 · 100', ['48 · 4 : 100', '48 · 100 · 4', '48 + 25 · 4']],
+    ['Wie rechnet man 45 · 11 geschickt?', '45 · 10 + 45', ['45 · 10 − 45', '45 · 11 : 10', '45 + 11 · 10']],
+    ['Wie rechnet man 19 · 7 geschickt?', '20 · 7 − 7', ['20 · 7 + 7', '19 · 10 − 7', '19 + 7 · 10']]]);
+  return MC(t[0], t[1], t[2], 'Zerlegen oder auf runde Faktoren ausweichen.');
+});
+
+// ---------- Antwort prüfen ----------
+function parseNum(s) {
+  s = String(s).trim().replace(/\u2212/g, '-').replace(/\s|\u202f/g, '').replace(',', '.').replace(/%$/, '');
+  if (!s || s === '-' || s === '.') return NaN;
+  if (s.includes('/')) { const [a, b] = s.split('/'); const x = Number(a), y = Number(b); return y ? x / y : NaN; }
+  return Number(s);
+}
+function checkAnswer(task, input) {
+  if (task.opts) return input === task.ok;
+  const x = parseNum(input);
+  if (!Number.isFinite(x)) return false;
+  if (task.tol) return Math.abs(x - task.a) <= task.tol * Math.abs(task.a);
+  if (Math.abs(x - task.a) >= 1e-9) return false;
+  if (task.red && String(input).includes('/')) {
+    const [p, q] = String(input).replace(/\u2212/g, '-').split('/').map(Number);
+    return gcd(Math.abs(p), Math.abs(q)) === 1;
+  }
+  return true;
+}
+function answerText(t) {
+  if (t.opts) return t.opts[t.ok];
+  if (t.ansText) return t.ansText + (t.unit ? ' ' + t.unit : '');
+  return (t.tol ? 'ca. ' : '') + fmt(t.tol ? Number(t.a.toPrecision(4)) : t.a) + (t.unit ? ' ' + t.unit : '');
+}
+if (typeof module !== 'undefined') module.exports = { UNITS, AREAS, fmt, checkAnswer, parseNum, answerText };
+
+
+</script>
+<script>
+// ---------- Lernstand ----------
+const KEY = 'kopfrechentrainer-v1';
+const INT = [0, 1, 2, 4, 8, 16];            // Tage bis zur nächsten Wiederholung je Fach
+const MAST = [0, 0.34, 0.6, 0.8, 0.92, 1];  // Beitrag eines Fachs zur Beherrschung
+const DAY = 864e5;
+const PER_AREA_CHECK = 2;
+let storageOk = true;
+// Fassung und Offline-Datei: bauen.js setzt FASSUNG ({nummer, datum}). Als heruntergeladene Datei (file:) fragt der
+// Trainer bei Internet nur die Versionsdatei der Webseite ab, ob es eine neuere Fassung gibt. Es werden keine Daten gesendet.
+const FASSUNG = {"nummer":"2026-11-21.4","datum":"2026-11-21"};
+const WEBSEITE = 'https://ediqat.github.io/mathe/kopfrechnen/';
+const OFFLINE = typeof location !== 'undefined' && location.protocol === 'file:';
+let neueFassung = null;
+const fassungTeile = n => String(n || '').split('.').map((t, i) => i ? +t || 0 : t);
+function istNeuer(a, b) { const [da, ka] = fassungTeile(a), [db, kb] = fassungTeile(b); return da !== db ? da > db : ka > kb; }
+const datumAT = d => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? `${+m[3]}.${+m[2]}.${m[1]}` : ''; };
+const blank = () => ({ v: 1, len: 25, units: {}, areas: {}, days: {}, hist: {}, checkups: [] });
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.v === 1 && s.units) return Object.assign(blank(), s); }
+  catch (e) { storageOk = false; }
+  return blank();
+}
+let S = load();
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { storageOk = false; } nachSpeichern(); }
+const dayKey = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const areaOf = id => AREAS.find(a => a.id === id);
+const aState = id => S.areas[id] || (S.areas[id] = { lvl: 1, win: [], rec: [] });
+const unitsOf = id => UNITS.filter(u => u.area === id);
+const pctTxt = x => (x < 10 && x > 0 ? x.toFixed(1) : String(Math.round(x))).replace('.', ',');
+
+function streak() {
+  let n = 0; const d = new Date();
+  if (!(S.days[dayKey(d)] && S.days[dayKey(d)].n >= 10)) d.setDate(d.getDate() - 1);
+  while (S.days[dayKey(d)] && S.days[dayKey(d)].n >= 10) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+function areaStats(id) {
+  let safe = 0, prac = 0, wob = 0, neu = 0, sum = 0;
+  const us = unitsOf(id);
+  for (const u of us) {
+    const s = S.units[u.key];
+    if (!s || !s.n) { neu++; continue; }
+    sum += MAST[s.box];
+    if (s.box >= 3) safe++; else if (s.box >= 1) prac++; else wob++;
+  }
+  const t = us.length;
+  return { safe, prac, wob, neu, t, seen: t - neu, pct: 100 * sum / t };
+}
+function overall() {
+  const st = AREAS.map(a => areaStats(a.id));
+  return { pct: st.reduce((a, b) => a + b.pct, 0) / st.length, seen: st.reduce((a, b) => a + b.seen, 0), safe: st.reduce((a, b) => a + b.safe, 0), t: st.reduce((a, b) => a + b.t, 0) };
+}
+function snapshot() {
+  const a = {}; for (const x of AREAS) a[x.id] = Math.round(areaStats(x.id).pct * 10) / 10;
+  S.hist[dayKey()] = { g: Math.round(overall().pct * 10) / 10, a };
+  const ks = Object.keys(S.hist).sort(); if (ks.length > 200) for (const k of ks.slice(0, ks.length - 200)) delete S.hist[k];
+}
+
+const measure = m => m === 'check' || m === 'up';      // Messungen: verändern den Übungsstand nicht
+const checksFor = id => S.checkups.filter(c => id === 'g' ? !c.part : c.res && c.res[id]);
+const UPW = 2, UPN = 6, UPOK = 5;                                  // Niveau-Check: 2 Aufwärmaufgaben (aktuelles Niveau, zählen nicht) + 6 Aufgaben auf dem nächsten Niveau, ab 5 richtig steigt man auf
+function weakAreas() {                                    // Bereiche mit Übungsbedarf: zuletzt unter 85 % richtig
+  return AREAS.map(a => { const r = aState(a.id).rec; return { id: a.id, n: r.length, acc: r.length ? r.reduce((x, y) => x + y, 0) / r.length : null }; })
+    .filter(x => x.n >= 5 && x.acc < 0.85).sort((p, q) => p.acc - q.acc).slice(0, 5).map(x => x.id);
+}
+
+// ---------- Auswahl ----------
+const qk = q => String(q).slice(0, 90);
+function unitWeight(u, lvl) {
+  const s = S.units[u.key]; let w;
+  if (!s || !s.n) w = 3;
+  else {
+    w = [10, 6, 3, 1.5, 0.7, 0.25][s.box];
+    if (Date.now() - s.last >= INT[s.box] * DAY) w *= 2.5; else w *= 0.25;
+  }
+  w *= (u.lvl === lvl ? 1 : u.lvl < lvl ? 0.5 : 0.15);
+  if (sess.recent.includes(u.key)) w *= 0.03;
+  if (S.rk && S.rk.includes(u.key)) { const s0 = S.units[u.key]; w *= measure(sess.mode) ? 0.1 : u.uniq ? (s0 && s0.n && s0.box <= 1 ? 0.5 : 0.08) : 0.4; }   // über Sitzungen hinweg Abwechslung
+  if (sess.used.has(u.key) && (u.uniq || measure(sess.mode))) w *= 0.0001;
+  return w;
+}
+function wpick(items, wf) {
+  const ws = items.map(wf); let r = Math.random() * ws.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < items.length; i++) { r -= ws[i]; if (r <= 0) return items[i]; }
+  return items[items.length - 1];
+}
+function pickUnit(aid, exact, lvlOver) {
+  const lvl = lvlOver || aState(aid).lvl;
+  let c = unitsOf(aid).filter(u => exact ? u.lvl === lvl : u.lvl <= Math.min(MAXL, lvl + 1));
+  if (!c.length) c = unitsOf(aid);
+  return wpick(c, u => unitWeight(u, lvl));
+}
+function pickAreaMixed() {
+  return wpick(AREAS, a => {
+    const r = aState(a.id).rec, acc = r.length ? r.reduce((x, y) => x + y, 0) / r.length : 0.6;
+    return (1 + 2 * (1 - acc)) * (a.id === sess.lastArea ? 0.2 : 1);
+  }).id;
+}
+
+// ---------- Training ----------
+let screen = 'home', sess = null, DL = null, dataMsg = '', confirmReset = false, histSel = 'g', chkKind = 'all', chkSel = [];
+
+function startSession(mode, areaId, opt) {
+  opt = opt || {};
+  let areas = AREAS.map(x => x.id), per = PER_AREA_CHECK, total = S.len || 25, plan = null;
+  if (mode === 'check') {
+    if (opt.areas && opt.areas.length) { areas = opt.areas; per = 3; }
+    total = areas.length * per;
+    for (let t = 0; t < 60; t++) { plan = shuf(areas.flatMap(a => Array(per).fill(a))); if (areas.length < 2 || !plan.some((x, i) => i && x === plan[i - 1])) break; }
+  } else if (mode === 'up') { total = UPW + UPN; plan = Array(UPW + UPN).fill(areaId); }
+  sess = { mode, areaId: areaId || null, total, done: 0, queue: [], results: [], recent: [], used: new Set(), seenQ: new Set(), lastArea: null, lvlUps: [], readyNow: [], plan, part: mode === 'check' && areas.length < AREAS.length, cur: null, t0: Date.now() };
+  screen = 'train'; nextTask();
+}
+function nextTask() {
+  if (sess.done >= sess.total) return finish();
+  let unit, task, retry = false;
+  const qi = sess.queue.findIndex(q => q.at <= sess.done);
+  if (qi >= 0) { unit = sess.queue.splice(qi, 1)[0].unit; task = unit.make(); retry = true; }
+  else {
+    const aid = measure(sess.mode) ? sess.plan[sess.done] : sess.areaId || pickAreaMixed();
+    let tries = 0;
+    const hist = S.rq || (S.rq = []), rk = S.rk || (S.rk = []);
+    const weak = u => { const s = S.units[u.key]; return !measure(sess.mode) && s && s.n && s.box <= 1; };   // Fehlerkandidaten dürfen wiederkehren
+    do { unit = pickUnit(aid, measure(sess.mode), sess.mode === 'up' ? Math.min(MAXL, aState(aid).lvl + (sess.done >= UPW ? 1 : 0)) : 0); task = unit.make(); tries++; }
+    while (tries < 30 && (sess.seenQ.has(task.q) || (hist.includes(qk(task.q)) && !weak(unit))));
+    sess.seenQ.add(task.q); sess.used.add(unit.key);
+    hist.push(qk(task.q)); if (hist.length > 500) hist.splice(0, hist.length - 500);
+    rk.push(unit.key); if (rk.length > 120) rk.splice(0, rk.length - 120);
+  }
+  sess.lastArea = unit.area; sess.recent.push(unit.key); sess.recent = sess.recent.slice(-8);
+  sess.cur = { warm: sess.mode === 'up' && sess.done < UPW, unit, task, retry, t0: performance.now(), input: '', inp2: '', field: 0, answered: false, ok: null, adv: false };
+  render();
+}
+function limitFor(u, task) { return areaOf(u.area).t * (1 + 0.25 * (u.lvl - 1)) * (task.opts ? 1.5 : 1) * 1000; }
+
+// Bruch-Aufgaben haben zwei Felder (Zähler über Nenner): c.input = Zähler, c.inp2 = Nenner, c.field = aktives Feld
+const fld = c => (c.task.frac && c.field === 1 ? 'inp2' : 'input');
+function showInput() {
+  const c = sess && sess.cur; if (!c) return;
+  const e1 = document.getElementById('ans'), e2 = document.getElementById('ans2');
+  if (e1) e1.textContent = c.input; if (e2) e2.textContent = c.inp2 || '';
+  const b0 = document.getElementById('f0'), b1 = document.getElementById('f1');
+  if (b0 && b1) { b0.classList.toggle('act', c.field !== 1); b1.classList.toggle('act', c.field === 1); }
+}
+function setField(i) {
+  const c = sess && sess.cur; if (!c || c.answered || !c.task.frac) return;
+  c.field = i; showInput();
+}
+function typeKey(k) {
+  const c = sess && sess.cur; if (!c || c.answered || c.task.opts) return;
+  const fr = c.task.frac, f = fld(c);
+  if (k === '/') { if (fr) setField(c.field === 1 ? 0 : 1); return; }
+  if (c[f].length >= (fr ? 6 : 12)) return;
+  if (k === ',' && (fr || c.input.includes(','))) return;
+  if (k === '\u2212' && (c[f].length || (fr && f === 'inp2'))) return;
+  c[f] += k; showInput();
+}
+function backKey() {
+  const c = sess && sess.cur; if (!c || c.answered || c.task.opts) return;
+  const f = fld(c);
+  if (!c[f].length && f === 'inp2') c.field = 0; else c[f] = c[f].slice(0, -1);
+  showInput();
+}
+const answerStr = c => (c.task.frac && c.inp2 ? c.input + '/' + c.inp2 : c.input);
+function submit(val) {
+  const c = sess && sess.cur; if (!c || c.answered) return;
+  if (!c.task.opts && !c.input.trim()) return;
+  const ms = performance.now() - c.t0;
+  const ok = checkAnswer(c.task, c.task.opts ? val : answerStr(c));
+  c.answered = true; c.ok = ok; c.picked = val;
+  record(c, ok, ms);
+  render();
+  if (ok) c.timer = setTimeout(advance, 650);
+}
+// Absolute Zahlen: jede beantwortete Aufgabe (Training und Check-up) zählt für heute, gesamt und den Bereich
+function areaTot(id) {
+  const a = aState(id);
+  if (!a.tot) { let o = 0, n = 0; for (const u of unitsOf(id)) { const s = S.units[u.key]; if (s) { o += s.ok; n += s.n; } } a.tot = [o, n]; }
+  return a.tot;
+}
+function totalCount() {
+  if (S.cnt == null) S.cnt = Object.values(S.units).reduce((x, s) => x + s.n, 0);
+  return S.cnt;
+}
+function countTask(area, ok, ms) {
+  const t = areaTot(area); totalCount();
+  t[1]++; if (ok) t[0]++; S.cnt++;
+  const dk = dayKey(), d = S.days[dk] || (S.days[dk] = { n: 0, ok: 0, ms: 0, a: {} });
+  if (!d.a) d.a = {};
+  d.n++; if (ok) d.ok++; d.ms += ms;
+  const da = d.a[area] || (d.a[area] = [0, 0]); da[1]++; if (ok) da[0]++;
+  const keys = Object.keys(S.days).sort(); if (keys.length > 200) for (const k of keys.slice(0, keys.length - 200)) delete S.days[k];
+}
+function record(c, ok, ms) {
+  const u = c.unit, t = c.task, lim = limitFor(u, t);
+  if (measure(sess.mode)) {   // Check-up und Niveau-Check messen nur: Übungsstand bleibt unverändert, gezählt wird er trotzdem
+    countTask(u.area, ok, ms);
+    sess.results.push({ key: u.key, area: u.area, q: t.q, ans: answerText(t), ok, retry: false, ms, fast: ok && ms <= lim, warm: !!c.warm });
+    sess.done++; save(); return;
+  }
+  const s = S.units[u.key] || (S.units[u.key] = { n: 0, ok: 0, box: 0, last: 0, ms: 0 });
+  s.n++; s.last = Date.now(); s.ms = s.ms ? 0.7 * s.ms + 0.3 * ms : ms;
+  if (ok) { s.ok++; s.box = ms <= lim ? Math.min(5, s.box + 1) : Math.max(s.box, 1); } else s.box = Math.max(0, s.box - 2);
+  if (!c.retry) {
+    const a = aState(u.area); a.rec.push(ok ? 1 : 0); a.rec = a.rec.slice(-20);
+    if (u.lvl === a.lvl) {
+      a.win.push(ok ? 1 : 0); a.win = a.win.slice(-8);
+      if (a.win.length >= 5) {
+        const acc = a.win.reduce((x, y) => x + y, 0) / a.win.length;
+        if (acc >= 0.85 && a.lvl < MAXL) { if (!a.ready) { a.ready = true; sess.readyNow.push(u.area); } }
+        else if (acc <= 0.4 && a.lvl > 1) { sess.lvlUps.push({ area: u.area, from: a.lvl, to: a.lvl - 1 }); a.lvl--; a.win = []; a.ready = false; }
+      }
+    }
+  }
+  countTask(u.area, ok, ms);
+  const ans = answerText(t);
+  sess.results.push({ key: u.key, area: u.area, q: t.q, ans, ok, retry: c.retry, ms });
+  sess.done++;
+  if (!ok && !c.retry && !measure(sess.mode) && sess.queue.length < 3) sess.queue.push({ unit: u, at: sess.done + 3 + R(0, 2) });
+  save();
+}
+function advance() {
+  const c = sess && sess.cur; if (!c || !c.answered || c.adv) return;
+  c.adv = true; clearTimeout(c.timer); nextTask();
+}
+function finish() {
+  sess.complete = measure(sess.mode) && sess.done >= sess.total;
+  const first = sess.results.filter(r => !r.retry && !r.warm);
+  if (sess.mode === 'check' && sess.complete) {
+    const res = {}; for (const r of first) { const x = res[r.area] || (res[r.area] = [0, 0, 0]); x[1]++; if (r.ok) x[0]++; if (r.fast) x[2]++; }
+    const ok = first.filter(r => r.ok).length, fast = first.filter(r => r.fast).length;
+    const vor = checksFor(sess.part ? sess.plan[0] : 'g');
+    sess.prev = sess.part ? null : (vor.length ? vor[vor.length - 1] : null);
+    sess.prevBy = {}; for (const id in res) { const l = checksFor(id); sess.prevBy[id] = l.length ? l[l.length - 1] : null; }
+    S.checkups.push({ t: Date.now(), d: dayKey(), part: sess.part || undefined, g: first.length ? Math.round(1000 * ok / first.length) / 10 : 0, f: first.length ? Math.round(1000 * fast / first.length) / 10 : 0, s: first.length ? Math.round(first.reduce((x, r) => x + r.ms, 0) / first.length / 100) / 10 : 0, res }); S.checkups = S.checkups.slice(-40);
+  }
+  if (sess.mode === 'up' && sess.complete) {
+    const ok = first.filter(r => r.ok).length, a = aState(sess.areaId);
+    sess.up = { ok, pass: ok >= UPOK, from: a.lvl, to: a.lvl + 1 };
+    if (sess.up.pass) { a.lvl++; a.win = []; a.ready = false; }
+  }
+  save();
+  screen = 'summary'; render();
+}
+
+// ---------- Darstellung ----------
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const SQ = '<svg class="rs" viewBox="0 0 10 20" preserveAspectRatio="none" aria-hidden="true"><path d="M0.4 11.5 L2.4 9.8 L5 18.6 L9.2 0.8 L10 0.8"/></svg>';
+const rich = s => esc(s)
+  .replace(/\{([^{}/]+)\/([^{}]+)\}/g, '<span class="fr"><span>$1</span><span>$2</span></span>')
+  .replace(/√\(([^()]*)\)|√(\d+(?:[   ]\d{3})*(?:,\d+)?)/g, (m, p, d) => `<span class="sq" role="math" aria-label="Wurzel aus ${(p || d)}">${SQ}<span class="rad">${p || d}</span></span>`);
+const $app = document.getElementById('app');
+
+function keep() { const y = window.scrollY; render(); window.scrollTo(0, y); }   // gleiche Ansicht neu zeichnen, ohne nach oben zu springen
+function render() {
+  window.scrollTo(0, 0);
+  $app.innerHTML = screen === 'home' ? vHome() : screen === 'train' ? vTrain() : screen === 'summary' ? vSummary() : vData();
+  if (screen === 'train') { const b = document.getElementById('goOn'); if (b) b.focus({ preventScroll: true }); }
+}
+
+// Check-up-Verlauf: richtig in % je Check-up (gesamt oder je Bereich)
+function chkVal(c, id) { if (id === 'g') return c.g; const r = c.res[id]; return r && r[1] ? Math.round(1000 * r[0] / r[1]) / 10 : null; }
+function chkFast(c, id) { if (id === 'g') return c.f != null ? c.f : null; const r = c.res[id]; return r && r[1] && r[2] != null ? Math.round(1000 * r[2] / r[1]) / 10 : null; }
+function chart() {
+  const id = histSel, cs = checksFor(id).map(c => ({ c, v: chkVal(c, id) })).filter(x => x.v != null).slice(-12);
+  const empty = !cs.length;
+  const W = 640, H = 190, L = 40, Rr = 16, T = 16, B = 30, iw = W - L - Rr, ih = H - T - B;
+  const x = i => L + (cs.length <= 1 ? iw / 2 : iw * i / (cs.length - 1)), y = v => T + ih * (1 - v / 100);
+  const fd = t => { const d = new Date(t); return d.getDate() + '.' + (d.getMonth() + 1) + '.'; };
+  const grid = [0, 50, 100].map(v => `<line class="gl" x1="${L}" x2="${W - Rr}" y1="${y(v)}" y2="${y(v)}"/><text class="gt" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v} %</text>`).join('');
+  if (empty) return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Noch keine Check-ups">${grid}<text class="gt" x="${W / 2}" y="${H / 2 + 4}" text-anchor="middle">Hier erscheinen deine Check-up-Ergebnisse. Der erste ist dein Startwert.</text></svg>`;
+  const path = cs.map((p, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p.v).toFixed(1)).join(' ');
+  const fs = cs.map((p, i) => ({ i, v: chkFast(p.c, id) })).filter(q => q.v != null);
+  const fpath = fs.map((p, k) => (k ? 'L' : 'M') + x(p.i).toFixed(1) + ' ' + y(p.v).toFixed(1)).join(' ');
+  const fdots = fs.map(p => `<circle class="df" cx="${x(p.i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="4"><title>${Math.round(p.v)} % richtig und zügig</title></circle>`).join('');
+  const dots = cs.map((p, i) => `<circle class="dm" cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="5"><title>${fd(p.c.t)} ${Math.round(p.v)} % richtig</title></circle><text class="gv" x="${x(i).toFixed(1)}" y="${(y(p.v) - 10).toFixed(1)}" text-anchor="middle">${Math.round(p.v)} %</text><text class="gt" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${fd(p.c.t)}</text>`).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Ergebnisse der Check-ups im Verlauf">${grid}${cs.length > 1 ? `<path class="lm" d="${path}"/>` : ''}${fs.length > 1 ? `<path class="lf" d="${fpath}"/>` : ''}${fdots}${dots}</svg>${fs.length ? '<p class="legend"><span><i class="sw sw-m"></i>richtig</span><span><i class="sw sw-f"></i>richtig und zügig</span></p>' : ''}`;
+}
+function week() {
+  const out = []; const d = new Date(); d.setDate(d.getDate() - 13);
+  const wd = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  for (let i = 0; i < 14; i++) { const e = S.days[dayKey(d)]; out.push({ n: e ? e.n : 0, d: d.getDate() + '.' + (d.getMonth() + 1) + '.', w: wd[d.getDay()] }); d.setDate(d.getDate() + 1); }
+  const mx = Math.max(20, ...out.map(o => o.n));
+  return `<div class="wk" role="img" aria-label="Aufgaben pro Tag in den letzten 14 Tagen">${out.map((o, i) => `<span class="wc" title="${o.d}: ${o.n} Aufgaben"><span class="wb"><i style="height:${o.n ? Math.max(8, Math.round(100 * o.n / mx)) : 0}%"></i></span><em${i === 13 ? ' class="now"' : ''}>${o.w}</em></span>`).join('')}</div>`;
+}
+function areaTotals(id) {
+  let o = 0, n = 0; for (const k in S.days) { const a = S.days[k].a && S.days[k].a[id]; if (a) { o += a[0]; n += a[1]; } }
+  return { o, n };
+}
+
+function vOffline() {                                      // online: Verweis auf die Downloadseite; als Datei: Fassung zeigen
+  const f = FASSUNG ? `Fassung vom ${datumAT(FASSUNG.datum)} (${esc(FASSUNG.nummer)})` : '';
+  if (OFFLINE) return f ? `<p class="hint fassung">${f}</p>` : '';
+  return `<section class="foot offline-dl"><h2 class="sec">Ohne Internet üben</h2>
+      <p>Den Trainer gibt es auch als Datei zum Herunterladen. Sie läuft am eigenen Rechner ohne Internet. Die Datei hat einen eigenen Lernstand, getrennt von dieser Seite.</p>
+      <a class="btn primary" href="index.html">Zum Download mit Anleitung</a>
+      ${f ? `<p class="hint">${f}</p>` : ''}</section>`;
+}
+function vNeu() {
+  return neueFassung ? `<p class="msg neu" role="status"><b>Neue Fassung vom ${datumAT(neueFassung.datum)}:</b> Auf <a href="${WEBSEITE}" target="_blank" rel="noopener">ediqat.github.io/mathe/kopfrechnen</a> herunterladen und die alte Datei damit ersetzen. Dein Lernstand bleibt erhalten.</p>` : '';
+}
+function vHome() {
+  const dk = S.days[dayKey()] || { n: 0, ok: 0 }, st = streak();
+  const total = totalCount(), stars = AREAS.reduce((x, a) => x + aState(a.id).lvl, 0);
+  const mine = checksFor(histSel), lastC = mine.length ? mine[mine.length - 1] : null, prevC = mine.length > 1 ? mine[mine.length - 2] : null;
+  const first = mine.length ? mine[0] : null, cs = mine;
+  const ckAreas = chkKind === 'weak' ? weakAreas() : chkKind === 'custom' ? chkSel : AREAS.map(x => x.id);
+  const ckN = chkKind === 'all' ? AREAS.length * PER_AREA_CHECK : ckAreas.length * 3;
+  const full = checksFor('g'), lastF = full.length ? full[full.length - 1] : null;
+  const since = lastF ? Math.floor((Date.now() - lastF.t) / DAY) : null;
+  const due = !lastF || since >= 7;
+  const dueTxt = !lastF ? 'Noch kein Check-up gemacht. Starte mit deinem ersten.' : since >= 7 ? `Dein letzter Check-up ist ${since} Tage her. Er ist wieder fällig.` : `Letzter Check-up vor ${since === 0 ? 'heute' : since + (since === 1 ? ' Tag' : ' Tagen')}.`;
+  const lv = lastC ? chkVal(lastC, histSel) : null, pv = prevC ? chkVal(prevC, histSel) : null, fv = first ? chkVal(first, histSel) : null;
+  let delta = '';
+  if (lv != null && pv != null) { const d = Math.round(lv) - Math.round(pv); delta = `<span class="cmp ${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '▲ +' + d : d < 0 ? '▼ ' + d : '='} gegenüber dem Check-up davor</span>`; }
+  const startTxt = fv != null && cs.length > 1 ? `Dein erster Check-up: ${Math.round(fv)} %.` : '';
+  const cards = AREAS.map(a => {
+    const lvl = aState(a.id).lvl, g = areaStats(a.id), tot = areaTot(a.id), rec = aState(a.id).rec;
+    const acc = rec.length ? Math.round(100 * rec.reduce((x, y) => x + y, 0) / rec.length) : tot[1] ? Math.round(100 * tot[0] / tot[1]) : null;
+    const dots = [1, 2, 3, 4].map(i => `<span class="dot${i <= lvl ? ' on' : ''}"></span>`).join('');
+    const ready = aState(a.id).ready && lvl < MAXL;
+    return `<article class="area${ready ? ' ready' : ''}">
+      <header><div class="ah"><h3>${esc(a.titel)}</h3><span class="gvx" title="Passt zum Lernziel ${esc(a.gvx)}">${esc(a.gvx)}</span></div><p class="bsp">${rich(a.bsp)}</p></header>
+      <div class="lv"><span class="dots" role="img" aria-label="Niveau ${lvl} von 4">${dots}</span><span class="lvt">Niveau ${lvl}</span>
+        <span class="step"><button class="mini" data-act="lvl" data-id="${a.id}" data-d="-1" aria-label="Niveau senken: ${esc(a.titel)}">−</button><button class="mini" data-act="lvl" data-id="${a.id}" data-d="1" aria-label="Niveau erhöhen: ${esc(a.titel)}">+</button></span></div>
+      <div class="bar" role="img" aria-label="${acc == null ? 'noch nicht geübt' : 'zuletzt ' + acc + ' Prozent richtig'}"><i class="b-safe" style="width:${acc == null ? 0 : acc}%"></i></div>
+      <p class="bart">${tot[1] ? `<b>${tot[1]}</b> Aufgaben geübt · zuletzt <b>${acc} %</b> richtig` : 'Noch nicht geübt'}</p>
+      <p class="bart">${g.safe ? `<b>${g.safe}</b> Aufgabenarten sitzen sicher` : 'Noch nichts gefestigt'}</p>
+      ${ready ? `<button class="btn up" data-act="up" data-id="${a.id}">⭐ Bereit für Niveau ${lvl + 1}? Teste dich</button>` : ''}
+      <button class="btn ghost" data-act="area" data-id="${a.id}">Nur das üben</button>
+    </article>`;
+  }).join('');
+  const opts = `<option value="g"${histSel === 'g' ? ' selected' : ''}>Alle Bereiche</option>` + AREAS.map(a => `<option value="${a.id}"${histSel === a.id ? ' selected' : ''}>${esc(a.titel)}</option>`).join('');
+  return `<main class="wrap">${vNeu()}
+    <header class="top"><h1>Kopfrechentrainer</h1><p class="lead">Jeden Tag ein paar Minuten. Was noch wackelt, kommt öfter. Was sitzt, kommt nur noch selten.</p></header>
+    <section class="today" aria-label="Heute">
+      <div>
+        <div class="stats">
+          <div><b>${dk.n}</b><span>Aufgaben heute</span></div>
+          <div><b>${st}</b><span>${st === 1 ? 'Tag' : 'Tage'} in Folge</span></div>
+          <div><b>${total}</b><span>Aufgaben gesamt</span></div>
+          <div><b>${stars}<small> / ${AREAS.length * MAXL}</small></b><span>Niveau-Sterne</span></div>
+        </div>
+        <h3 class="ch">Training: Aufgaben pro Tag</h3>${week()}
+      </div>
+      <div class="go">
+        <div class="mode train"><button class="btn primary big" data-act="mixed">Training starten</button>
+          <div class="len" role="group" aria-label="Länge des Trainings"><span>Länge:</span>${[[15, 'kurz'], [25, 'normal'], [50, 'lang']].map(([n, l]) => `<button class="chip${(S.len || 25) === n ? ' on' : ''}" data-act="len" data-n="${n}">${l} (${n})</button>`).join('')}</div>
+          <p class="hint"><b>Täglich 5 bis 10 Minuten.</b> Die Aufgaben passen sich an dich an. Was oft falsch war, kommt öfter, was sitzt, nur noch selten.</p></div>
+        <div class="mode chk"><div class="ckopt" role="group" aria-label="Art des Check-ups">${[['all', 'Alles gemischt'], ['weak', 'Wo ich üben muss'], ['custom', 'Selbst wählen']].map(([k, l]) => `<button class="chip${chkKind === k ? ' on' : ''}" data-act="ck" data-k="${k}">${l}</button>`).join('')}</div>
+          ${chkKind === 'custom' ? `<div class="cksel">${AREAS.map(x => `<label><input type="checkbox" data-act="cksel" data-id="${x.id}"${chkSel.includes(x.id) ? ' checked' : ''}> ${esc(x.titel)}</label>`).join('')}</div>` : ''}
+          <button class="btn checkbtn big" data-act="check"${ckN === 0 ? ' disabled' : ''}>Check-up starten${ckN ? ` (${ckN} Aufgaben)` : ''}${due && chkKind === 'all' ? ' · fällig' : ''}</button>
+          <p class="hint">${chkKind === 'all' ? `<b>Standortbestimmung, einmal pro Woche ist ideal.</b> ${AREAS.length * PER_AREA_CHECK} Aufgaben, ${PER_AREA_CHECK} aus jedem Bereich. Nur dieser Check-up zählt im Gesamtverlauf. ` : chkKind === 'weak' ? (ckAreas.length ? `Prüft die Bereiche, in denen du zuletzt unter 85 % hattest: <b>${ckAreas.map(id => esc(areaOf(id).titel)).join(', ')}</b>. 3 Aufgaben je Bereich. ` : 'Zurzeit gibt es keinen Bereich mit Übungsbedarf. Übe zuerst im Training, dann erscheinen hier die Bereiche. ') : 'Wähle die Bereiche, die du prüfen willst. 3 Aufgaben je Bereich. '}Der Check-up misst nur und verändert deinen Übungsstand nicht. ${dueTxt}</p>
+        </div>
+      </div>
+    </section>
+    <section class="prog" aria-label="Check-ups">
+      <h3 class="ch">Check-ups: Ergebnis im Verlauf</h3>
+      <div class="ptop"><div class="pnum"><b>${lv != null ? Math.round(lv) + ' %' : '–'}</b><span>${lv != null ? 'im letzten Check-up richtig' : 'noch kein Check-up'}</span></div>
+        <div class="psel"><label for="histSel">Check-ups für</label><select id="histSel">${opts}</select></div></div>
+      ${lastC && chkFast(lastC, histSel) != null ? `<p class="hint">Davon <b>${Math.round(chkFast(lastC, histSel))} %</b> auch zügig gelöst${histSel === 'g' && lastC.s ? `, durchschnittlich ${String(lastC.s).replace('.', ',')} Sekunden pro Aufgabe` : ''}.</p>` : ''}
+      ${delta || startTxt ? `<p class="hint">${delta} ${startTxt}</p>` : ''}
+      ${chart()}
+    </section>
+    <h2 class="sec">Bereiche</h2>
+    <p class="hint">Der Balken zeigt, wie viel du zuletzt in diesem Bereich richtig hattest (letzte 20 Aufgaben). Das <b>Niveau</b> (1 bis 4) bestimmt, wie schwer die Aufgaben sind. Bist du in einem Bereich sicher, erscheint dort „Bereit für das nächste Niveau“. Ein kurzer Niveau-Check (2 Aufwärmaufgaben, dann 6 Aufgaben auf dem nächsten Niveau, ab 5 richtig) bringt dich hinauf. Mit − und + kannst du das Niveau auch selbst ändern. „Sitzt sicher“ heißt: mehrmals schnell richtig gelöst. Das Kürzel (z. B. G4) nennt das passende Lernziel.</p>
+    <div class="areas">${cards}</div>
+    <section class="foot"><p>${storageOk ? 'Dein Lernstand liegt in diesem Browser.' : 'Der Browser speichert hier nichts. Bitte den Lernstand am Ende sichern.'} Beim Wechsel auf ein anderes Gerät: sichern und dort laden.</p>
+      <button class="btn" data-act="data">Lernstand sichern oder laden</button>${vSicherKurz()}</section>
+    ${vOffline()}
+  </main>`;
+}
+
+function vTrain() {
+  const c = sess.cur, t = c.task, area = areaOf(c.unit.area), pct = Math.round(100 * sess.done / sess.total);
+  const head = `<div class="thead"><button class="btn ghost small" data-act="quit">Beenden</button>
+    <div class="prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${sess.total}" aria-valuenow="${sess.done}"><i style="width:${pct}%"></i></div>
+    <span class="cnt">${Math.min(sess.done + (c.answered ? 0 : 1), sess.total)} / ${sess.total}</span></div>
+    <p class="tag">${esc(area.titel)}${sess.mode === 'check' ? ' · Check-up' : sess.mode === 'up' ? ' · Niveau-Check' : ''}${c.retry ? ' · noch einmal' : ''}</p>`;
+  let body;
+  if (t.opts) {
+    body = `<h2 class="q small">${rich(t.q)}</h2><div class="opts">${t.opts.map((o, i) => {
+      let cls = 'opt';
+      if (c.answered) { if (i === t.ok) cls += ' right'; else if (i === c.picked) cls += ' wrong'; }
+      return `<button class="${cls}" data-act="opt" data-i="${i}" ${c.answered ? 'disabled' : ''}><kbd>${i + 1}</kbd><span>${rich(o)}</span></button>`;
+    }).join('')}</div>`;
+  } else {
+    const st = c.answered ? (c.ok ? ' right' : ' wrong') : '';
+    const box = t.frac
+      ? `<span class="fbox"><span id="f0" class="ansbox${st}${!c.answered && c.field !== 1 ? ' act' : ''}" data-act="fld" data-i="0"><span id="ans" class="ans" role="textbox" aria-label="Zähler">${esc(c.input)}</span></span><span class="fline" aria-hidden="true"></span><span id="f1" class="ansbox${st}${!c.answered && c.field === 1 ? ' act' : ''}" data-act="fld" data-i="1"><span id="ans2" class="ans" role="textbox" aria-label="Nenner">${esc(c.inp2)}</span></span></span>`
+      : `<span class="ansbox${st}"><span id="ans" class="ans" role="textbox" aria-label="Deine Antwort">${esc(c.input)}</span></span>`;
+    const unit = t.unit ? `<span class="unit">${esc(t.unit)}</span>` : '';
+    if (t.inline) body = `<div class="line${t.frac ? ' fl' : ''}"><span class="q">${rich(t.q)}</span>${box}${unit}</div>`;
+    else body = `<h2 class="q small">${rich(t.q)}</h2><div class="line${t.frac ? ' fl' : ''}">${t.pre ? `<span class="q">${esc(t.pre)}</span>` : ''}${box}${unit}</div>`;
+    if (!c.answered && t.frac) body += '<p class="hint fh">Oben der Zähler, unten der Nenner. Mit ↕ oder einem Tipp auf das Feld wechselst du. Ist das Ergebnis eine ganze Zahl, bleibt der Nenner leer.</p>';
+    if (!c.answered) body += keypad(t);
+  }
+  let fb = '';
+  if (c.answered) {
+    const ans = answerText(t);
+    fb = c.ok ? `<div class="fb good" role="status">Richtig</div>`
+      : `<div class="fb bad" role="status"><p><b>Das stimmt nicht.</b> Richtig ist: <span class="rt">${rich(ans)}</span></p>${t.why ? `<p class="why">${rich(t.why)}</p>` : ''}<button id="goOn" class="btn primary" data-act="next">Weiter</button></div>`;
+  }
+  if (sess.confirmQuit) return `<main class="wrap narrow">${head}<div class="warn" role="alertdialog" aria-labelledby="wt"><h2 id="wt">${sess.mode === 'up' ? 'Niveau-Check' : 'Check-up'} wirklich abbrechen?</h2>
+    <p>${sess.mode === 'up' ? 'Bei einem abgebrochenen Niveau-Check steigst du <b>nicht</b> auf.' : 'Ein abgebrochener Check-up wird <b>nicht</b> in deinen Verlauf aufgenommen.'} Du hast ${sess.done} von ${sess.total} Aufgaben geschafft. Die bereits gerechneten Aufgaben zählen trotzdem in deine Gesamtzahl.</p>
+    <div class="go"><button class="btn primary" data-act="quitno">Weitermachen</button><button class="btn danger" data-act="quit">Ja, abbrechen</button></div></div></main>`;
+  return `<main class="wrap narrow">${head}${body}${fb}</main>`;
+}
+function keypad(t) {
+  const k = ['7', '8', '9', '4', '5', '6', '1', '2', '3', t.frac ? '/' : ',', '0', '−'];
+  return `<div class="pad">${k.map(x => x === '/' ? `<button type="button" tabindex="-1" class="kk fn" data-act="key" data-k="/" aria-label="Zwischen Zähler und Nenner wechseln">↕</button>` : `<button type="button" tabindex="-1" class="kk" data-act="key" data-k="${x}">${x}</button>`).join('')}
+    <button type="button" tabindex="-1" class="kk fn" data-act="back" aria-label="Löschen">⌫</button><button type="button" tabindex="-1" class="kk ok" data-act="submit" style="grid-column:span 2">Prüfen</button></div>`;
+}
+
+function vSummary() {
+  const all = sess.results.filter(r => !r.retry), first = all.filter(r => !r.warm), ok = first.filter(r => r.ok).length;
+  const avg = first.length ? Math.round(first.reduce((a, r) => a + r.ms, 0) / first.length / 100) / 10 : 0;
+  const per = {}; for (const r of first) { const x = per[r.area] || (per[r.area] = [0, 0, 0]); x[1]++; if (r.ok) x[0]++; if (r.fast) x[2]++; }
+  const rows = AREAS.filter(a => per[a.id]).map(a => {
+    const [o, n, fz] = per[a.id]; let cmp = '';
+    const pr = sess.mode === 'check' && sess.prevBy ? sess.prevBy[a.id] : null;
+    if (pr && pr.res[a.id]) { const [po, pn] = pr.res[a.id]; const d = Math.round(100 * o / n) - Math.round(100 * po / pn); cmp = `<span class="cmp ${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '▲' : d < 0 ? '▼' : '='} vorher ${po}/${pn}</span>`; }
+    return `<li><span>${esc(a.titel)}</span><span class="sc"><b>${o} / ${n}</b>${measure(sess.mode) ? `<span class="cmp">zügig ${fz}</span>` : ''}${cmp}</span></li>`;
+  }).join('');
+  const seen = new Set(), wob = first.filter(r => !r.ok && !seen.has(r.key) && seen.add(r.key));
+  const lv = sess.lvlUps.map(l => `<li>${esc(areaOf(l.area).titel)}: Niveau ${l.from} → ${l.to}${l.to > l.from ? ' 🎉' : ''}</li>`).join('');
+  const share = first.length ? ok / first.length : 0;
+  const lead = ok === first.length ? 'Alles richtig. Stark.' : share >= 0.8 ? 'Sehr gut gemacht.' : share >= 0.5 ? 'Gut dran. Die Fehler kommen bald wieder vor.' : 'Das war ein harter Durchgang. Genau dafür ist das Training da.';
+  let chk = '';
+  if (sess.mode === 'check') { const g = Math.round(100 * share), pg = sess.prev ? Math.round(sess.prev.g != null ? sess.prev.g : 0) : null; const fz = Math.round(100 * first.filter(r => r.fast).length / (first.length || 1)); chk = `<p class="lead">Gesamt: ${g} % richtig, davon ${fz} % zügig${pg != null ? ' (letzter Check-up: ' + pg + ' %)' : ''}.</p>`; }
+  const ready = sess.readyNow.length ? `<div class="upbox">⭐ <b>Bereit für das nächste Niveau!</b> Teste dich gleich mit einem Niveau-Check (2 Aufwärmaufgaben, dann 6 auf dem nächsten Niveau, ab 5 richtig steigst du auf):<div class="go">${sess.readyNow.map(id => `<button class="btn up" data-act="up" data-id="${id}">${esc(areaOf(id).titel)}: Niveau ${aState(id).lvl + 1} testen</button>`).join('')}</div></div>` : '';
+  if (sess.mode === 'up') {
+    const u = sess.up, ar = areaOf(sess.areaId);
+    return `<main class="wrap narrow"><h1>${u && u.pass ? 'Niveau ' + u.to + ' geschafft! 🎉' : 'Noch nicht ganz'}</h1>
+    <p class="big">${ok} von ${first.length} richtig</p>
+    <p class="lead">${u && u.pass ? `<b>${esc(ar.titel)}</b> läuft jetzt auf Niveau ${u.to}. Die Aufgaben werden etwas schwerer.` : `Für Niveau ${aState(sess.areaId).lvl + 1} brauchst du ${UPOK} von ${UPN} richtig. Übe noch ein bisschen und versuche es später wieder. Der Niveau-Check bleibt auf der Übersicht.`}</p>
+    ${u && !u.pass ? `<div class="go"><button class="btn up" data-act="up" data-id="${sess.areaId}">Noch einmal versuchen</button></div>` : ''}
+    <h2 class="sec">Die Aufgaben</h2><ul class="rows plain">${all.map(r => `<li><span>${r.warm ? '<i>Aufwärmen: </i>' : ''}${rich(r.q)}</span><span class="rt">${r.ok ? '✓' : rich(r.ans)}</span></li>`).join('')}</ul>
+    
+    <div class="go"><button class="btn ${u && u.pass ? 'primary' : ''}" data-act="home">Zur Übersicht</button></div></main>`;
+  }
+  return `<main class="wrap narrow"><h1>${sess.mode === 'check' ? 'Check-up geschafft' : 'Geschafft'}</h1>
+    <p class="big">${ok} von ${first.length} gleich richtig</p><p class="lead">${lead} Durchschnitt ${String(avg).replace('.', ',')} Sekunden pro Aufgabe.</p>${chk}${ready}
+    <h2 class="sec">Nach Bereich</h2><ul class="rows">${rows}</ul>
+    ${lv ? `<h2 class="sec">Niveau</h2><ul class="rows plain">${lv}</ul>` : ''}
+    ${wob.length ? `<h2 class="sec">Das wackelt noch</h2><ul class="rows plain">${wob.slice(0, 8).map(r => `<li><span>${rich(r.q)}</span><span class="rt">${rich(r.ans)}</span></li>`).join('')}</ul>` : ''}
+    <div class="go"><button class="btn primary" data-act="again">${sess.mode === 'check' ? 'Noch ein Check-up' : 'Noch eine Runde'}</button><button class="btn" data-act="home">Zur Übersicht</button></div></main>`;
+}
+
+function vData() {
+  const json = JSON.stringify(S);
+  return `<main class="wrap narrow"><button class="btn ghost small" data-act="home">← Zurück</button><h1>Lernstand</h1>
+    ${dataMsg ? `<p class="msg" role="status">${esc(dataMsg)}</p>` : ''}
+    ${vSicherung()}
+    <h2 class="sec">${FSA ? 'Von Hand sichern' : 'Sichern'}</h2><p class="hint">Speichere die Datei und lade sie später oder auf einem anderen Gerät wieder hoch.</p>
+    <div class="go"><button class="btn primary" data-act="dl">Als Datei speichern</button><button class="btn" data-act="copy">Text kopieren</button></div>
+    <textarea id="dump" readonly rows="4" aria-label="Lernstand als Text">${esc(json)}</textarea>
+    <h2 class="sec">Laden</h2><p class="hint">Ersetzt den aktuellen Lernstand in diesem Browser.</p>
+    ${FSA && typeof window.showOpenFilePicker === 'function' ? '<div class="go"><button class="btn" data-act="fopen">Datei wählen</button></div>' : '<label class="file">Datei wählen <input id="file" type="file" accept=".json,application/json"></label>'}
+    <textarea id="paste" rows="3" placeholder="Oder gesicherten Text hier einfügen" aria-label="Gesicherten Text einfügen"></textarea>
+    <div class="go"><button class="btn" data-act="loadtext">Aus Text laden</button></div>
+    <h2 class="sec">Neu anfangen</h2>
+    ${confirmReset ? `<p class="hint"><b>Wirklich alles löschen?</b> Das lässt sich nicht rückgängig machen.</p><div class="go"><button class="btn danger" data-act="reset2">Ja, alles löschen</button><button class="btn" data-act="noreset">Abbrechen</button></div>` : `<div class="go"><button class="btn" data-act="reset">Lernstand löschen</button></div>`}
+  </main>`;
+}
+function importJSON(txt) {
+  try {
+    const o = JSON.parse(txt);
+    if (!o || o.v !== 1 || typeof o.units !== 'object') throw 0;
+    S = Object.assign(blank(), o); save(); dataMsg = 'Lernstand geladen.';
+  } catch (e) { dataMsg = 'Das war kein gültiger Lernstand. Bitte die gesicherte Datei oder den ganzen Text verwenden.'; }
+  render();
+}
+
+// ---------- Von selbst in eine Datei sichern (21.11.2026, wie im Übungsraum, eigener Code) ----------
+// Chrome/Edge (File System Access API): Datei einmal wählen, danach wird nach jeder Änderung von selbst dorthin gesichert.
+// Die gewählte Datei merkt sich der Browser (IndexedDB). Nach einem Neustart des Browsers einmal „Sichern“ tippen und
+// erlauben. Andere Browser: wie bisher „Als Datei speichern“ (Download). Inhalt der Datei = Lernstand wie im Browser.
+const FSA = typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function';
+const SICHER_DATEI = 'kopfrechentrainer-lernstand.json';
+const META = 'kopfrechentrainer-sicherung';        // eigener Schlüssel; KEY bleibt unberührt
+let fHandle = null, fErlaubt = false, fMeldung = '', fWartet = null;
+const fMeta = () => { try { return JSON.parse(localStorage.getItem(META)) || {}; } catch (e) { return {}; } };
+const fMetaSetzen = m => { try { localStorage.setItem(META, JSON.stringify(m)); } catch (e) { } };
+const fUngesichert = () => { const m = fMeta(); return (m.geaendert || 0) > (m.zuletzt || 0); };
+const fZeit = d => { const x = new Date(d), z = n => String(n).padStart(2, '0'); return `${z(x.getDate())}.${z(x.getMonth() + 1)}.${x.getFullYear()}, ${z(x.getHours())}:${z(x.getMinutes())}`; };
+function fDb() {
+  return new Promise((ok, no) => {
+    if (typeof indexedDB === 'undefined') return no(new Error('kein IndexedDB'));
+    const r = indexedDB.open('kopfrechentrainer', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('dateien');
+    r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error);
+  });
+}
+async function fHandleLesen() {
+  try { const d = await fDb(); return await new Promise(ok => { const q = d.transaction('dateien').objectStore('dateien').get('lernstand'); q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null); }); } catch (e) { return null; }
+}
+async function fHandleMerken(h) {
+  try { const d = await fDb(); await new Promise(ok => { const t = d.transaction('dateien', 'readwrite'); t.objectStore('dateien').put(h, 'lernstand'); t.oncomplete = ok; t.onerror = ok; }); } catch (e) { }
+}
+function fNeuZeichnen() { if (screen === 'home' || screen === 'data') keep(); }   // nie mitten in einer Aufgabe
+async function fSchreiben() {
+  const w = await fHandle.createWritable(); await w.write(JSON.stringify(S)); await w.close();
+  const m = fMeta(); m.zuletzt = Date.now(); m.datei = fHandle.name; fMetaSetzen(m);
+}
+async function fErlauben() {
+  try { if (await fHandle.queryPermission({ mode: 'readwrite' }) === 'granted') return true; return await fHandle.requestPermission({ mode: 'readwrite' }) === 'granted'; } catch (e) { return false; }
+}
+async function fSichern(neueDatei) {                       // Knopf: Datei wählen bzw. jetzt sichern
+  if (!FSA) return;
+  try {
+    if (!fHandle || neueDatei) {
+      fHandle = await window.showSaveFilePicker({ suggestedName: SICHER_DATEI, types: [{ description: 'Lernstand Kopfrechentrainer', accept: { 'application/json': ['.json'] } }] });
+      await fHandleMerken(fHandle);
+    }
+    fErlaubt = await fErlauben();
+    if (!fErlaubt) fMeldung = 'Sichern wurde nicht erlaubt. Tippe noch einmal auf „Sichern“ und erlaube es.';
+    else { await fSchreiben(); fMeldung = `Gesichert in „${fHandle.name}“. Ab jetzt sichert der Trainer von selbst dorthin.`; }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+    fErlaubt = false; fMeldung = 'Sichern hat nicht geklappt. Bitte noch einmal versuchen oder eine andere Datei wählen.';
+  }
+  fNeuZeichnen();
+}
+async function fOeffnen() {                                // Sicherungsdatei laden und danach weiter dorthin sichern
+  try {
+    const [h] = await window.showOpenFilePicker({ types: [{ description: 'Lernstand Kopfrechentrainer', accept: { 'application/json': ['.json'] } }] });
+    const text = await (await h.getFile()).text();
+    let o = null; try { o = JSON.parse(text); } catch (e) { }
+    if (!o || o.v !== 1 || typeof o.units !== 'object') { importJSON(text); return; }   // meldet den Fehler
+    fHandle = h; await fHandleMerken(h); fErlaubt = await fErlauben(); fMeldung = '';
+    importJSON(text);
+  } catch (e) { if (!(e && e.name === 'AbortError')) { dataMsg = 'Die Datei ließ sich nicht öffnen.'; render(); } }
+}
+function nachSpeichern() {                                 // nach jedem save(): merken und ggf. mitsichern
+  if (!FSA) return;
+  const m = fMeta(); m.geaendert = Date.now(); fMetaSetzen(m);
+  if (fHandle && fErlaubt) { clearTimeout(fWartet); fWartet = setTimeout(() => { fWartet = null; fSchreiben().catch(() => { fErlaubt = false; fNeuZeichnen(); }); }, 400); }
+}
+function vSicherung() {                                    // Abschnitt auf der Seite „Lernstand“
+  if (!FSA) return '';
+  const m = fMeta();
+  let stand, knoepfe;
+  if (!fHandle) { stand = 'Noch keine Datei gewählt.'; knoepfe = '<button class="btn primary" data-act="fsave">Sicherungsdatei wählen</button>'; }
+  else if (fErlaubt) { stand = `✓ Sichert von selbst in „${esc(fHandle.name)}“${m.zuletzt ? `, zuletzt am ${fZeit(m.zuletzt)}` : ''}.`; knoepfe = '<button class="btn" data-act="fnew">Andere Datei wählen</button>'; }
+  else { stand = `Datei „${esc(fHandle.name)}“: Nach einem Neustart des Browsers bitte einmal sichern und erlauben.`; knoepfe = '<button class="btn primary" data-act="fsave">Sichern</button><button class="btn" data-act="fnew">Andere Datei wählen</button>'; }
+  return `<h2 class="sec">Von selbst sichern</h2>
+    <p class="hint">Wähle einmal eine Datei, am besten <code>${SICHER_DATEI}</code> im selben Ordner wie der Trainer. Danach sichert der Trainer nach jeder Aufgabe von selbst dorthin. Auf einem anderen Gerät lädst du sie unten mit „Datei wählen“.</p>
+    ${fMeldung ? `<p class="msg" role="status">${esc(fMeldung)}</p>` : ''}
+    <p class="hint">${stand}</p><div class="go">${knoepfe}</div>`;
+}
+function vSicherKurz() {                                   // Zeile auf der Startseite
+  if (!FSA || !fHandle) return '';
+  if (fErlaubt) return `<p class="sicher ok">✓ Gesichert in „${esc(fHandle.name)}“</p>`;
+  return `<p class="sicher offen">Noch nicht in „${esc(fHandle.name)}“ gesichert. <button class="btn small" data-act="fsave">Sichern</button></p>`;
+}
+
+// ---------- Ereignisse ----------
+document.addEventListener('mousedown', e => { if (e.target.closest('.kk')) e.preventDefault(); });
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act;
+  if (a === 'mixed') startSession('mixed');
+  else if (a === 'check') { const ar = chkKind === 'all' ? null : (chkKind === 'weak' ? weakAreas() : chkSel.slice()); if (ar && !ar.length) return; startSession('check', null, { areas: ar }); }
+  else if (a === 'ck') { chkKind = b.dataset.k; keep(); }
+  else if (a === 'up') startSession('up', b.dataset.id);
+  else if (a === 'area') startSession('area', b.dataset.id);
+  else if (a === 'len') { S.len = +b.dataset.n; save(); keep(); }
+  else if (a === 'lvl') { const s = aState(b.dataset.id); s.lvl = Math.max(1, Math.min(MAXL, s.lvl + +b.dataset.d)); s.win = []; s.ready = false; save(); keep(); }
+  else if (a === 'fld') setField(+b.dataset.i);
+  else if (a === 'key') typeKey(b.dataset.k);
+  else if (a === 'back') backKey();
+  else if (a === 'submit') submit();
+  else if (a === 'opt') submit(+b.dataset.i);
+  else if (a === 'next') advance();
+  else if (a === 'quit' && measure(sess.mode) && !sess.confirmQuit) { clearTimeout(sess.cur && sess.cur.timer); sess.confirmQuit = true; render(); }
+  else if (a === 'quitno') { sess.confirmQuit = false; const c = sess.cur; if (c && c.answered && c.ok) advance(); else render(); }
+  else if (a === 'quit') { clearTimeout(sess && sess.cur && sess.cur.timer); if (measure(sess.mode)) { screen = 'home'; render(); } else if (sess.results.length) { sess.total = sess.done; finish(); } else { screen = 'home'; render(); } }
+  else if (a === 'again') startSession(sess.mode, sess.areaId);
+  else if (a === 'home') { screen = 'home'; dataMsg = ''; confirmReset = false; render(); }
+  else if (a === 'data') { screen = 'data'; dataMsg = ''; render(); }
+  else if (a === 'dl' && !DL) { try { const bl = new Blob([JSON.stringify(S)], { type: 'application/json' }), u = URL.createObjectURL(bl), l = document.createElement('a'); l.href = u; l.download = 'kopfrechentrainer-lernstand-' + dayKey() + '.json'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 2000); dataMsg = 'Datei gespeichert.'; } catch (e) { dataMsg = 'Speichern ist hier nicht möglich. Kopiere stattdessen den Text.'; } render(); }
+  else if (a === 'dl') DL.save({ filename: 'kopfrechentrainer-lernstand-' + dayKey() + '.json', data: JSON.stringify(S) }).then(() => { dataMsg = 'Datei gespeichert.'; render(); }).catch(err => { dataMsg = err && err.code === 'declined' ? 'Speichern abgebrochen.' : 'Speichern ist hier nicht möglich. Kopiere stattdessen den Text.'; render(); });
+  else if (a === 'copy') { const ta = document.getElementById('dump'); ta.select(); let ok = false; try { ok = navigator.clipboard ? (navigator.clipboard.writeText(ta.value), true) : document.execCommand('copy'); } catch (x) { try { ok = document.execCommand('copy'); } catch (y) { } } dataMsg = ok ? 'Text kopiert. Füge ihn in eine Notiz oder Datei ein.' : 'Kopieren hat nicht geklappt. Der Text ist markiert, bitte mit Strg+C kopieren.'; const m = document.querySelector('.msg'); if (m) m.textContent = dataMsg; else render(); }
+  else if (a === 'fsave') fSichern(false);
+  else if (a === 'fnew') fSichern(true);
+  else if (a === 'fopen') fOeffnen();
+  else if (a === 'loadtext') importJSON(document.getElementById('paste').value);
+  else if (a === 'reset') { confirmReset = true; keep(); }
+  else if (a === 'noreset') { confirmReset = false; keep(); }
+  else if (a === 'reset2') { S = blank(); save(); confirmReset = false; dataMsg = 'Lernstand gelöscht.'; render(); }
+});
+document.addEventListener('change', e => {
+  if (e.target.dataset && e.target.dataset.act === 'cksel') { const id = e.target.dataset.id; chkSel = e.target.checked ? [...chkSel, id] : chkSel.filter(x => x !== id); keep(); return; }
+  if (e.target.id === 'file' && e.target.files[0]) { const r = new FileReader(); r.onload = () => importJSON(String(r.result)); r.readAsText(e.target.files[0]); }
+  if (e.target.id === 'histSel') { histSel = e.target.value; keep(); }
+});
+document.addEventListener('keydown', e => {
+  if (screen !== 'train' || !sess || !sess.cur || sess.confirmQuit || e.ctrlKey || e.metaKey || e.altKey) return;
+  const c = sess.cur;
+  if (c.answered) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advance(); } return; }
+  if (c.task.opts) { const n = Number(e.key); if (n >= 1 && n <= c.task.opts.length) submit(n - 1); return; }
+  if (/^[0-9]$/.test(e.key)) typeKey(e.key);
+  else if (e.key === ',' || e.key === '.') typeKey(',');
+  else if (e.key === '/' || e.key === 'Tab' || e.key === 'ArrowDown' || e.key === 'ArrowUp') { if (c.task.frac) { e.preventDefault(); setField(e.key === 'ArrowUp' ? 0 : e.key === 'Tab' ? (c.field === 1 ? 0 : 1) : 1); } }
+  else if (e.key === '-' || e.key === '−') typeKey('−');
+  else if (e.key === 'Backspace') { e.preventDefault(); backKey(); }
+  else if (e.key === 'Enter') { e.preventDefault(); submit(); }
+});
+
+if (OFFLINE) document.documentElement.classList.add('offline');
+if (FSA) fHandleLesen().then(async h => { if (!h) return; fHandle = h; try { fErlaubt = await h.queryPermission({ mode: 'readwrite' }) === 'granted'; } catch (e) { fErlaubt = false; } fNeuZeichnen(); });
+// Rückfrage beim Schließen nur, wenn eine Datei gewählt ist, Neues fehlt und gerade nicht von selbst gesichert werden kann
+if (FSA) window.addEventListener('beforeunload', e => {
+  if (!fHandle) return;
+  if (fErlaubt) { if (fWartet) { clearTimeout(fWartet); fWartet = null; fSchreiben().catch(() => { }); } return; }
+  if (fUngesichert()) { e.preventDefault(); e.returnValue = ''; }
+});
+if (OFFLINE && FASSUNG && navigator.onLine !== false && typeof fetch === 'function') {
+  try {
+    fetch(WEBSEITE + 'version.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
+      .then(v => { if (v && v.nummer && istNeuer(v.nummer, FASSUNG.nummer)) { neueFassung = v; if (screen === 'home') render(); } }).catch(() => { });
+  } catch (e) { }
+}
+try { if (window.claude && claude.use) claude.use('downloads').then(d => { DL = d || null; if (screen === 'data') render(); }).catch(() => { }); } catch (e) { }
+render();
+
+</script>
+</body>
+</html>
