@@ -1457,7 +1457,7 @@ const PER_AREA_CHECK = 2;
 let storageOk = true;
 // Fassung und Offline-Datei: bauen.js setzt FASSUNG ({nummer, datum}). Als heruntergeladene Datei (file:) fragt der
 // Trainer bei Internet nur die Versionsdatei der Webseite ab, ob es eine neuere Fassung gibt. Es werden keine Daten gesendet.
-const FASSUNG = {"nummer":"2026-11-21.4","datum":"2026-11-21"};
+const FASSUNG = {"nummer":"2026-11-21.5","datum":"2026-11-21"};
 const WEBSEITE = 'https://ediqat.github.io/mathe/kopfrechnen/';
 const OFFLINE = typeof location !== 'undefined' && location.protocol === 'file:';
 let neueFassung = null;
@@ -1751,7 +1751,7 @@ function vNeu() {
 }
 function vHome() {
   const dk = S.days[dayKey()] || { n: 0, ok: 0 }, st = streak();
-  const total = totalCount(), stars = AREAS.reduce((x, a) => x + aState(a.id).lvl, 0);
+  const total = totalCount(), stars = AREAS.reduce((x, a) => x + aState(a.id).lvl - 1, 0);   // Sterne erst für Aufstiege: Start 0 (Wunsch der Lehrkraft 21.11.2026)
   const mine = checksFor(histSel), lastC = mine.length ? mine[mine.length - 1] : null, prevC = mine.length > 1 ? mine[mine.length - 2] : null;
   const first = mine.length ? mine[0] : null, cs = mine;
   const ckAreas = chkKind === 'weak' ? weakAreas() : chkKind === 'custom' ? chkSel : AREAS.map(x => x.id);
@@ -1789,7 +1789,7 @@ function vHome() {
           <div><b>${dk.n}</b><span>Aufgaben heute</span></div>
           <div><b>${st}</b><span>${st === 1 ? 'Tag' : 'Tage'} in Folge</span></div>
           <div><b>${total}</b><span>Aufgaben gesamt</span></div>
-          <div><b>${stars}<small> / ${AREAS.length * MAXL}</small></b><span>Niveau-Sterne</span></div>
+          <div><b>${stars}<small> / ${AREAS.length * (MAXL - 1)}</small></b><span title="Einen Stern gibt es für jeden Aufstieg auf ein höheres Niveau">Sterne für Aufstiege</span></div>
         </div>
         <h3 class="ch">Training: Aufgaben pro Tag</h3>${week()}
       </div>
