@@ -730,7 +730,7 @@ UR.umbruchSetzen = el => { if(!el.querySelectorAll) return;
 /* Einheiten (Lehrkraft 20.11.2026): Eine dazugeschriebene Einheit zählt („43 %“, „7,20 €“, „4,2cm“, „90°“). Eine
    Wo die Einheit ausdrücklich gefragt ist (Einheiten-Tasten), ist eine fehlende Einheit falsch, mit Hinweis. Steht die
    Einheit fest neben dem Feld, genügt die Zahl („43“ bei „… %“). */
-const EINHEIT_RE = /^(.*?[0-9̇])\s*(%|‰|€|°C|°|[A-Za-zÄÖÜäöüß*]{1,16}\.?[²³]?)\s*$/;   // auch Abkürzungen mit Punkt (Mio., Mrd.)
+const EINHEIT_RE = /^(.*?[0-9̇])\s*(%|‰|€|°C|°|[A-Za-z]{1,3}\/[A-Za-z]{1,3}|[A-Za-zÄÖÜäöüß*]{1,16}\.?[²³]?)\s*$/;   // auch Abkürzungen mit Punkt (Mio., Mrd.) und Einheiten mit / (km/h, m/s)
 UR.einheitAbtrennen = raw => { const s=String(raw??'').trim(), m=s.match(EINHEIT_RE); return m ? {rest:m[1].trim(), e:m[2]} : {rest:s, e:''}; };
 UR.leseZahlEinheit = raw => { const {rest,e}=UR.einheitAbtrennen(raw); return {v:UR.leseZahl(rest), e}; };
 UR.einheitGleich = (a,b) => String(a??'').replace(/\s/g,'')===String(b??'').replace(/\s/g,'');
@@ -755,7 +755,7 @@ UR.zahlFall = (f,t) => (f.tol||0)>0 ? 'tol' : f.stellen!==undefined&&f.stellen!=
   : f.exakt||f.offen===false ? 'exakt' : (UR.fach.zahlFall&&UR.fach.zahlFall(f,t||{})) || 'exakt';
 UR.zahlPasst = (roh, v, f, t, umgerechnet) => {
   if(v===null||v===undefined||Number.isNaN(v)) return false;
-  const gl=(x,a)=>Math.abs(x-a)<=1e-9*Math.max(1,Math.abs(a)), d=UR.nachkommaGeschrieben(roh), fall=UR.zahlFall(f,t);
+  const gl=(x,a)=>Math.abs(x-a)<=1e-12*Math.max(1,Math.abs(a)), d=UR.nachkommaGeschrieben(roh), fall=UR.zahlFall(f,t);   // 1e-12: nur Rechenrauschen (seit 21.11.2026, vorher 1e-9 ließ bei 114 000 ct auch 114 000,0001 durch)
   return [f.ans,...(f.auch||[])].some(a=>{
     if(fall==='tol') return Math.abs(v-a)<=f.tol+1e-9*Math.max(1,Math.abs(a));
     if(fall==='stellen') return gl(v,UR.runde(a,f.stellen)) && (umgerechnet||d<=f.stellen);
@@ -946,7 +946,7 @@ UR.zahlFelderBewerten = (felder,l,t) => felder.map(f=>{
   const roh0=l.shift(), wahl=f.einheiten?(l.shift()||''):null, {rest:roh, e:getippt}=UR.einheitAbtrennen(roh0);
   const soll=f.einheiten?f.einheitAns:f.einheit, e=f.einheiten?(wahl||getippt):getippt;
   const v=f.lesen?f.lesen(roh):UR.leseZahl(roh);
-  const passt=(w,um)=>f.lesen ? w!==null&&w!==undefined&&!Number.isNaN(w)&&[f.ans,...(f.auch||[])].some(a=>Math.abs(w-a)<=(f.tol||0)+1e-9*Math.max(1,Math.abs(a)))
+  const passt=(w,um)=>f.lesen ? w!==null&&w!==undefined&&!Number.isNaN(w)&&[f.ans,...(f.auch||[])].some(a=>Math.abs(w-a)<=(f.tol||0)+1e-12*Math.max(1,Math.abs(a)))
     : UR.zahlPasst(roh,w,f,t,um);
   const andere=!!e&&!!soll&&!UR.einheitGleich(e,soll);
   const um=andere&&UR.umrechner ? UR.umrechner(v,e,soll) : null, umOk=um!==null&&um!==undefined&&passt(um,true);
@@ -1730,7 +1730,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-21.24","datum":"21.11.2026","pruefsumme":"ab3032f82503edd5"};
+UR.version = {"nummer":"2026-11-21.34","datum":"21.11.2026","pruefsumme":"e0c46b5f05f8856a"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -5916,6 +5916,357 @@ function geschichte(){
   });
 }
 
+/* ---------- Textaufgaben mit Brüchen und Umrechnungen (V3-A08 bis A13, Nachtrag M-RaZa-V3-Textaufgaben.md) ----------
+   Entscheidungen der Lehrkraft 21.11.2026: alle sechs Kern (Stationen S4 und S5); je Typ ein fester Satz
+   Einheiten-Tasten; Umrechnungszahlen (1 h = 60 min …) nur in der Erklärung, im geführten Einstieg (die ersten 2
+   richtigen Aufgaben, Schritt für Schritt) und im Rechenweg der Rückmeldung, nie in Aufgabe oder Feldern ohne Hilfe.
+   Jede Spielart rechnet aus ihren Daten exakt mit Brüchen [Zähler, Nenner]; der Suchlauf nimmt nur Daten, bei denen
+   jede Teilrechnung aufgeht. Ein Wert, der als Frage zweimal in verschiedenen Einheiten verlangt ist (Rate in € und in
+   ct, Tempo in m/s), hat eine feste Einheit; sonst zählt jede richtig umgerechnete Einheit. */
+const {Q, qadd, qsub, qmul, qdiv, qwert, gemHTML, gemText, mischFeld} = UR.raza;
+const ggT2 = (a,b) => { a=Math.abs(a); b=Math.abs(b); while(b) [a,b]=[b,a%b]; return a; };
+// Umrechnung für die Bewertung (Kern: UR.umrechner), dazu Zeit, Masse, Geld, Tempo; Längen weiter aus dreiecke.js
+const GRUPPEN = [{h:3600, min:60, s:1}, {t:1000000, kg:1000, dag:10, g:1}, {'€':100, ct:1}, {'km/h':1000, 'm/h':1, 'm/s':3600, 'cm/s':36}];
+const umAlt = UR.umrechner;
+UR.umrechner = (v,von,nach) => { for(const g of GRUPPEN) if(g[von]&&g[nach]) return v===null||v===undefined||Number.isNaN(v) ? null : v*g[von]/g[nach];
+  return umAlt ? umAlt(v,von,nach) : null; };
+const TASTEN = {A08:['Stück','l','h','min'], A09:['h','min','s'], A10:['m','cm','°C','min','s','cm/s'], A11:['t','kg','dag','g','Stück'],
+  A12:['€','ct','Fr.'], A13:['km/h','m/s','m/h','min','s']};
+const ganz = q => q[1]===1;
+const abbr = q => { let n=q[1]; for(const p of [2,5]) while(n%p===0) n/=p; return n===1; };   // bricht als Dezimalzahl ab
+const fH = q => gemHTML(Q(...q)), fT = q => gemText(Q(...q));
+const dz = q => Z(qwert(q));                                         // nur für abbrechende Werte
+const wH = q => abbr(q) ? dz(q) : fH(q);                             // Wert im Rechenweg
+const vH = q => q[0]<0 ? `(${M}${wH([-q[0],q[1]])})` : wH(q);
+const uhr = m => `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}`;
+const hmin = m => m>=60 ? `${Math.floor(m/60)} h${m%60?` ${m%60} min`:''}` : `${m} min`;
+const mins = s => s>=60 ? `${Math.floor(s/60)} min${s%60?` ${s%60} s`:''}` : `${s} s`;
+const pick2 = (l,n=2) => mischen(l).slice(0,n);
+const NAMEN = [['Lea','sie'],['Tom','er'],['Anna','sie'],['Ben','er'],['Mia','sie'],['Jonas','er'],['Emma','sie'],['Noah','er']];
+/* Felder */
+// Geld mit zwei Nachkommastellen (184,80 €)
+const eH = q => eurZ(Math.round(qwert(q)*100)), geldE = e => e==='€'||e==='Fr.';
+const ansT = (q,e) => `${geldE(e)&&abbr(q)?eH(q):abbr(q)?dz(q):fT(q)} ${e}`, ansH = (q,e) => `${geldE(e)&&abbr(q)?eH(q):wH(q)}${NB}${e}`;
+const zahlT = (label, q, e, typ, o={}) => ({label, ans:qwert(q), ansText:ansT(q,e), ansHTML:ansH(q,e), einheiten:TASTEN[typ], einheitAns:e,
+  feldHTML:o.vz?vzFeldHTML:undefined, wertQ:q});
+const zahlF = (label, q, e, o={}) => ({label, ans:qwert(q), ansText:ansT(q,e), ansHTML:ansH(q,e), einheit:e, feldHTML:o.vz?vzFeldHTML:undefined, wertQ:q});
+// Bruch oder Dezimalzahl: Ganze (auch mit Komma), Zähler, Nenner; dazu Einheiten-Tasten
+const bruchT = (label, q, e, typ, o={}) => { const f=mischFeld(label, q), roh=f.feldHTML;
+  return Object.assign(f, {ansText:`${fT(q)} ${e}`, ansHTML:`${fH(q)}${NB}${e}`, einheiten:TASTEN[typ], einheitAns:e, wertQ:q,
+    feldHTML:id=>roh(id).replace('inputmode="numeric" placeholder="Ganze"','inputmode="decimal" placeholder="Ganze"')}); };
+// Uhrzeit: Stunden und Minuten in zwei Feldern, versteckter Wert „12:45“, gelesen als Minuten nach Mitternacht
+const uhrHTML = id => `<div class="mfeld"><input id="${id}_h" class="term ganze" data-uhrteil="${id}" inputmode="numeric" placeholder="h" aria-label="Stunden"><b>:</b><input id="${id}_m" class="term ganze" data-uhrteil="${id}" inputmode="numeric" placeholder="min" aria-label="Minuten"></div><input type="hidden" id="${id}" data-feld>`;
+const leseUhr = roh => { const s=String(roh??'').trim(); if(!s||s===':') return null; const m=s.match(/^(\d{1,2})[:.](\d{1,2})$/);
+  if(!m||Number(m[2])>59||Number(m[1])>23) return NaN; return Number(m[1])*60+Number(m[2]); };
+const uhrFeld = (label, m) => ({label, ans:m, ansText:`${uhr(m)} Uhr`, ansHTML:`${uhr(m)}${NB}Uhr`, eingabe:uhr(m), feldHTML:uhrHTML, lesen:leseUhr, einheit:'Uhr',
+  rohHTML:r=>`${UR.esc(r)}`});
+UR.bindungen.push(app=>{ if(!app.querySelectorAll) return;
+  [...new Set([...app.querySelectorAll('[data-uhrteil]')].map(e=>e.dataset.uhrteil))].forEach(id=>{
+    const h=document.getElementById(id), a=document.getElementById(id+'_h'), b=document.getElementById(id+'_m');
+    const sync=()=>{ const x=a.value.trim(), y=b.value.trim(); h.value=x||y?`${x}:${y.padStart(2,'0')}`:''; };
+    [a,b].forEach(e=>e.addEventListener('input',sync)); if(h.form) h.form.addEventListener('submit',sync,true); }); });
+
+/* Aufgabe bauen: o.qh (Angabe), o.felder (gefragt), o.schritte [{label, felder}] (Einstieg), o.weg [Zeilen], o.bild (Rückmeldung) */
+function textAufgabe(o, ctx){
+  const lead = o.lead || 'Rechne Schritt für Schritt und gib die gefragten Größen mit Einheit an!';
+  const basis = {text:true, q:o.q, qh:o.qh, art:o.art, typ:o.typ, daten:o.daten, papierLead:lead, papierPlatz:3,
+    why:o.why, stepsh:o.weg.join('<br>'), weg:o.weg};
+  if(o.bild) basis.zusatzRueckmeldung = f => f.ok ? '' : bildBox(o.bild);
+  if(ctx&&ctx.leicht){
+    const t=Object.assign(basis, {kind:'mehrschritt', lead:`${lead} Die Schritte helfen dir.`, einzeln:true, einstieg:true,
+      schritte:o.schritte.map(s=>({label:s.label, felder:s.felder, ansText:s.felder.map(f=>f.ansText).join(', '), ansHTML:s.felder.map(f=>f.ansHTML).join(', '),
+        hinweis:erg=>einheitHinweis(erg, s.felder[0].einheitAns||s.felder[0].einheit)}))});
+    const alt=t.zusatzRueckmeldung;
+    t.zusatzRueckmeldung = f => (!f.ok&&t.hinweis ? `<div class="fb no pop"><span>${t.hinweis}</span></div>` : '') + (alt ? alt(f) : '');
+    return t;
+  }
+  return Object.assign(basis, {kind:'zahlen', lead, felder:o.felder});
+}
+// Bruch als Wort im Text: „3/8“ waagrecht; plain für q
+const bq = (q,plain) => plain ? fT(q) : fH(q);
+
+/* ---------- V3-A08 Abfüllen, Verpacken, Pumpen ---------- */
+const A08 = {
+  abfuellen(d){ const {L,p,a,k,g,ware}=d, N=qdiv([L,1],p), A=qmul(a,N), K=qdiv(A,[k,1]), R=qsub(N,A), G=qdiv(R,[g,1]);
+    if(![N,A,K,R,G].every(ganz)||!K[0]||!G[0]) return null;
+    const s = pl => `${Z(L)} Liter ${ware} werden in Packungen zu je ${bq(p,pl)} Liter abgefüllt. ${bq(a,pl)} der Packungen kommt in Kartons zu ${k} Stück, der Rest in Gebinde zu ${g} Stück. Wie viele Packungen, Kartons und Gebinde sind das?`;
+    return {typ:'A08', art:'abfuellen', daten:d, qh:s(false), q:s(true), loes:{Packungen:N, Kartons:K, Gebinde:G},
+      felder:[zahlT('Packungen', N, 'Stück','A08'), zahlT('Kartons', K, 'Stück','A08'), zahlT('Gebinde', G, 'Stück','A08')],
+      schritte:[{label:`Wie viele Packungen sind es? (${Z(L)} l : ${fH(p)} l, durch einen Bruch teilen = mit dem Kehrbruch malnehmen)`, felder:[zahlT('Packungen', N, 'Stück','A08')]},
+        {label:`Wie viele Packungen kommen in Kartons? (${fH(a)} von ${Z(N[0])})`, felder:[zahlT('Packungen in Kartons', A, 'Stück','A08')]},
+        {label:`Wie viele Kartons sind das? (je ${k} Stück)`, felder:[zahlT('Kartons', K, 'Stück','A08')]},
+        {label:`Wie viele Packungen bleiben für die Gebinde?`, felder:[zahlT('Packungen im Rest', R, 'Stück','A08')]},
+        {label:`Wie viele Gebinde sind das? (je ${g} Stück)`, felder:[zahlT('Gebinde', G, 'Stück','A08')]}],
+      weg:[`${Z(L)} : ${fH(p)} = ${Z(L)} · ${fH([p[1],p[0]])} = ${Z(N[0])} Packungen`, `${fH(a)} von ${Z(N[0])} = ${Z(A[0])} Packungen → ${Z(A[0])} : ${k} = ${Z(K[0])} Kartons`,
+        `Rest ${Z(N[0])} ${M} ${Z(A[0])} = ${Z(R[0])} Packungen → ${Z(R[0])} : ${g} = ${Z(G[0])} Gebinde`],
+      why:'Zuerst die Anzahl der Packungen (durch einen Bruch teilen heißt mit dem Kehrbruch malnehmen), dann den Bruchteil davon und den Rest.'}; },
+  flaschen(d){ const {L,f,v,ware}=d, N=qdiv([L,1],f), Vk=qmul(v,N), B=qsub(N,Vk), Li=qmul(B,f);
+    if(![N,Vk,B].every(ganz)||!B[0]) return null;
+    const s = pl => `Ein Händler füllt ${Z(L)} Liter ${ware} in Flaschen zu je ${bq(f,pl)} Liter. ${bq(v,pl)} der Flaschen sind verkauft. Wie viele Flaschen bleiben, und wie viele Liter sind das?`;
+    return {typ:'A08', art:'flaschen', daten:d, qh:s(false), q:s(true), loes:{Flaschen:B, Liter:Li},
+      felder:[zahlT('Flaschen, die bleiben', B, 'Stück','A08'), bruchT('Menge, die bleibt', Li, 'l','A08')],
+      schritte:[{label:`Wie viele Flaschen sind es? (${Z(L)} l : ${fH(f)} l)`, felder:[zahlT('Flaschen', N, 'Stück','A08')]},
+        {label:`Wie viele Flaschen sind verkauft? (${fH(v)} von ${Z(N[0])})`, felder:[zahlT('verkauft', Vk, 'Stück','A08')]},
+        {label:'Wie viele Flaschen bleiben?', felder:[zahlT('Flaschen, die bleiben', B, 'Stück','A08')]},
+        {label:`Wie viele Liter sind das? (${Z(B[0])} · ${fH(f)} l)`, felder:[bruchT('Menge, die bleibt', Li, 'l','A08')]}],
+      weg:[`${Z(L)} : ${fH(f)} = ${Z(L)} · ${fH([f[1],f[0]])} = ${Z(N[0])} Flaschen`, `verkauft ${fH(v)} von ${Z(N[0])} = ${Z(Vk[0])}, es bleiben ${Z(N[0])} ${M} ${Z(Vk[0])} = ${Z(B[0])} Flaschen`,
+        `${Z(B[0])} · ${fH(f)} l = ${fH(Li)} l${!ganz(Li)&&abbr(Li)?` = ${dz(Li)} l`:''}`],
+      why:'Anzahl der Flaschen = Liter : Flaschengröße. Dann den Bruchteil abziehen und die übrigen Flaschen wieder in Liter umrechnen.'}; },
+  tank(d){ const {C,g,q}=d, fehl=qmul(qsub([1,1],g),[C,1]), T=qdiv(fehl,q);
+    if(!ganz(fehl)||!ganz(T)) return null;
+    const s = pl => `Ein Tank fasst ${Z(C)} Liter und ist zu ${bq(g,pl)} gefüllt. Eine Pumpe fördert ${bq(q,pl)} Liter pro Minute. Wie lange dauert es, bis der Tank voll ist?`;
+    return {typ:'A08', art:'tank', daten:d, qh:s(false), q:s(true), loes:{min:T},
+      felder:[zahlT('Dauer', T, 'min','A08')],
+      schritte:[{label:`Welcher Bruchteil fehlt noch? Wie viele Liter sind das? (${fH(qsub([1,1],g))} von ${Z(C)} l)`, felder:[zahlT('Fehlende Menge', fehl, 'l','A08')]},
+        {label:`Wie lange braucht die Pumpe dafür? (${Z(fehl[0])} l : ${fH(q)} l pro min; 1 h = 60 min)`, felder:[zahlT('Dauer', T, 'min','A08')]}],
+      weg:[`Es fehlen 1 ${M} ${fH(g)} = ${fH(qsub([1,1],g))}`, `${fH(qsub([1,1],g))} von ${Z(C)} l = ${Z(fehl[0])} l`,
+        `${Z(fehl[0])} : ${fH(q)} = ${Z(T[0])} min${T[0]>=60?` = ${hmin(T[0])} (1 h = 60 min)`:''}`],
+      why:'Zuerst die fehlende Menge, dann durch die Pumpleistung teilen. Die Dauer zählt in min oder in h.'}; }
+};
+const WAREN = ['Apfelsaft','Orangensaft','Milch','Eistee','Holundersaft'], OELE = ['Olivenöl','Kürbiskernöl','Rapsöl','Essig','Sirup'];
+const A08zufall = {
+  abfuellen:()=>{ const p=pick([[3,4],[3,5],[3,8],[1,2],[5,4]]), a=pick([[1,4],[1,5],[1,3],[2,5]]), k=pick([6,8,10,12,20]), g=pick([10,12,15,16,20]);
+    const N=rnd(1,Math.floor(1000/qwert(p)/(a[1]*k)))*a[1]*k, L=qmul([N,1],p); if(!ganz(L)||L[0]<40) return null;
+    return {L:L[0], p, a, k, g, ware:pick(WAREN)}; },
+  flaschen:()=>{ const f=pick([[3,8],[3,4],[1,4],[1,8],[3,5]]), v=pick([[1,2],[2,3],[3,4],[5,6],[4,5]]), L=rnd(5,200); return {L, f, v, ware:pick(OELE)}; },
+  tank:()=>({C:rnd(20,60)*50, g:pick([[1,4],[3,8],[2,5],[1,3],[5,8]]), q:pick([[15,2],[25,2],[15,1],[20,1],[25,1]])})
+};
+
+/* ---------- V3-A09 Unterwegs: Zeit in Bruchteilen, Uhrzeit, Sekunden ---------- */
+const TOUR = [['Wanderung','geht'],['Radtour','fährt'],['Kanutour','paddelt']], RICHT = ['Norden','Osten','Süden','Westen'];
+const A09 = {
+  richtungen(d){ const {start,D,a,b,wer,pr,tour,taet,r}=d, A=qmul(a,[D,1]), B=qmul(b,[D,1]); if(!ganz(A)||!ganz(B)) return null;
+    const Rm=D-A[0]-B[0]; if(Rm<=0) return null; const an=start+D; if(an>=24*60) return null;
+    const s = pl => `${wer} startet um ${uhr(start)} Uhr zu einer ${tour}, die ${hmin(D)} dauert. ${bq(a,pl)} der Zeit ${taet} ${pr} nach ${r[0]}, ${bq(b,pl)} nach ${r[1]}, den Rest nach ${r[2]}. Wie lange ${taet} ${pr} nach ${r[0]}, wie lange (in h und min) nach ${r[2]}, und um wie viel Uhr kommt ${pr} an?`;
+    const rh=Math.floor(Rm/60), rmin=Rm%60;
+    return {typ:'A09', art:'richtungen', daten:d, qh:s(false), q:s(true), loes:{r1:A[0], h:rh, min:rmin, an},
+      felder:[zahlT(`nach ${r[0]}`, A, 'min','A09'), zahlF(`nach ${r[2]}: Stunden`, [rh,1], 'h'), zahlF(`nach ${r[2]}: Minuten`, [rmin,1], 'min'), uhrFeld('Ankunft', an)],
+      schritte:[{label:`Wie viele Minuten dauert die ${tour}? (1 h = 60 min)`, felder:[zahlT('Dauer', [D,1], 'min','A09')]},
+        {label:`Wie lange nach ${r[0]}? (${fH(a)} von ${D} min)`, felder:[zahlT(`nach ${r[0]}`, A, 'min','A09')]},
+        {label:`Wie lange nach ${r[1]}? (${fH(b)} von ${D} min)`, felder:[zahlT(`nach ${r[1]}`, B, 'min','A09')]},
+        {label:`Wie lange nach ${r[2]}? (der Rest, in h und min)`, felder:[zahlF('Stunden', [rh,1], 'h'), zahlF('Minuten', [rmin,1], 'min')]},
+        {label:`Um wie viel Uhr kommt ${pr} an? (${uhr(start)} Uhr + ${hmin(D)})`, felder:[uhrFeld('Ankunft', an)]}],
+      weg:[`${hmin(D)} = ${D} min (1 h = 60 min)`, `${r[0]}: ${fH(a)} von ${D} min = ${A[0]} min; ${r[1]}: ${fH(b)} von ${D} min = ${B[0]} min`,
+        `${r[2]}: ${D} ${M} ${A[0]} ${M} ${B[0]} = ${Rm} min = ${hmin(Rm)}`, `Ankunft: ${uhr(start)} Uhr + ${hmin(D)} = ${uhr(an)} Uhr`],
+      why:'Zuerst die ganze Zeit in Minuten, dann die Bruchteile, dann den Rest; zuletzt die Dauer zur Startzeit dazuzählen.'}; },
+  zug(d){ const {ab,D,c}=d, H=qmul(c,[D,1]); if(!ganz(H)) return null; const halt=ab+H[0], an=ab+D; if(an>=24*60) return null;
+    const s = pl => `Ein Zug fährt um ${uhr(ab)} Uhr ab und braucht ${hmin(D)}. Der erste Halt ist nach ${bq(c,pl)} der Fahrzeit. Um wie viel Uhr hält der Zug dort, und wann kommt er an?`;
+    return {typ:'A09', art:'zug', daten:d, qh:s(false), q:s(true), loes:{halt, an},
+      felder:[uhrFeld('Halt', halt), uhrFeld('Ankunft', an)],
+      schritte:[{label:'Wie viele Minuten dauert die Fahrt? (1 h = 60 min)', felder:[zahlT('Fahrzeit', [D,1], 'min','A09')]},
+        {label:`Nach wie vielen Minuten kommt der Halt? (${fH(c)} von ${D} min)`, felder:[zahlT('bis zum Halt', H, 'min','A09')]},
+        {label:'Um wie viel Uhr hält der Zug?', felder:[uhrFeld('Halt', halt)]},
+        {label:'Um wie viel Uhr kommt er an?', felder:[uhrFeld('Ankunft', an)]}],
+      weg:[`${hmin(D)} = ${D} min (1 h = 60 min)`, `${fH(c)} von ${D} min = ${H[0]} min → ${uhr(ab)} Uhr + ${hmin(H[0])} = ${uhr(halt)} Uhr`, `${uhr(ab)} Uhr + ${hmin(D)} = ${uhr(an)} Uhr`],
+      why:'Fahrzeit in Minuten, davon den Bruchteil bis zum Halt; beide Zeiten zur Abfahrt dazuzählen.'}; },
+  laeufer(d){ const {R,r,z,wer,pr}=d, G=qmul([R,1],r), Zw=qmul(G,z); if(!ganz(G)||!ganz(Zw)) return null;
+    const s = pl => `${wer} braucht für eine Runde ${mins(R)}. ${gross(pr)} läuft ${bq(r,pl)} Runden. Wie lange ist ${pr} unterwegs (in min und s)? Nach ${bq(z,pl)} der Zeit wird eine Zwischenzeit genommen: Wie viele Sekunden sind das?`;
+    return {typ:'A09', art:'laeufer', daten:d, qh:s(false), q:s(true), loes:{min:Math.floor(G[0]/60), s:G[0]%60, zw:Zw[0]},
+      felder:[zahlF('Gesamtzeit: Minuten', [Math.floor(G[0]/60),1], 'min'), zahlF('Gesamtzeit: Sekunden', [G[0]%60,1], 's'), zahlT('Zwischenzeit', Zw, 's','A09')],
+      schritte:[{label:'Wie viele Sekunden dauert eine Runde? (1 min = 60 s)', felder:[zahlT('eine Runde', [R,1], 's','A09')]},
+        {label:`Wie viele Sekunden für ${fH(r)} Runden?`, felder:[zahlT('Gesamtzeit', G, 's','A09')]},
+        {label:'Wie viel ist das in min und s?', felder:[zahlF('Minuten', [Math.floor(G[0]/60),1], 'min'), zahlF('Sekunden', [G[0]%60,1], 's')]},
+        {label:`Wie viele Sekunden sind ${fH(z)} der Gesamtzeit?`, felder:[zahlT('Zwischenzeit', Zw, 's','A09')]}],
+      weg:[`${mins(R)} = ${R} s (1 min = 60 s)`, `${R} · ${fH(r)} = ${G[0]} s = ${mins(G[0])}`, `${fH(z)} von ${G[0]} s = ${Zw[0]} s`],
+      why:'Rundenzeit in Sekunden, mal die Anzahl der Runden (gemischte Zahl als unechter Bruch), dann den Bruchteil davon.'}; }
+};
+const A09zufall = {
+  richtungen:()=>{ const [a,b]=pick2([[1,5],[2,5],[1,4],[1,3],[2,3],[3,10]]); if(qwert(a)+qwert(b)>=1) return null; const [wer,pr]=pick(NAMEN), [tour,taet]=pick(TOUR);
+    return {start:rnd(72,180)*5, D:rnd(150,300), a, b, wer, pr, tour, taet, r:pick2(RICHT,3)}; },
+  zug:()=>({ab:rnd(60,216)*5, D:rnd(90,240), c:pick([[1,3],[2,5],[3,4],[1,4]])}),
+  laeufer:()=>{ const [wer,pr]=pick(NAMEN); return {R:rnd(60,120), r:pick([[7,2],[17,4],[21,4],[13,2],[11,4]]), z:pick([[3,7],[2,3],[1,3],[3,4]]), wer, pr}; }
+};
+
+/* ---------- V3-A10 Auf und ab: negative Zahlen, Bruchteile pro Zeit ---------- */
+function linieSVG(marken, e){   // Zahlengerade mit den Zwischenständen (Rückmeldung)
+  const w=marken.map(m=>m.w), lo=Math.min(...w,0), hi=Math.max(...w,0), span=(hi-lo)||1, step=[1,2,5,10,20,25,50,100].find(x=>span/x<=8)||100;
+  const a=Math.floor(lo/step)*step-step, b=Math.ceil(hi/step)*step+step, W=340, L=22, R=W-22, Y=44, x=v=>L+(v-a)*(R-L)/(b-a);
+  let s=`<line x1="${L-12}" x2="${R+12}" y1="${Y}" y2="${Y}" stroke="var(--text)" stroke-width="2"/>`;
+  for(let v=a;v<=b;v+=step) s+=`<line x1="${x(v)}" x2="${x(v)}" y1="${Y-5}" y2="${Y+5}" stroke="var(--muted)"/><text x="${x(v)}" y="${Y+18}" font-size="11" text-anchor="middle" fill="var(--muted)"${v===0?' font-weight="800"':''}>${Z(v)}</text>`;
+  marken.forEach((m,i)=>{ const yy=Y+34+i*16, c=Math.min(W-50,Math.max(50,x(m.w)));
+    s+=`<path d="M${x(m.w)-5} ${Y-5}l10 10M${x(m.w)+5} ${Y-5}l-10 10" stroke="${m.farbe}" stroke-width="2.6" stroke-linecap="round"/><line x1="${x(m.w)}" x2="${x(m.w)}" y1="${Y+6}" y2="${yy-11}" stroke="${m.farbe}" stroke-width="1" stroke-dasharray="2 2"/>
+      <text x="${c}" y="${yy}" font-size="12" font-weight="700" text-anchor="middle" fill="${m.farbe}">${m.text}</text>`; });
+  return `<svg class="v3-bild" viewBox="0 0 ${W} ${Y+30+marken.length*16}" role="img" aria-label="Zahlengerade mit den Zwischenständen">${s}</svg>`;
+}
+const A10 = {
+  taucher(d){ const {S,t1,s,t2,u,cms}=d, P1=qsub([S,1],qmul([t1,1],s)), P2=qadd(P1,qmul([t2,1],u)); if(P2[0]>=0) return null;
+    const T3=qdiv([-P2[0],P2[1]],u); if(!ganz(T3)||!abbr(P1)||!abbr(P2)) return null;
+    const cm=qdiv(qmul(u,[100,1]),[60,1]); if(cms&&!abbr(cm)) return null;
+    const s0 = pl => `Ein Taucher ist auf ${M}${Z(-S)} m. Er sinkt ${t1} Minuten lang jede Minute um ${bq(s,pl)} m und steigt dann ${t2} Minuten lang jede Minute um ${bq(u,pl)} m. Wo ist er nach dem Sinken, wo nach dem Aufsteigen? Wie lange braucht er mit dieser Geschwindigkeit noch bis zur Oberfläche?${cms?' Wie viele cm steigt er pro Sekunde?':''}`;
+    const felder=[zahlT('Stand nach dem Sinken', P1, 'm','A10',{vz:true}), zahlT('Stand nach dem Aufsteigen', P2, 'm','A10',{vz:true}), zahlT('Zeit bis zur Oberfläche', T3, 'min','A10')];
+    if(cms) felder.push(zahlT('Geschwindigkeit beim Aufsteigen', cm, 'cm/s','A10'));
+    return {typ:'A10', art:'taucher', daten:d, qh:s0(false), q:s0(true), loes:{P1,P2,T3,cm:cms?cm:null}, felder,
+      schritte:[{label:`Um wie viele m sinkt er? (${t1} · ${fH(s)} m)`, felder:[zahlT('gesunken', qmul([t1,1],s), 'm','A10')]},
+        {label:'Wo ist er nach dem Sinken? (Vorzeichen beachten)', felder:[felder[0]]},
+        {label:`Um wie viele m steigt er? (${t2} · ${fH(u)} m)`, felder:[zahlT('gestiegen', qmul([t2,1],u), 'm','A10')]},
+        {label:'Wo ist er nach dem Aufsteigen?', felder:[felder[1]]},
+        {label:`Wie lange noch bis 0 m? (${wH([-P2[0],P2[1]])} m : ${fH(u)} m pro min)`, felder:[felder[2]]},
+        ...(cms?[{label:`Wie viele cm pro Sekunde? (1 m = 100 cm, 1 min = 60 s)`, felder:[felder[3]]}]:[])],
+      weg:[`(${M}${Z(-S)}) ${M} ${t1} · ${fH(s)} = (${M}${Z(-S)}) ${M} ${wH(qmul([t1,1],s))} = ${wH(P1)} m`, `${vH(P1)} + ${t2} · ${fH(u)} = ${vH(P1)} + ${wH(qmul([t2,1],u))} = ${wH(P2)} m`,
+        `${wH([-P2[0],P2[1]])} : ${fH(u)} = ${T3[0]} min`, ...(cms?[`${fH(u)} m pro min = ${wH(qmul(u,[100,1]))} cm pro 60 s = ${dz(cm)} cm/s (1 m = 100 cm, 1 min = 60 s)`]:[])],
+      bild:linieSVG([{w:S, text:`Start ${Z(S)} m`, farbe:'var(--c1)'}, {w:qwert(P1), text:`gesunken ${wH(P1)} m`, farbe:'var(--cop)'}, {w:qwert(P2), text:`gestiegen ${wH(P2)} m`, farbe:'var(--text)'}], 'm'),
+      why:'Sinken ist minus, Steigen ist plus; jeder Abschnitt bekommt seinen eigenen Stand mit Vorzeichen.'}; },
+  temperatur(d){ const {T0,um,I,dT,k}=d, n0=qdiv([-T0[0],T0[1]],dT); if(!ganz(n0)||k===n0[0]) return null;
+    const Tk=qadd(T0,qmul([k,1],dT)), zeit=um+k*I, null0=um+n0[0]*I; if(zeit>=24*60||null0>=24*60) return null;
+    const s0 = pl => `Um ${uhr(um)} Uhr hat es ${M}${bq([-T0[0],T0[1]],pl)} °C. Die Temperatur steigt alle ${I} Minuten um ${bq(dT,pl)} °C. Wie warm ist es um ${uhr(zeit)} Uhr, und um wie viel Uhr erreicht sie 0 °C?`;
+    const f1=bruchT(`Temperatur um ${uhr(zeit)} Uhr`, Tk, '°C','A10'), f2=uhrFeld('0 °C erreicht um', null0);
+    return {typ:'A10', art:'temperatur', daten:d, qh:s0(false), q:s0(true), loes:{Tk, null0}, felder:[f1, f2],
+      schritte:[{label:`Wie viele Minuten liegen zwischen ${uhr(um)} Uhr und ${uhr(zeit)} Uhr? (1 h = 60 min)`, felder:[zahlT('Zeit', [k*I,1], 'min','A10')]},
+        {label:`Wie viele Schritte zu je ${I} min sind das?`, felder:[zahlF('Schritte', [k,1], 'Schritte')]},
+        {label:`Wie warm ist es dann? (${M}${fH([-T0[0],T0[1]])} °C + ${k} · ${fH(dT)} °C)`, felder:[f1]},
+        {label:`Wie viele Schritte bis 0 °C? (${fH([-T0[0],T0[1]])} : ${fH(dT)})`, felder:[zahlF('Schritte bis 0 °C', n0, 'Schritte')]},
+        {label:'Um wie viel Uhr ist es 0 °C?', felder:[f2]}],
+      weg:[`${uhr(um)} bis ${uhr(zeit)} Uhr = ${k*I} min = ${k} Schritte zu ${I} min`, `${vH(T0)} + ${k} · ${fH(dT)} = ${vH(T0)} + ${wH(qmul([k,1],dT))} = ${wH(Tk)} °C`,
+        `bis 0 °C: ${wH([-T0[0],T0[1]])} : ${fH(dT)} = ${n0[0]} Schritte = ${n0[0]*I} min → ${uhr(null0)} Uhr`],
+      bild:thermoSVG([{w:qwert(T0), text:`${uhr(um)}: ${wH(T0)} °C`, farbe:'var(--c1)'}, {w:qwert(Tk), text:`${uhr(zeit)}: ${wH(Tk)} °C`, farbe:'var(--text)'}], [{a:qwert(T0), b:qwert(Tk)}]),
+      why:'Zuerst zählen, wie viele Schritte in der Zeit stecken; jeder Schritt bringt den gleichen Bruchteil eines Grades dazu.'}; },
+  korb(d){ const {S,v,t}=d, W=qmul(v,[t,1]); if(!ganz(W)) return null; const P=S+W[0], T0=qdiv([-S,1],v); if(!ganz(T0)||P===0) return null;
+    const s0 = pl => `Ein Förderkorb steht auf ${M}${Z(-S)} m und fährt mit ${bq(v,pl)} m pro Sekunde nach oben. Wo ist er nach ${mins(t)}, und wie lange braucht er insgesamt bis auf 0 m?`;
+    return {typ:'A10', art:'korb', daten:d, qh:s0(false), q:s0(true), loes:{P, T0:T0[0]},
+      felder:[zahlT(`Stand nach ${mins(t)}`, [P,1], 'm','A10',{vz:true}), zahlT('Zeit bis 0 m', T0, 's','A10')],
+      schritte:[{label:`Wie viele Sekunden sind ${mins(t)}? (1 min = 60 s)`, felder:[zahlT('Fahrzeit', [t,1], 's','A10')]},
+        {label:`Wie viele m fährt er in dieser Zeit? (${t} · ${fH(v)} m)`, felder:[zahlT('gefahren', W, 'm','A10')]},
+        {label:'Wo ist er dann? (Vorzeichen beachten)', felder:[zahlT(`Stand nach ${mins(t)}`, [P,1], 'm','A10',{vz:true})]},
+        {label:`Wie lange bis 0 m? (${Z(-S)} m : ${fH(v)} m pro s)`, felder:[zahlT('Zeit bis 0 m', T0, 's','A10')]}],
+      weg:[`${mins(t)} = ${t} s (1 min = 60 s)`, `${t} · ${fH(v)} = ${W[0]} m → (${M}${Z(-S)}) + ${W[0]} = ${Z(P)} m`, `${Z(-S)} : ${fH(v)} = ${T0[0]} s${T0[0]>=60?` = ${mins(T0[0])}`:''}`],
+      bild:linieSVG([{w:S, text:`Start ${Z(S)} m`, farbe:'var(--c1)'}, {w:P, text:`nach ${mins(t)}: ${Z(P)} m`, farbe:'var(--text)'}], 'm'),
+      why:'Weg = Zeit · Tempo (Zeit in Sekunden); der Stand beginnt negativ. Zeit bis 0 m = Abstand zu 0 : Tempo. Sie zählt in s oder min.'}; }
+};
+const A10zufall = {
+  taucher:()=>{ const cms=Math.random()<1/3; return {S:-rnd(5,20), t1:rnd(10,20), s:pick([[1,2],[3,4],[2,3],[5,4]]), t2:rnd(4,10), u:cms?[3,2]:pick([[3,2],[5,4],[2,1],[5,2]]), cms}; },
+  temperatur:()=>({T0:Q(-rnd(4,12),2), um:rnd(10,16)*30, I:pick([15,20,30]), dT:pick([[1,4],[1,2],[3,4]]), k:rnd(2,14)}),
+  korb:()=>({S:-rnd(12,60)*5, v:pick([[3,2],[5,2],[3,4]]), t:rnd(30,200)})
+};
+
+/* ---------- V3-A11 Gewicht: t, kg, dag und g ---------- */
+const A11 = {
+  baecker(d){ const {M:Mk,a,b,e}=d, Br=qmul(a,[Mk,1]), N=qdiv(Br,b), Rg=qmul(qsub([Mk,1],Br),[1000,1]), K=qdiv(Rg,[e,1]); if(!ganz(N)||!ganz(K)||!K[0]) return null;
+    const s = pl => `Eine Bäckerei hat ${Mk} kg Mehl. ${bq(a,pl)} davon braucht sie für Brote mit je ${bq(b,pl)} kg Mehl. Aus dem Rest backt sie Kekse mit je ${e} g Mehl. Wie viele Brote und wie viele Kekse sind das?`;
+    return {typ:'A11', art:'baecker', daten:d, qh:s(false), q:s(true), loes:{N:N[0], K:K[0]},
+      felder:[zahlT('Brote', N, 'Stück','A11'), zahlT('Kekse', K, 'Stück','A11')],
+      schritte:[{label:`Wie viel Mehl ist für Brote? (${fH(a)} von ${Mk} kg)`, felder:[bruchT('Mehl für Brote', Br, 'kg','A11')]},
+        {label:`Wie viele Brote sind das? (: ${fH(b)} kg)`, felder:[zahlT('Brote', N, 'Stück','A11')]},
+        {label:'Wie viel Mehl bleibt, in g? (1 kg = 1 000 g)', felder:[zahlT('Rest', Rg, 'g','A11')]},
+        {label:`Wie viele Kekse sind das? (: ${e} g)`, felder:[zahlT('Kekse', K, 'Stück','A11')]}],
+      weg:[`${fH(a)} von ${Mk} kg = ${wH(Br)} kg → ${wH(Br)} : ${fH(b)} = ${N[0]} Brote`, `Rest ${Mk} ${M} ${wH(Br)} = ${wH(qsub([Mk,1],Br))} kg = ${Z(Rg[0])} g (1 kg = 1 000 g)`, `${Z(Rg[0])} : ${e} = ${Z(K[0])} Kekse`],
+      why:'Bruchteil vom Mehl, dann durch das Gewicht je Stück teilen. Für die Kekse zuerst in g umrechnen.'}; },
+  laden(d){ const {W,p,v,ware}=d, Wd=qmul(W,[100,1]), N=qdiv(Wd,p), Vk=qmul(v,N); if(!ganz(N)||!ganz(Vk)) return null; const R=qsub(N,Vk); if(!R[0]) return null;
+    const G=qdiv(qmul(R,p),[100,1]);
+    const s = pl => `In einem Geschäft liegen ${bq(W,pl)} kg ${ware}, abgefüllt in Päckchen zu je ${bq(p,pl)} dag. ${bq(v,pl)} der Päckchen sind verkauft. Wie viele Päckchen waren es, wie viele bleiben, und wie viel kg sind das?`;
+    return {typ:'A11', art:'laden', daten:d, qh:s(false), q:s(true), loes:{N:N[0], R:R[0], G},
+      felder:[zahlT('Päckchen insgesamt', N, 'Stück','A11'), zahlT('Päckchen, die bleiben', R, 'Stück','A11'), bruchT('Gewicht, das bleibt', G, 'kg','A11')],
+      schritte:[{label:'Wie viel dag sind das? (1 kg = 100 dag)', felder:[zahlT('Ware', Wd, 'dag','A11')]},
+        {label:`Wie viele Päckchen? (: ${fH(p)} dag)`, felder:[zahlT('Päckchen insgesamt', N, 'Stück','A11')]},
+        {label:`Wie viele sind verkauft, wie viele bleiben? (${fH(v)} von ${N[0]})`, felder:[zahlT('Päckchen, die bleiben', R, 'Stück','A11')]},
+        {label:'Wie viel kg bleiben?', felder:[bruchT('Gewicht, das bleibt', G, 'kg','A11')]}],
+      weg:[`${fH(W)} kg = ${wH(Wd)} dag (1 kg = 100 dag) → ${wH(Wd)} : ${fH(p)} = ${N[0]} Päckchen`, `verkauft ${fH(v)} von ${N[0]} = ${Vk[0]}, es bleiben ${R[0]}`,
+        `${R[0]} · ${fH(p)} dag = ${wH(qmul(R,p))} dag = ${wH(G)} kg`],
+      why:'Gesamtgewicht in dag, durch die Päckchengröße teilen; den Rest wieder in kg umrechnen.'}; },
+  wagen(d){ const {T,a,s,k}=d, Kg=qmul(T,[1000,1]), Sa=qdiv(qmul(a,Kg),[s,1]), Ki=qdiv(qmul(qsub([1,1],a),Kg),k); if(!ganz(Kg)||!ganz(Sa)||!ganz(Ki)) return null;
+    const s0 = pl => `Ein Lieferwagen darf ${bq(T,pl)} t laden. ${bq(a,pl)} der Ladung sind Säcke zu je ${s} kg, der Rest sind Kisten zu je ${bq(k,pl)} kg. Wie viele Säcke und wie viele Kisten sind das?`;
+    return {typ:'A11', art:'wagen', daten:d, qh:s0(false), q:s0(true), loes:{Sa:Sa[0], Ki:Ki[0]},
+      felder:[zahlT('Säcke', Sa, 'Stück','A11'), zahlT('Kisten', Ki, 'Stück','A11')],
+      schritte:[{label:'Wie viel kg darf er laden? (1 t = 1 000 kg)', felder:[zahlT('Ladung', Kg, 'kg','A11')]},
+        {label:`Wie viel kg sind Säcke? (${fH(a)} davon)`, felder:[zahlT('Säcke', qmul(a,Kg), 'kg','A11')]},
+        {label:`Wie viele Säcke? (: ${s} kg)`, felder:[zahlT('Säcke', Sa, 'Stück','A11')]},
+        {label:`Wie viele Kisten? (Rest : ${fH(k)} kg)`, felder:[zahlT('Kisten', Ki, 'Stück','A11')]}],
+      weg:[`${fH(T)} t = ${Z(Kg[0])} kg (1 t = 1 000 kg)`, `${fH(a)} von ${Z(Kg[0])} kg = ${wH(qmul(a,Kg))} kg → : ${s} = ${Sa[0]} Säcke`,
+        `Rest ${wH(qmul(qsub([1,1],a),Kg))} kg : ${fH(k)} = ${Ki[0]} Kisten`],
+      why:'Ladung in kg, Bruchteil für die Säcke, Rest für die Kisten, jeweils durch das Gewicht je Stück teilen.'}; }
+};
+const A11zufall = {
+  baecker:()=>({M:rnd(30,80), a:pick([[5,8],[3,5],[3,4],[2,3]]), b:pick([[3,4],[1,2],[3,8],[5,4]]), e:pick([25,30,40,45,50])}),
+  laden:()=>({W:Q(rnd(6,20),4), p:pick([[25,2],[25,1],[75,2],[25,4]]), v:pick([[3,5],[2,5],[3,4],[1,4],[5,8]]), ware:pick(['Paprikapulver','Kaffee','Tee','Zimt','Pfeffer'])}),
+  wagen:()=>({T:pick([[3,2],[2,1],[5,2]]), a:pick([[2,3],[3,5],[3,4],[1,2]]), s:pick([20,25,40,50]), k:pick([[25,2],[15,2],[15,1],[20,1]])})
+};
+
+/* ---------- V3-A12 Geld: Schulden, Anteile, Zinsen, Cent, Wechselkurs (Cent ganzzahlig) ---------- */
+const A12 = {
+  schulden(d){ const {S,t,z,n,wer}=d, Rst=qmul([S,1],qsub([1,1],t)), Zi=qmul(Rst,qadd([1,1],z)), Ra=qdiv(Zi,[n,1]);
+    if(![Rst,Zi,Ra].every(q=>ganz(qmul(q,[100,1])))) return null;
+    const ct=qmul(Ra,[-100,1]);
+    const s0 = pl => `${wer} hat ${M}${Z(-S)} € auf dem Konto. ${wer.startsWith('Frau')?'Sie':'Er'} tilgt ${bq(t,pl)} der Schulden. Auf die restlichen Schulden kommen ${bq(z,pl)} davon als Zinsen dazu. Den neuen Stand zahlt ${wer.startsWith('Frau')?'sie':'er'} in ${n} gleichen Raten zurück. Wie hoch ist der neue Stand, und wie hoch ist eine Rate in € und in Cent?`;
+    const rate=[-Ra[0],Ra[1]];
+    return {typ:'A12', art:'schulden', daten:d, qh:s0(false), q:s0(true), loes:{Zi, rate, ct},
+      felder:[zahlT('Neuer Stand', Zi, '€','A12',{vz:true}), Object.assign(zahlF('Eine Rate in €', rate, '€',{vz:true}), {auch:[-qwert(rate)]}), Object.assign(zahlF('Eine Rate in Cent', ct, 'ct',{vz:true}), {auch:[-qwert(ct)]})],
+      schritte:[{label:`Wie viel Schulden bleiben? (${M}${Z(-S)} € ${M} ${fH(t)} davon)`, felder:[zahlT('Rest', Rst, '€','A12',{vz:true})]},
+        {label:`Neuer Stand mit Zinsen? (Rest + ${fH(z)} vom Rest)`, felder:[zahlT('Neuer Stand', Zi, '€','A12',{vz:true})]},
+        {label:`Eine Rate? (: ${n})`, felder:[Object.assign(zahlF('Eine Rate in €', rate, '€',{vz:true}), {auch:[-qwert(rate)]})]},
+        {label:'Wie viel Cent sind das? (1 € = 100 ct)', felder:[Object.assign(zahlF('Eine Rate in Cent', ct, 'ct',{vz:true}), {auch:[-qwert(ct)]})]}],
+      weg:[`(${M}${Z(-S)}) · ${fH(qsub([1,1],t))} = ${eH(Rst)} €`, `${(Rst[0]<0?`(${eH(Rst)})`:eH(Rst))} · ${fH(qadd([1,1],z))} = ${eH(Zi)} €`, `${eH([-Zi[0],Zi[1]])} : ${n} = ${eH(rate)} € = ${Z(qwert(ct))} ct (1 € = 100 ct)`],
+      why:'Schulden sind negativ. Getilgt wird ein Bruchteil, die Zinsen sind ein Bruchteil des Rests. Eine Rate zählt positiv und negativ.'}; },
+  miete(d){ const {K,G,m}=d, St=G-K, Mi=qmul(m,[St,1]); if(!ganz(Mi)||St<=0) return null; const R=St-Mi[0];
+    const s0 = pl => `Ein Konto steht bei ${M}${Z(K)} €. Es kommen ${Z(G)} € Gehalt dazu. Vom neuen Kontostand gehen ${bq(m,pl)} für die Miete weg. Wie hoch ist der Kontostand nach dem Gehalt? Wie viel bleibt nach der Miete, in € und in Cent?`;
+    return {typ:'A12', art:'miete', daten:d, qh:s0(false), q:s0(true), loes:{St, R},
+      felder:[zahlT('Kontostand nach dem Gehalt', [St,1], '€','A12',{vz:true}), zahlF('Rest in €', [R,1], '€'), zahlF('Rest in Cent', [R*100,1], 'ct')],
+      schritte:[{label:`Kontostand nach dem Gehalt? ((${M}${Z(K)}) + ${Z(G)})`, felder:[zahlT('Kontostand nach dem Gehalt', [St,1], '€','A12',{vz:true})]},
+        {label:`Wie viel ist die Miete? (${fH(m)} davon)`, felder:[zahlT('Miete', Mi, '€','A12')]},
+        {label:'Wie viel bleibt?', felder:[zahlF('Rest in €', [R,1], '€')]},
+        {label:'Wie viel Cent sind das? (1 € = 100 ct)', felder:[zahlF('Rest in Cent', [R*100,1], 'ct')]}],
+      weg:[`(${M}${Z(K)}) + ${Z(G)} = ${Z(St)} €`, `Miete ${fH(m)} von ${Z(St)} € = ${Z(Mi[0])} € → ${Z(St)} ${M} ${Z(Mi[0])} = ${Z(R)} €`, `${Z(R)} € = ${Z(R*100)} ct (1 € = 100 ct)`],
+      why:'Zuerst den Kontostand mit dem Gehalt, dann den Bruchteil für die Miete abziehen.'}; },
+  wechsel(d){ const {B,k,a,wer}=d, Fr=qmul([B,1],k), Rest=qmul(qsub([1,1],a),Fr), E=qdiv(Rest,k); if(![Fr,Rest,E].every(ganz)) return null;
+    const kk=[k[1],k[0]];
+    const s0 = pl => `${wer} tauscht ${Z(B)} € in Franken, 1 € sind ${bq(k,pl)} Franken. Sie gibt ${bq(a,pl)} davon aus und tauscht den Rest zurück, 1 Franken sind ${bq(kk,pl)} €. Wie viele Franken bekommt sie beim Tausch, und wie viel Euro bekommt sie am Ende zurück?`;
+    return {typ:'A12', art:'wechsel', daten:d, qh:s0(false), q:s0(true), loes:{Fr:Fr[0], E:E[0]},
+      felder:[zahlT('Franken nach dem Tausch', Fr, 'Fr.','A12'), zahlT('Euro nach dem Rücktausch', E, '€','A12')],
+      schritte:[{label:`Wie viele Franken? (${Z(B)} · ${fH(k)})`, felder:[zahlT('Franken nach dem Tausch', Fr, 'Fr.','A12')]},
+        {label:`Wie viele Franken bleiben? (1 ${M} ${fH(a)} davon)`, felder:[zahlT('Rest', Rest, 'Fr.','A12')]},
+        {label:`Wie viel Euro sind das? (· ${fH(kk)})`, felder:[zahlT('Euro nach dem Rücktausch', E, '€','A12')]}],
+      weg:[`${Z(B)} · ${fH(k)} = ${Z(Fr[0])} Fr.`, `Rest ${fH(qsub([1,1],a))} von ${Z(Fr[0])} = ${Z(Rest[0])} Fr.`, `${Z(Rest[0])} · ${fH(kk)} = ${Z(E[0])} €`],
+      why:'Euro mal Kurs ergibt Franken; der Rest wird mit dem umgekehrten Kurs zurückgetauscht.'}; }
+};
+const A12zufall = {
+  schulden:()=>({S:-rnd(30,150)*10, t:pick([[1,3],[2,5],[1,4],[3,8]]), z:pick([[1,8],[1,9],[1,5],[1,10]]), n:rnd(4,8), wer:pick(['Herr Pichler','Frau Lang','Herr Kovač','Frau Moser'])}),
+  miete:()=>({K:rnd(10,40)*10, G:rnd(120,200)*10, m:pick([[3,8],[2,5],[1,3],[1,4]])}),
+  wechsel:()=>({B:rnd(40,120)*5, k:pick([[7,6],[5,4],[6,5],[11,10]]), a:pick([[3,5],[1,2],[2,3],[3,4]]), wer:pick(['Mia','Lea','Anna','Emma'])})
+};
+
+/* ---------- V3-A13 Tempo und Weg ---------- */
+const A13 = {
+  rad(d){ const {v,s,wer,pr}=d, ms=qdiv([v*1000,1],[3600,1]), t=qdiv(qmul(s,[60,1]),[v,1]); if(!ganz(qmul(t,[2,1]))) return null; const mitMs=abbr(ms)&&ganz(qmul(ms,[2,1]));
+    const s0 = pl => `${wer} fährt mit dem Rad ${v} km/h.${mitMs?' Wie viele m pro Sekunde sind das?':''} ${gross(pr)} will ${bq(s,pl)} km weit fahren. Wie lange braucht ${pr} dafür (in min)?`;
+    const felder=[...(mitMs?[zahlF('Tempo', ms, 'm/s')]:[]), bruchT('Zeit', t, 'min','A13')];
+    return {typ:'A13', art:'rad', daten:d, qh:s0(false), q:s0(true), loes:{ms:mitMs?ms:null, t}, felder,
+      schritte:[...(mitMs?[{label:'Wie viele m pro Sekunde? (1 km = 1 000 m, 1 h = 3 600 s)', felder:[felder[0]]}]:[]),
+        {label:`Wie viele Stunden braucht ${pr}? (${fH(s)} km : ${v} km/h)`, felder:[bruchT('Zeit', qdiv(s,[v,1]), 'h','A13')]},
+        {label:'Wie viele Minuten sind das? (1 h = 60 min)', felder:[felders(t)]}],
+      weg:[...(mitMs?[`${v} km/h = ${Z(v*1000)} m : 3 600 s = ${wH(ms)} m/s`]:[]), `${fH(s)} : ${v} = ${fH(qdiv(s,[v,1]))} h`, `${fH(qdiv(s,[v,1]))} h = ${wH(t)} min (1 h = 60 min)`],
+      why:'Zeit = Weg : Tempo. Die Zeit in h dann in min umrechnen.'}; },
+  schnecke(d){ const {w,t,c}=d, v=qdiv(w,t), T=qmul(qdiv([c,100],v),[60,1]); if(!ganz(qmul(T,[2,1]))||!abbr(v)) return null;
+    const s0 = pl => `Eine Schnecke kriecht ${bq(w,pl)} m in ${bq(t,pl)} Stunde. Wie viele m pro Stunde sind das? Wie viele Minuten braucht sie für ${c} cm?`;
+    return {typ:'A13', art:'schnecke', daten:d, qh:s0(false), q:s0(true), loes:{v, T},
+      felder:[zahlF('Tempo', v, 'm/h'), bruchT('Zeit', T, 'min','A13')],
+      schritte:[{label:`Wie viele m pro Stunde? (${fH(w)} m : ${fH(t)} h)`, felder:[zahlF('Tempo', v, 'm/h')]},
+        {label:`Wie viele m sind ${c} cm? (1 m = 100 cm)`, felder:[Object.assign(bruchT('Weg', Q(c,100), 'm','A13'), {einheiten:undefined, einheit:'m'})]},
+        {label:'Wie viele Minuten? (Weg : Tempo, 1 h = 60 min)', felder:[bruchT('Zeit', T, 'min','A13')]}],
+      weg:[`${fH(w)} : ${fH(t)} = ${wH(v)} m/h`, `${c} cm = ${wH(Q(c,100))} m (1 m = 100 cm) → ${wH(Q(c,100))} : ${wH(v)} = ${fH(qdiv(Q(c,100),v))} h = ${wH(T)} min (1 h = 60 min)`],
+      why:'Tempo = Weg : Zeit. Für die zweite Frage den Weg in m umrechnen und durch das Tempo teilen.'}; },
+  tunnel(d){ const {L,T,v}=d, ms=qdiv([v,1],[36,10]), weg=T+L, sek=qdiv([weg,1],ms); if(!ganz(ms)||!ganz(sek)) return null;
+    const s0 = `Ein ${L} m langer Zug fährt mit ${v} km/h durch einen ${Z(T/1000)} km langen Tunnel. Wie schnell ist er in m pro Sekunde? Wie lange dauert die Durchfahrt, bis der Zug ganz draußen ist (in min und s)?`;
+    return {typ:'A13', art:'tunnel', daten:d, qh:s0, q:s0, loes:{ms:ms[0], sek:sek[0]},
+      felder:[zahlF('Tempo', ms, 'm/s'), zahlF('Dauer: Minuten', [Math.floor(sek[0]/60),1], 'min'), zahlF('Dauer: Sekunden', [sek[0]%60,1], 's')],
+      schritte:[{label:'Wie viele m pro Sekunde? (1 km = 1 000 m, 1 h = 3 600 s)', felder:[zahlF('Tempo', ms, 'm/s')]},
+        {label:'Welchen Weg fährt der Zug, bis er ganz draußen ist? (Tunnel + Zuglänge, in m)', felder:[zahlF('Weg', [weg,1], 'm')]},
+        {label:'Wie lange dauert das? (Weg : Tempo, in min und s)', felder:[zahlF('Minuten', [Math.floor(sek[0]/60),1], 'min'), zahlF('Sekunden', [sek[0]%60,1], 's')]}],
+      weg:[`${v} km/h = ${Z(v*1000)} m : 3 600 s = ${ms[0]} m/s`, `Weg ${Z(T)} m + ${L} m = ${Z(weg)} m (1 km = 1 000 m)`, `${Z(weg)} : ${ms[0]} = ${sek[0]} s = ${mins(sek[0])}`],
+      why:'Der Zug ist erst draußen, wenn auch das Ende den Tunnel verlassen hat: Weg = Tunnel + Zuglänge. Zeit = Weg : Tempo.'}; }
+};
+const felders = t => bruchT('Zeit', t, 'min','A13');
+const A13zufall = {
+  rad:()=>{ const [wer,pr]=pick(NAMEN); return {v:pick([18,24,36,45,54,72]), s:Q(rnd(4,40),pick([2,4,5])), wer, pr}; },
+  schnecke:()=>({w:Q(rnd(3,12),4), t:pick([[3,4],[2,3],[1,2]]), c:rnd(2,9)*10}),
+  tunnel:()=>({L:rnd(10,20)*10, T:rnd(15,40)*100, v:pick([72,108,144])})
+};
+
+const SPIELARTEN = {A08:[A08,A08zufall], A09:[A09,A09zufall], A10:[A10,A10zufall], A11:[A11,A11zufall], A12:[A12,A12zufall], A13:[A13,A13zufall]};
+// Zufallsaufgabe: Spielart im Wechsel, Daten per Suchlauf, bis jede Teilrechnung aufgeht
+function textTyp(typ, ctx){
+  const [S,Zf]=SPIELARTEN[typ], arten=Object.keys(S);
+  const art = pick(arten);
+  return versuche(()=>{ const d=Zf[art](); if(!d) return null; const o=S[art](d); return o ? textAufgabe(o, ctx) : null; });
+}
+
 /* ---------- Aufgabentypen ---------- */
 const typen = {
   // V3-A01 Schulden und Raten
@@ -5928,6 +6279,18 @@ const typen = {
   pegel: ctx => pegel(ctx),
   // V3-N02 Wie weit ist es zwischen …?
   abstand: ctx => abstand(ctx),
+  // V3-A08 Abfüllen, Verpacken, Pumpen (Bruchteile und Liter)
+  abfuellen: ctx => textTyp('A08', ctx),
+  // V3-A09 Unterwegs: Zeit in Bruchteilen, Uhrzeit, Sekunden
+  unterwegs: ctx => textTyp('A09', ctx),
+  // V3-A10 Auf und ab: negative Zahlen, Bruchteile pro Zeit
+  aufAb: ctx => textTyp('A10', ctx),
+  // V3-A11 Gewicht: t, kg, dag und g mit Bruchteilen
+  gewicht: ctx => textTyp('A11', ctx),
+  // V3-A12 Geld: Schulden, Anteile, Zinsen, Cent, Wechselkurs
+  geld: ctx => textTyp('A12', ctx),
+  // V3-A13 Tempo und Weg: km/h, m/s, min, cm
+  tempo: ctx => textTyp('A13', ctx),
   /* ---------- Plus ---------- */
   // V3-A04 Mittelwert negativer Zahlen
   mittelwert: () => mittelwert(),
@@ -5943,12 +6306,15 @@ const typen = {
 const stationen = [
   {id:'S1', name:'Schulden und Raten', hint:`(${M}710) + 6 · 65 = ${M}320`, types:['schulden']},
   {id:'S2', name:'Temperatur und Stockwerke', hint:`(${M}7) + 9,3 = 2,3`, types:['temperatur','aufzug','abstand']},
-  {id:'S3', name:'Mehrstufig', hint:`1,20 m + 0,24 m ${M} 0,315 m = 1,125 m`, types:['pegel']}
+  {id:'S3', name:'Mehrstufig', hint:`1,20 m + 0,24 m ${M} 0,315 m = 1,125 m`, types:['pegel']},
+  {id:'S4', name:'Textaufgaben mit Brüchen und Umrechnungen', hint:`2 400 l · ${br(5,8)} = 1 500 l, 1 500 : 12${NB}${br(1,2)} = 120 min`, types:['abfuellen','unterwegs','aufAb']},
+  {id:'S5', name:'Gewicht, Geld und Tempo', hint:`1${NB}${br(1,2)} t = 1 500 kg, 108 km/h = 30 m/s`, types:['gewicht','geld','tempo']}
 ];
-const kern = ['schulden','temperatur','aufzug','pegel','abstand'];
+const kern = ['schulden','temperatur','aufzug','pegel','abstand','abfuellen','unterwegs','aufAb','gewicht','geld','tempo'];
 // Einstieg: die Rechnungs-Typen über die Form (Rechnung aus drei Möglichkeiten, Bild als Hilfe), Pegel Schritt für Schritt
 // mit Rückmeldung je Schritt, Abstand mit Merkkarte und Zahlengerade
-const leicht = ['pegel','abstand'];
+// Textaufgaben (A08 bis A13): die ersten 2 richtigen Schritt für Schritt mit Teilschritten (Umrechnungen dort erlaubt)
+const leicht = ['pegel','abstand','abfuellen','unterwegs','aufAb','gewicht','geld','tempo'];
 const plus = ['mittelwert','konto','gehalt','geschichte'];
 const plusHint = 'Mittelwert · Kontostand · Gehalt · Geschichte und Rechnung';
 
@@ -5975,13 +6341,24 @@ const erklaerung = {
       <p>Mittelwert = Summe aller Werte : Anzahl der Werte. Negative Werte zählen mit ihrem Vorzeichen.</p>
       <div class="task text">${E.d.qh}</div><div class="ex">${E.d.why}</div>
       <button class="newex" data-newex="d">Neues Beispiel</button></div>
+    <div class="rule"><h3>6. Textaufgaben mit Brüchen und Umrechnungen</h3>
+      <p>Lies genau, was gefragt ist, und rechne Schritt für Schritt. Durch einen Bruch teilen heißt mit dem Kehrbruch
+        malnehmen. Ein Bruchteil von etwas heißt mal.</p>
+      <div class="task text">Ein Tank fasst 2 400 Liter und ist zu ${br(3,8)} gefüllt. Eine Pumpe fördert 12${NB}${br(1,2)} Liter pro Minute. Wie lange dauert es, bis er voll ist?</div>
+      <div class="ex">Es fehlen 1 ${M} ${br(3,8)} = ${br(5,8)}: ${br(5,8)} von 2 400 l = 1 500 l</div>
+      <div class="ex">1 500 : 12${NB}${br(1,2)} = 1 500 · ${br(2,25)} = 120 min = 2 h</div>
+      <p><b>Umrechnungen, die du brauchst:</b> <span class="nw">1 h = 60 min,</span> <span class="nw">1 min = 60 s,</span>
+        <span class="nw">1 t = 1 000 kg,</span> <span class="nw">1 kg = 100 dag = 1 000 g,</span> <span class="nw">1 € = 100 ct,</span>
+        <span class="nw">1 km = 1 000 m,</span> <span class="nw">1 m = 100 cm,</span> <span class="nw">36 km/h = 10 m/s.</span>
+        In den Aufgaben stehen sie nicht dabei, du musst sie können.</p></div>
     <p class="small muted">Das steht auch in deinem Mathe Know How.</p>
     <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
 };
 
-const lzk = {merkmal:{schulden:'sachschulden', temperatur:'sachtemperatur', aufzug:'sachstockwerk', pegel:'sachpegel', abstand:'sachabstand'},
-  aufwand:{schulden:2, temperatur:2, aufzug:2, pegel:3, abstand:1}};
-UR.kompetenzAnmelden({id:'M-RaZa-V3', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+const lzk = {merkmal:{schulden:'sachschulden', temperatur:'sachtemperatur', aufzug:'sachstockwerk', pegel:'sachpegel', abstand:'sachabstand',
+    abfuellen:'textabfuellen', unterwegs:'textzeit', aufAb:'textaufab', gewicht:'textgewicht', geld:'textgeld', tempo:'texttempo'},
+  aufwand:{schulden:2, temperatur:2, aufzug:2, pegel:3, abstand:1, abfuellen:3, unterwegs:3, aufAb:3, gewicht:3, geld:3, tempo:3}};
+UR.kompetenzAnmelden({id:'M-RaZa-V3', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk, spielarten:SPIELARTEN, textAufgabe});
 })(window.UR = window.UR || {});
 </script>
 <script>
