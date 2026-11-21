@@ -233,6 +233,10 @@ body:has(.thead) .mlink { display: none; }
 .offline-dl code { font-size: .95em; }
 .offline-dl .btn { align-self: flex-start; text-decoration: none; display: inline-flex; align-items: center; }
 .msg.neu a { color: inherit; }
+.sicher { flex-basis: 100%; margin: 0; font-size: .92rem; }
+.sicher.ok { color: var(--good); font-weight: 700; }
+.sicher.offen { color: var(--ink); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sicher .btn.small { min-height: 36px; padding: 4px 14px; }
 </style>
 </head>
 <body>
@@ -1453,7 +1457,7 @@ const PER_AREA_CHECK = 2;
 let storageOk = true;
 // Fassung und Offline-Datei: bauen.js setzt FASSUNG ({nummer, datum}). Als heruntergeladene Datei (file:) fragt der
 // Trainer bei Internet nur die Versionsdatei der Webseite ab, ob es eine neuere Fassung gibt. Es werden keine Daten gesendet.
-const FASSUNG = {"nummer":"2026-11-21.1","datum":"2026-11-21"};
+const FASSUNG = {"nummer":"2026-11-21.3","datum":"2026-11-21"};
 const WEBSEITE = 'https://ediqat.github.io/mathe/kopfrechnen/';
 const OFFLINE = typeof location !== 'undefined' && location.protocol === 'file:';
 let neueFassung = null;
@@ -1467,7 +1471,7 @@ function load() {
   return blank();
 }
 let S = load();
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { storageOk = false; } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { storageOk = false; } nachSpeichern(); }
 const dayKey = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const areaOf = id => AREAS.find(a => a.id === id);
 const aState = id => S.areas[id] || (S.areas[id] = { lvl: 1, win: [], rec: [] });
@@ -1813,7 +1817,7 @@ function vHome() {
     <p class="hint">Der Balken zeigt, wie viel du zuletzt in diesem Bereich richtig hattest (letzte 20 Aufgaben). Das <b>Niveau</b> (1 bis 4) bestimmt, wie schwer die Aufgaben sind. Bist du in einem Bereich sicher, erscheint dort „Bereit für das nächste Niveau“. Ein kurzer Niveau-Check (2 Aufwärmaufgaben, dann 6 Aufgaben auf dem nächsten Niveau, ab 5 richtig) bringt dich hinauf. Mit − und + kannst du das Niveau auch selbst ändern. „Sitzt sicher“ heißt: mehrmals schnell richtig gelöst. Das Kürzel (z. B. G4) nennt das passende Lernziel.</p>
     <div class="areas">${cards}</div>
     <section class="foot"><p>${storageOk ? 'Dein Lernstand liegt in diesem Browser.' : 'Der Browser speichert hier nichts. Bitte den Lernstand am Ende sichern.'} Beim Wechsel auf ein anderes Gerät: sichern und dort laden.</p>
-      <button class="btn" data-act="data">Lernstand sichern oder laden</button></section>
+      <button class="btn" data-act="data">Lernstand sichern oder laden</button>${vSicherKurz()}</section>
     ${vOffline()}
   </main>`;
 }
@@ -1898,11 +1902,12 @@ function vData() {
   const json = JSON.stringify(S);
   return `<main class="wrap narrow"><button class="btn ghost small" data-act="home">← Zurück</button><h1>Lernstand</h1>
     ${dataMsg ? `<p class="msg" role="status">${esc(dataMsg)}</p>` : ''}
-    <h2 class="sec">Sichern</h2><p class="hint">Speichere die Datei und lade sie später oder auf einem anderen Gerät wieder hoch.</p>
+    ${vSicherung()}
+    <h2 class="sec">${FSA ? 'Von Hand sichern' : 'Sichern'}</h2><p class="hint">Speichere die Datei und lade sie später oder auf einem anderen Gerät wieder hoch.</p>
     <div class="go"><button class="btn primary" data-act="dl">Als Datei speichern</button><button class="btn" data-act="copy">Text kopieren</button></div>
     <textarea id="dump" readonly rows="4" aria-label="Lernstand als Text">${esc(json)}</textarea>
     <h2 class="sec">Laden</h2><p class="hint">Ersetzt den aktuellen Lernstand in diesem Browser.</p>
-    <label class="file">Datei wählen <input id="file" type="file" accept=".json,application/json"></label>
+    ${FSA && typeof window.showOpenFilePicker === 'function' ? '<div class="go"><button class="btn" data-act="fopen">Datei wählen</button></div>' : '<label class="file">Datei wählen <input id="file" type="file" accept=".json,application/json"></label>'}
     <textarea id="paste" rows="3" placeholder="Oder gesicherten Text hier einfügen" aria-label="Gesicherten Text einfügen"></textarea>
     <div class="go"><button class="btn" data-act="loadtext">Aus Text laden</button></div>
     <h2 class="sec">Neu anfangen</h2>
@@ -1916,6 +1921,89 @@ function importJSON(txt) {
     S = Object.assign(blank(), o); save(); dataMsg = 'Lernstand geladen.';
   } catch (e) { dataMsg = 'Das war kein gültiger Lernstand. Bitte die gesicherte Datei oder den ganzen Text verwenden.'; }
   render();
+}
+
+// ---------- Von selbst in eine Datei sichern (21.11.2026, wie im Übungsraum, eigener Code) ----------
+// Chrome/Edge (File System Access API): Datei einmal wählen, danach wird nach jeder Änderung von selbst dorthin gesichert.
+// Die gewählte Datei merkt sich der Browser (IndexedDB). Nach einem Neustart des Browsers einmal „Sichern“ tippen und
+// erlauben. Andere Browser: wie bisher „Als Datei speichern“ (Download). Inhalt der Datei = Lernstand wie im Browser.
+const FSA = typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function';
+const SICHER_DATEI = 'kopfrechentrainer-lernstand.json';
+const META = 'kopfrechentrainer-sicherung';        // eigener Schlüssel; KEY bleibt unberührt
+let fHandle = null, fErlaubt = false, fMeldung = '', fWartet = null;
+const fMeta = () => { try { return JSON.parse(localStorage.getItem(META)) || {}; } catch (e) { return {}; } };
+const fMetaSetzen = m => { try { localStorage.setItem(META, JSON.stringify(m)); } catch (e) { } };
+const fUngesichert = () => { const m = fMeta(); return (m.geaendert || 0) > (m.zuletzt || 0); };
+const fZeit = d => { const x = new Date(d), z = n => String(n).padStart(2, '0'); return `${z(x.getDate())}.${z(x.getMonth() + 1)}.${x.getFullYear()}, ${z(x.getHours())}:${z(x.getMinutes())}`; };
+function fDb() {
+  return new Promise((ok, no) => {
+    if (typeof indexedDB === 'undefined') return no(new Error('kein IndexedDB'));
+    const r = indexedDB.open('kopfrechentrainer', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('dateien');
+    r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error);
+  });
+}
+async function fHandleLesen() {
+  try { const d = await fDb(); return await new Promise(ok => { const q = d.transaction('dateien').objectStore('dateien').get('lernstand'); q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null); }); } catch (e) { return null; }
+}
+async function fHandleMerken(h) {
+  try { const d = await fDb(); await new Promise(ok => { const t = d.transaction('dateien', 'readwrite'); t.objectStore('dateien').put(h, 'lernstand'); t.oncomplete = ok; t.onerror = ok; }); } catch (e) { }
+}
+function fNeuZeichnen() { if (screen === 'home' || screen === 'data') keep(); }   // nie mitten in einer Aufgabe
+async function fSchreiben() {
+  const w = await fHandle.createWritable(); await w.write(JSON.stringify(S)); await w.close();
+  const m = fMeta(); m.zuletzt = Date.now(); m.datei = fHandle.name; fMetaSetzen(m);
+}
+async function fErlauben() {
+  try { if (await fHandle.queryPermission({ mode: 'readwrite' }) === 'granted') return true; return await fHandle.requestPermission({ mode: 'readwrite' }) === 'granted'; } catch (e) { return false; }
+}
+async function fSichern(neueDatei) {                       // Knopf: Datei wählen bzw. jetzt sichern
+  if (!FSA) return;
+  try {
+    if (!fHandle || neueDatei) {
+      fHandle = await window.showSaveFilePicker({ suggestedName: SICHER_DATEI, types: [{ description: 'Lernstand Kopfrechentrainer', accept: { 'application/json': ['.json'] } }] });
+      await fHandleMerken(fHandle);
+    }
+    fErlaubt = await fErlauben();
+    if (!fErlaubt) fMeldung = 'Sichern wurde nicht erlaubt. Tippe noch einmal auf „Sichern“ und erlaube es.';
+    else { await fSchreiben(); fMeldung = `Gesichert in „${fHandle.name}“. Ab jetzt sichert der Trainer von selbst dorthin.`; }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+    fErlaubt = false; fMeldung = 'Sichern hat nicht geklappt. Bitte noch einmal versuchen oder eine andere Datei wählen.';
+  }
+  fNeuZeichnen();
+}
+async function fOeffnen() {                                // Sicherungsdatei laden und danach weiter dorthin sichern
+  try {
+    const [h] = await window.showOpenFilePicker({ types: [{ description: 'Lernstand Kopfrechentrainer', accept: { 'application/json': ['.json'] } }] });
+    const text = await (await h.getFile()).text();
+    let o = null; try { o = JSON.parse(text); } catch (e) { }
+    if (!o || o.v !== 1 || typeof o.units !== 'object') { importJSON(text); return; }   // meldet den Fehler
+    fHandle = h; await fHandleMerken(h); fErlaubt = await fErlauben(); fMeldung = '';
+    importJSON(text);
+  } catch (e) { if (!(e && e.name === 'AbortError')) { dataMsg = 'Die Datei ließ sich nicht öffnen.'; render(); } }
+}
+function nachSpeichern() {                                 // nach jedem save(): merken und ggf. mitsichern
+  if (!FSA) return;
+  const m = fMeta(); m.geaendert = Date.now(); fMetaSetzen(m);
+  if (fHandle && fErlaubt) { clearTimeout(fWartet); fWartet = setTimeout(() => { fWartet = null; fSchreiben().catch(() => { fErlaubt = false; fNeuZeichnen(); }); }, 400); }
+}
+function vSicherung() {                                    // Abschnitt auf der Seite „Lernstand“
+  if (!FSA) return '';
+  const m = fMeta();
+  let stand, knoepfe;
+  if (!fHandle) { stand = 'Noch keine Datei gewählt.'; knoepfe = '<button class="btn primary" data-act="fsave">Sicherungsdatei wählen</button>'; }
+  else if (fErlaubt) { stand = `✓ Sichert von selbst in „${esc(fHandle.name)}“${m.zuletzt ? `, zuletzt am ${fZeit(m.zuletzt)}` : ''}.`; knoepfe = '<button class="btn" data-act="fnew">Andere Datei wählen</button>'; }
+  else { stand = `Datei „${esc(fHandle.name)}“: Nach einem Neustart des Browsers bitte einmal sichern und erlauben.`; knoepfe = '<button class="btn primary" data-act="fsave">Sichern</button><button class="btn" data-act="fnew">Andere Datei wählen</button>'; }
+  return `<h2 class="sec">Von selbst sichern</h2>
+    <p class="hint">Wähle einmal eine Datei, am besten <code>${SICHER_DATEI}</code> im selben Ordner wie der Trainer. Danach sichert der Trainer nach jeder Aufgabe von selbst dorthin. Auf einem anderen Gerät lädst du sie unten mit „Datei wählen“.</p>
+    ${fMeldung ? `<p class="msg" role="status">${esc(fMeldung)}</p>` : ''}
+    <p class="hint">${stand}</p><div class="go">${knoepfe}</div>`;
+}
+function vSicherKurz() {                                   // Zeile auf der Startseite
+  if (!FSA || !fHandle) return '';
+  if (fErlaubt) return `<p class="sicher ok">✓ Gesichert in „${esc(fHandle.name)}“</p>`;
+  return `<p class="sicher offen">Noch nicht in „${esc(fHandle.name)}“ gesichert. <button class="btn small" data-act="fsave">Sichern</button></p>`;
 }
 
 // ---------- Ereignisse ----------
@@ -1945,6 +2033,9 @@ document.addEventListener('click', e => {
   else if (a === 'dl' && !DL) { try { const bl = new Blob([JSON.stringify(S)], { type: 'application/json' }), u = URL.createObjectURL(bl), l = document.createElement('a'); l.href = u; l.download = 'kopfrechentrainer-lernstand-' + dayKey() + '.json'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 2000); dataMsg = 'Datei gespeichert.'; } catch (e) { dataMsg = 'Speichern ist hier nicht möglich. Kopiere stattdessen den Text.'; } render(); }
   else if (a === 'dl') DL.save({ filename: 'kopfrechentrainer-lernstand-' + dayKey() + '.json', data: JSON.stringify(S) }).then(() => { dataMsg = 'Datei gespeichert.'; render(); }).catch(err => { dataMsg = err && err.code === 'declined' ? 'Speichern abgebrochen.' : 'Speichern ist hier nicht möglich. Kopiere stattdessen den Text.'; render(); });
   else if (a === 'copy') { const ta = document.getElementById('dump'); ta.select(); let ok = false; try { ok = navigator.clipboard ? (navigator.clipboard.writeText(ta.value), true) : document.execCommand('copy'); } catch (x) { try { ok = document.execCommand('copy'); } catch (y) { } } dataMsg = ok ? 'Text kopiert. Füge ihn in eine Notiz oder Datei ein.' : 'Kopieren hat nicht geklappt. Der Text ist markiert, bitte mit Strg+C kopieren.'; const m = document.querySelector('.msg'); if (m) m.textContent = dataMsg; else render(); }
+  else if (a === 'fsave') fSichern(false);
+  else if (a === 'fnew') fSichern(true);
+  else if (a === 'fopen') fOeffnen();
   else if (a === 'loadtext') importJSON(document.getElementById('paste').value);
   else if (a === 'reset') { confirmReset = true; keep(); }
   else if (a === 'noreset') { confirmReset = false; keep(); }
@@ -1969,6 +2060,13 @@ document.addEventListener('keydown', e => {
 });
 
 if (OFFLINE) document.documentElement.classList.add('offline');
+if (FSA) fHandleLesen().then(async h => { if (!h) return; fHandle = h; try { fErlaubt = await h.queryPermission({ mode: 'readwrite' }) === 'granted'; } catch (e) { fErlaubt = false; } fNeuZeichnen(); });
+// Rückfrage beim Schließen nur, wenn eine Datei gewählt ist, Neues fehlt und gerade nicht von selbst gesichert werden kann
+if (FSA) window.addEventListener('beforeunload', e => {
+  if (!fHandle) return;
+  if (fErlaubt) { if (fWartet) { clearTimeout(fWartet); fWartet = null; fSchreiben().catch(() => { }); } return; }
+  if (fUngesichert()) { e.preventDefault(); e.returnValue = ''; }
+});
 if (OFFLINE && FASSUNG && navigator.onLine !== false && typeof fetch === 'function') {
   try {
     fetch(WEBSEITE + 'version.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
