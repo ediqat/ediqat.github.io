@@ -404,8 +404,8 @@ svg.kreisdia .st-t{fill:var(--text)} svg.kreisdia path+text,svg.kreisdia .st-t{p
 .ks-aname{font-size:16px;font-weight:800;font-style:italic}
 .ks-quadrant{font-size:26px;font-weight:800;fill:var(--ink);fill-opacity:.55}
 .ks-quadrant.klein{font-size:14px}
-.ks-x{stroke-width:3.2;stroke-linecap:round}
-.ks-name{font-size:17px;font-weight:800}
+.ks-x{stroke-width:2.6;stroke-linecap:round}
+.ks-name{font-size:15px;font-weight:600}
 .ks-text{font-size:13px;font-weight:800}
 .ks-wegt{font-size:14px;font-weight:700}
 .ks-weg1{stroke:var(--c1);stroke-width:4;stroke-opacity:.8}
@@ -416,8 +416,8 @@ svg.kreisdia .st-t{fill:var(--text)} svg.kreisdia path+text,svg.kreisdia .st-t{p
 .ks-marke line{stroke:var(--ink);stroke-width:2.2}
 .ks-marke text{font-size:15px;font-weight:800;fill:var(--ink)}
 .ks-flaeche{fill:transparent;cursor:crosshair;pointer-events:all}
-.ks-gesetzt path{stroke:var(--cop);stroke-width:3.4;stroke-linecap:round}
-.ks-gesetzt text{font-size:17px;font-weight:800;fill:var(--cop)}
+.ks-gesetzt path{stroke:var(--cop);stroke-width:2.8;stroke-linecap:round}
+.ks-gesetzt text{font-size:15px;font-weight:600;fill:var(--cop)}
 .ks-setzen{width:100%;display:flex;flex-direction:column;align-items:center;gap:6px}
 .ks-knoepfe{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
 .ks-knoepfe button{font:inherit;font-weight:800;min-width:48px;min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--ink-soft);color:var(--ink);cursor:pointer;padding:0 .7em}
@@ -1651,7 +1651,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-21.2","datum":"21.11.2026","pruefsumme":"5b4aedad16911b63"};
+UR.version = {"nummer":"2026-11-21.4","datum":"21.11.2026","pruefsumme":"d7cc22866400d407"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -3450,7 +3450,7 @@ const NAMENPLATZ = [[8,-8,'start'],[-8,-8,'end'],[8,17,'start'],[-8,17,'end'],[0
   ...[-24,33,-40,49].flatMap(dy=>[[8,dy,'start'],[-8,dy,'end'],[0,dy,'middle']]), ...[-8,17,5].flatMap(dy=>[[30,dy,'start'],[-30,dy,'end']])];
 
 /* ---------- das Bild ----------
-   o.punkte [{x, y, name, koord (Name mit Koordinaten), farbe}], o.wege [{x, y}] (vom Nullpunkt erst waagrecht, dann senkrecht),
+   o.punkte [{x, y, name, farbe}] (nur der Buchstabe), o.wege [{x, y}] (vom Nullpunkt erst waagrecht, dann senkrecht),
    o.quadranten (I bis IV, 'ecke': klein in den Ecken), o.marken [{x, y, text}] (Nummern zum Zuordnen),
    o.figur [[x,y] …] (Vieleck), o.farbig (Achsen farbig),
    o.spiegel 'x'|'y' (Achse hervorheben), o.verbindung [[x1,y1,x2,y2]] (gestrichelt), o.halb (Halbschritt-Linien),
@@ -3470,9 +3470,9 @@ function ksSVG(o={}){
   const fx=o.farbig?'var(--c1)':'var(--text)', fy=o.farbig?'var(--c2)':'var(--text)';
   s+=`<line class="ks-achse${o.spiegel==='x'?' ks-hervor':''}" x1="${px(min)-28}" x2="${px(max)+28}" y1="${Y0}" y2="${Y0}" stroke="${fx}" marker-start="url(#ksax)" marker-end="url(#ksax)"/>
     <line class="ks-achse${o.spiegel==='y'?' ks-hervor':''}" x1="${X0}" x2="${X0}" y1="${py(min)+28}" y2="${py(max)-28}" stroke="${fy}" marker-start="url(#ksax)" marker-end="url(#ksax)"/>`;
-  s+=`<text class="ks-aname" x="${W-4}" y="${Y0+20}" text-anchor="end" fill="${fx}">x</text><text class="ks-aname" x="4" y="${Y0+20}" text-anchor="start" fill="${fx}">x</text>
-    <text class="ks-aname" x="${X0+10}" y="15" text-anchor="start" fill="${fy}">y</text><text class="ks-aname" x="${X0+10}" y="${H-4}" text-anchor="start" fill="${fy}">y</text>`;
-  P.belegt.push({x:W-18, y:Y0+5, w:16, h:18}, {x:2, y:Y0+5, w:16, h:18}, {x:X0+8, y:0, w:16, h:18}, {x:X0+8, y:H-20, w:16, h:18});
+  s+=`<text class="ks-aname" x="${W-4}" y="${Y0+20}" text-anchor="end" fill="${fx}">x</text><text class="ks-aname" x="4" y="${Y0+20}" text-anchor="start" fill="${fx}">${M}x</text>
+    <text class="ks-aname" x="${X0+10}" y="15" text-anchor="start" fill="${fy}">y</text><text class="ks-aname" x="${X0+10}" y="${H-4}" text-anchor="start" fill="${fy}">${M}y</text>`;
+  P.belegt.push({x:W-18, y:Y0+5, w:16, h:18}, {x:2, y:Y0+5, w:24, h:18}, {x:X0+8, y:0, w:16, h:18}, {x:X0+8, y:H-20, w:24, h:18});
   // Zahlen an den Achsen (Platz wird belegt, damit Namen ausweichen)
   for(let v=min; v<=max; v++){ if(v===0) continue;
     s+=`<text class="ks-zahl" data-achse="x" x="${px(v)}" y="${Y0+15}" text-anchor="middle" ${halo}>${ZV(v)}</text>`;
@@ -3495,12 +3495,9 @@ function ksSVG(o={}){
   // Punkte: zuerst alle X belegen, dann die Namen platzieren
   const pk=o.punkte||[];
   pk.forEach(p=>P.belegt.push({x:px(p.x)-7, y:py(p.y)-7, w:14, h:14}));
-  // Name mit Koordinaten; ist dafür kein Platz frei, nur der Name (die Koordinaten stehen dann in der Rückmeldung)
-  const NOT=Object.assign([...NAMENPLATZ],{ohneNot:true});
-  for(const p of pk){ const X=px(p.x), Y=py(p.y), c=p.farbe||'var(--cop)'; let t=p.koord?`${p.name}${ksText(p.x,p.y)}`:p.name;
-    let l=t&&p.koord?P.setze(t, X, Y, NOT, 17):null;
-    if(p.koord&&l.n){ t=p.name; l=null; }
-    if(t&&!l) l=P.setze(t, X, Y, NAMENPLATZ, 17);
+  // Punkte nur mit dem Buchstaben, dezent (Lehrkraft, 21.11.2026): die Koordinaten stehen in Aufgabe und Rückmeldung
+  for(const p of pk){ const X=px(p.x), Y=py(p.y), c=p.farbe||'var(--cop)', t=p.name;
+    const l=t?P.setze(t, X, Y, NAMENPLATZ, 15):null;
     const g1=`<g class="ks-punkt"><path class="ks-x" d="M${X-6} ${Y-6} L${X+6} ${Y+6} M${X+6} ${Y-6} L${X-6} ${Y+6}" stroke="${c}"/>${l?`<text class="ks-name" x="${l.tx}" y="${l.ty}" text-anchor="${l.anc}" fill="${c}" ${halo}>${t}</text>`:''}</g>`;
     sp+= p.stufe ? `<g class="ks-st ks-st${p.stufe}">${g1}</g>` : g1; }
   // Weg vom Nullpunkt: erst waagrecht (x, blau), dann senkrecht (y, grün)
@@ -4103,7 +4100,7 @@ const typen = {
     const namen=mischen(NAMEN).slice(0,pkte.length); pkte.forEach((p,i)=>p.name=namen[i]);
     const p=pkte[0], {x,y}=p;
     const bild=ksSVG({punkte:pkte.map(q=>({x:q.x, y:q.y, name:q.name})), wege:leicht?[{x,y}]:[]});
-    const loesungBild=ksSVG({punkte:[{x,y,name:p.name,koord:true,farbe:'var(--g)'}], wege:[{x,y}]});
+    const loesungBild=ksSVG({punkte:[{x,y,name:p.name,farbe:'var(--g)'}], wege:[{x,y}]});
     return aufg({kind:'zahlen', q:`Gib die Koordinaten des Punktes ${p.name} an!`, qh:`Gib die Koordinaten des Punktes <b>${p.name}</b> an! <span class="nw">${p.name}( x | y )</span>`,
       lead: leicht ? merk(`${ZUERST} Folge dem Weg im Bild.`) : '', papierLead:'Lies die Koordinaten ab!', bild, loesungBild, punkt:p,
       felder:koordFelder(x,y).map((f,i)=>Object.assign(f,{ansHTML:i?Z(y):Z(x)})), hinweisNach:koordHinweis(x,y),
@@ -4128,7 +4125,7 @@ const typen = {
       return [x,y]; });
     const n=pick(NAMEN), s=halb?0.5:1;
     const loesungBildVon=f=>{ const ihr=String(f&&f.shown||'').match(/^\(([^|]+)\|([^)]+)\)$/);
-      const zahl=t=>Number(t.replace(M,'-').replace(',','.')), punkte=[{x,y,name:n,koord:true,farbe:'var(--g)'}];
+      const zahl=t=>Number(t.replace(M,'-').replace(',','.')), punkte=[{x,y,name:n,farbe:'var(--g)'}];
       if(ihr&&!f.ok) punkte.push({x:zahl(ihr[1]), y:zahl(ihr[2]), name:'dein Punkt', farbe:'var(--cop)'});
       return ksSVG({punkte, wege:[{x,y}], halb}); };
     return aufg({kind:'fragen', q:`Trage den Punkt ${pkt(n,x,y)} in das Koordinatensystem ein!`, qh:`Trage den Punkt <b>${pkt(n,x,y)}</b> in das Koordinatensystem ein!`,
@@ -4152,8 +4149,8 @@ const typen = {
     return aufg({kind:'zeichnen', text:true, zeug:'Du brauchst kariertes Papier, Bleistift und Geodreieck.', art, punkte:P, papierPlatz:4, papierLead:'Zeichne!',
       qh:`Zeichne ein Koordinatensystem (1${UR.raza.NB}EH ≙ 1${UR.raza.NB}cm) und beschrifte es. Trage die Punkte ${nw} ein und verbinde sie der Reihe nach${viereck?` zum Viereck ${namen.join('')}`:''}. Welche Figur entsteht?`,
       q:`Zeichne ein Koordinatensystem (1${UR.raza.NB}EH ≙ 1${UR.raza.NB}cm) und beschrifte es. Trage die Punkte ${liste.join(', ')} ein und verbinde sie der Reihe nach${viereck?` zum Viereck ${namen.join('')}`:''}. Welche Figur entsteht?`,
-      loesungBild:`<div class="ks-loes">${ksSVG({punkte:P.map(([x,y],i)=>({x,y,name:namen[i],koord:true})), figur:P, halb:dx!==0||dy!==0})}<p class="small muted">${nw}<br>1 EH ≙ 1 cm (2 Kästchen) · Es entsteht ${FIGUR_TEXT[art]}.</p></div>`,
-      pruefliste:['x-Achse waagrecht, y-Achse senkrecht; an allen vier Enden eine Pfeilspitze und „x“ bzw. „y“; Nullpunkt 0', '1 EH ≙ 1 cm: beide Achsen gleich eingeteilt (2 Kästchen je Einheit) und beschriftet: +1, −1, +2, −2 …',
+      loesungBild:`<div class="ks-loes">${ksSVG({punkte:P.map(([x,y],i)=>({x,y,name:namen[i]})), figur:P, halb:dx!==0||dy!==0})}<p class="small muted">${nw}<br>1 EH ≙ 1 cm (2 Kästchen) · Es entsteht ${FIGUR_TEXT[art]}.</p></div>`,
+      pruefliste:['x-Achse waagrecht, y-Achse senkrecht; an allen vier Enden eine Pfeilspitze, beschriftet mit x und −x bzw. y und −y; Nullpunkt 0', '1 EH ≙ 1 cm: beide Achsen gleich eingeteilt (2 Kästchen je Einheit) und beschriftet: +1, −1, +2, −2 …',
         `Punkte richtig eingetragen und mit Namen: ${nw}`, `der Reihe nach verbunden: Es entsteht ${FIGUR_TEXT[art]}.`],
       why:`${ZUERST} Kontrolliere mit dem Lösungsbild: Es entsteht ${FIGUR_TEXT[art]}.`});
   },
@@ -4167,7 +4164,7 @@ const typen = {
     return aufg({kind:'fragen', text:true, q:`Trage die Punkte ein: ${reihe.map(p=>pkt(p.name,p.x,p.y)).join(', ')}. Lies die Buchstaben in der Reihenfolge der Quadranten I, II, III, IV. Welches Wort entsteht?`,
       qh:`Trage die Punkte ein: ${reihe.map(p=>`<span class="nw">${pkt(p.name,p.x,p.y)}</span>`).join(', ')}. Lies die Buchstaben in der Reihenfolge der Quadranten I, II, III, IV. Welches Wort entsteht?`,
       punkte:reihe, wort, bild:ksSetzen(reihe.map((p,i)=>({g:'q'+i, name:p.name})), 1, {quadranten:'ecke'}),
-      loesungBild:`${ksSVG({punkte:reihe.map(p=>({x:p.x, y:p.y, name:p.name, koord:true})), quadranten:'ecke'})}`,
+      loesungBild:`${ksSVG({punkte:reihe.map(p=>({x:p.x, y:p.y, name:p.name})), quadranten:'ecke'})}`,
       gruppen:[...reihe.map(p=>({imBild:true, optionen:ksOptionen(1), ans:ksKey(p.x,p.y), ansHTML:pkt(p.name,p.x,p.y)})),
         {frage:'Lösungswort', optionen:mischen(opt).map(w=>[w,w]), ans:wort}],
       why:`Quadrant I: ${wort[0]}, II: ${wort[1]}, III: ${wort[2]}, IV: ${wort[3]}. Die Quadranten zählt man gegen den Uhrzeigersinn: Das Wort heißt ${wort}.`});
@@ -4183,7 +4180,7 @@ const typen = {
     return aufg({kind:'zahlen', q:`Spiegle ${pkt(n,x,y)} ${text}! Gib die Koordinaten des Bildpunkts ${n}′ an.`, qh:`Spiegle <b>${pkt(n,x,y)}</b> ${text}! Gib die Koordinaten des Bildpunkts <b>${n}′</b> an.`,
       art, punkt:{x,y,name:n}, bild,
       felder:koordFelder(sx,sy).map((f,i)=>Object.assign(f,{ansHTML:i?Z(sy):Z(sx)})), hinweisNach:koordHinweis(sx,sy),
-      loesungBild:ksSVG({punkte:[{x,y,name:n},{x:sx,y:sy,name:n+'′',koord:true,farbe:'var(--g)'}], spiegel:art==='beide'?undefined:art, verbindung:[[x,y,sx,sy]], halb:x%1!==0||y%1!==0}),
+      loesungBild:ksSVG({punkte:[{x,y,name:n},{x:sx,y:sy,name:n+'′',farbe:'var(--g)'}], spiegel:art==='beide'?undefined:art, verbindung:[[x,y,sx,sy]], halb:x%1!==0||y%1!==0}),
       why:`${regel} ${pkt(n,x,y)} → ${pkt(n+'′',sx,sy)}`, steps:pkt(n+'′',sx,sy)});
   },
   // G3-N02 Vierten Eckpunkt eines achsenparallelen Rechtecks ergänzen
@@ -4194,7 +4191,7 @@ const typen = {
     return aufg({kind:'zahlen', q:`${geg.map(i=>pkt(N[i],...P[i])).join(', ')} sind Eckpunkte des Rechtecks ABCD. Die Seiten sind parallel zu den Achsen. Gib ${N[fehlt]} an!`,
       qh:`${geg.map(i=>`<span class="nw">${pkt(N[i],...P[i])}</span>`).join(', ')} sind Eckpunkte des Rechtecks ABCD. Die Seiten sind parallel zu den Achsen. Gib <b>${N[fehlt]}</b> an!`,
       ecken:P, fehlt, felder:koordFelder(fx,fy).map((f,i)=>Object.assign(f,{ansHTML:i?Z(fy):Z(fx)})), hinweisNach:koordHinweis(fx,fy),
-      loesungBild:ksSVG({punkte:P.map(([x,y],i)=>({x,y,name:N[i],koord:i===fehlt,farbe:i===fehlt?'var(--g)':undefined})), figur:P}),
+      loesungBild:ksSVG({punkte:P.map(([x,y],i)=>({x,y,name:N[i],farbe:i===fehlt?'var(--g)':undefined})), figur:P}),
       why:`Zwei Ecken haben dasselbe x, zwei dasselbe y. ${N[fehlt]} hat das x von ${N[geg.find(i=>P[i][0]===fx)]} und das y von ${N[geg.find(i=>P[i][1]===fy)]}: ${pkt(N[fehlt],fx,fy)}.`, steps:pkt(N[fehlt],fx,fy)});
   },
   // G3-N03 Punkt auf einer Achse (x-Achse, y-Achse oder Nullpunkt)
@@ -4236,7 +4233,7 @@ const erklaerung = {
       <div class="ksbox"><p class="small muted">Tippe nacheinander auf 1 und 2.</p>
         <ol class="legend3"><li><button type="button" class="stepbtn" data-ksstufe="1"><span class="num n1">1</span><span>x = ${Z(x)}: ${Z(Math.abs(x))} nach ${x>0?'rechts':'links'}</span></button></li>
         <li><button type="button" class="stepbtn" data-ksstufe="2"><span class="num n3">2</span><span>y = ${Z(y)}: ${Z(Math.abs(y))} nach ${y>0?'oben':'unten'}</span></button></li></ol>
-        ${ksSVG({wege:[{x,y}], stufen:true, punkte:[{x,y,name:n,koord:true,farbe:'var(--g)',stufe:2}]})}</div>
+        ${ksSVG({wege:[{x,y}], stufen:true, punkte:[{x,y,name:n,farbe:'var(--g)',stufe:2}]})}</div>
       <p class="small">Halbe Schritte: Q(${M}5,5|${M}5) liegt auf der x-Achse genau zwischen ${M}5 und ${M}6.</p>
       <button class="newex" data-newex="pkt">Neues Beispiel</button></div>
     <div class="rule"><h3>3. Vorzeichen in den Quadranten</h3>
