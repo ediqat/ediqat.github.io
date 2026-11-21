@@ -503,6 +503,7 @@ input.term[readonly]{background:var(--ink-soft);color:var(--ink);font-weight:700
 .pbzeile input.term{width:6ch;flex:1 1 6ch;min-width:0}
 .zlfeld input.term::placeholder,.pbfeld input.term::placeholder{font-size:.75em}
 [data-ms-ok][hidden],.ms-schritt[hidden]{display:none!important}
+.ms-weg{text-align:left;margin:6px 0 8px;padding-left:1.4em;line-height:1.7} .ms-weg li{margin:4px 0}
 </style>
 </head>
 <body>
@@ -1296,7 +1297,7 @@ function renderStation(){
       <div class="row"><button class="big" id="nextTask">${T.naechsteAufgabe}</button><button class="big alt" data-go="comp">${T.zumLernweg}</button></div>`;
   } else body=taskHTML(t,{stage:view.stage,pre:view.pre,preOk:t.pre&&view.pre===t.pre.ans,coach:true,self:view.self});
   const head = s.extra ? `<p class="small muted">${T.extraHinweis}</p>`
-    : helped ? `<div class="progress"><span>${view.leicht?T.leichtEinstieg:T.mitHilfe(t.schritt)}</span><span>${T.nochAufgaben(SCAFF-(st.scaff||0))}</span></div>`
+    : helped ? `<div class="progress"><span>${view.leicht?(t.einstiegText||T.leichtEinstieg):T.mitHilfe(t.schritt)}</span><span>${T.nochAufgaben(SCAFF-(st.scaff||0))}</span></div>`
     : `<div class="progress"><span>${T.hintereinander(NEED_STREAK)}</span><div class="dots" aria-label="${T.punkteAria(st.streak||0,NEED_STREAK)}">${dots}</div></div>`;
   return `<div class="top"><button class="back" data-go="comp">${T.zumLernwegPfeil}</button><span class="small muted">${s.name}</span></div>
     <section class="sheet">${head}${body}</section>`;
@@ -1729,7 +1730,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-21.22","datum":"21.11.2026","pruefsumme":"6fbf917ce2b917aa"};
+UR.version = {"nummer":"2026-11-21.23","datum":"21.11.2026","pruefsumme":"c94aab7ad16e9100"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -1866,6 +1867,13 @@ function punkteSVG(werte, o={}){
     s+=`<path d="M${a} ${yy-6} V${yy} H${b} V${yy-6}" fill="none" stroke="var(--c2)" stroke-width="2"/><text x="${(a+b)/2}" y="${yy+17}" font-size="15" font-weight="700" text-anchor="middle" fill="var(--c2)">Abstand ${UR.raza.Z(Math.abs(o.abstand))}</text>`; }
   if(o.spiegel!==undefined&&o.spiegel!==0){ const a=x(o.spiegel), b=x(-o.spiegel), m=(a+b)/2, h=Math.min(40,Math.abs(b-a)/2+10);
     s+=`<path d="M${a} ${Y-12} Q${m} ${Y-12-2*h} ${b} ${Y-12}" fill="none" stroke="var(--c2)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#zgsp)"/>`; }
+  // Sprünge (M-RaZa-V1, 21.11.2026): o.spruenge = Werte der Reihe nach, je Sprung ein Pfeil unter der Geraden mit
+  // Beschriftung (o.sprungText[i], z. B. „− 8“); jeder Sprung in einer eigenen Reihe, damit sich nichts überlappt
+  const sp=o.spruenge||[];
+  for(let i=0;i+1<sp.length;i++){ const a=x(sp[i]), b=x(sp[i+1]), yy=Y+44+i*30, t=(o.sprungText||[])[i]||'';
+    s+=`<line x1="${a}" x2="${a}" y1="${Y+6}" y2="${yy}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="2 2"/>
+      <line x1="${a}" x2="${b}" y1="${yy}" y2="${yy}" stroke="var(--c2)" stroke-width="2.4" marker-end="url(#zgsp)"/>
+      <text x="${Math.min(W-30,Math.max(30,(a+b)/2))}" y="${yy+17}" font-size="14" font-weight="700" text-anchor="middle" fill="var(--c2)">${t}</text>`; }
   // Beschriftungen: nach Lage sortiert, abwechselnd zwei Reihen über der Geraden
   const sort=werte.map((p,i)=>({...p,i})).sort((a,b)=>a.v-b.v);
   let letzte=[-1e9,-1e9];
@@ -1875,7 +1883,7 @@ function punkteSVG(werte, o={}){
     s+=`<path d="M${px-6} ${Y-6} L${px+6} ${Y+6} M${px+6} ${Y-6} L${px-6} ${Y+6}" stroke="${p.farbe||'var(--cop)'}" stroke-width="3" stroke-linecap="round"/>
       <line x1="${px}" x2="${px}" y1="${ty+3}" y2="${Y-8}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="2 2"/>
       <text x="${Math.min(W-16,Math.max(16,px))}" y="${ty}" font-size="15" font-weight="700" text-anchor="middle" fill="${p.farbe||'var(--cop)'}">${t}</text>`; });
-  const unten=o.abstand!==undefined?Y+70:Y+38, oben=o.spiegel!==undefined?-10:4;
+  const unten=sp.length>1?Y+44+(sp.length-2)*30+26:o.abstand!==undefined?Y+70:Y+38, oben=o.spiegel!==undefined?-10:4;
   return `<svg class="numline" viewBox="0 ${oben} ${W} ${unten-oben}" role="img" aria-label="Zahlengerade mit Punkten">${s}</svg>`;
 }
 
@@ -4844,7 +4852,7 @@ UR.kompetenzAnmelden({id:'M-RaZa-G3', typen, stationen, kern, leicht, plus, plus
 const {rnd, pick} = UR, M = UR.M;
 const {ggT, Q, qadd, qmul, qdiv, qwert, Z, br, gemHTML, gemText, NB, vzFeld, mischFeld, formHinweis, bruchFeld, bHTML, bText,
   gliederFeld, gliederGrund, gliederText, zweiBruchFeld, zweiBruchGrund, zweiBruchHTML, zeileFeld, zeileHTMLaus, produktFeld, produktHTML} = UR.raza;
-const {chip} = UR.mathe;
+const {chip, punkteSVG} = UR.mathe;
 const mischen = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; };
 function versuche(fn){ for(let n=0;n<3000;n++){ const r=fn(); if(r) return r; } throw new Error('Generator findet keine passende Aufgabe'); }
 const merk = html => `<div class="merk">${html}</div>`;
@@ -4855,8 +4863,11 @@ const fassung = ctx => !ctx||ctx.modus==='check' ? 'kurz' : ctx.leicht ? 'einzel
 const sg = x => x<0 ? M : '+';
 const vzWort = x => x<0 ? 'negativ' : 'positiv';
 // Rückmeldung: Hinweis bei Fehlern (z. B. „noch kürzen“)
+// Zahlengerade mit den Sprüngen (t.loesungBild) nur bei Fehlern, wie im Steckbrief (A02, N01)
 function aufg(t){
-  t.zusatzRueckmeldung = f => !f.ok&&t.hinweis ? `<div class="fb no pop"><span>${t.hinweis}</span></div>` : '';
+  t.zusatzRueckmeldung = f => `${!f.ok&&t.hinweis ? `<div class="fb no pop"><span>${t.hinweis}</span></div>` : ''}${!f.ok&&t.loesungBild ? `<div class="bild">${t.loesungBild}</div>` : ''}`;
+  // Bruchrechnen Schritt für Schritt: Text über dem Einstieg (statt „leichtere Aufgaben“)
+  if(t.kind==='mehrschritt') t.einstiegText = 'Einstieg: Schritt für Schritt, mit Rückmeldung nach jedem Schritt';
   return t;
 }
 const REGEL = `Gleiche Zeichen ergeben ${chip('+')}, verschiedene Zeichen ergeben ${chip(M)}.`;
@@ -4908,7 +4919,9 @@ const typen = {
       const pre = {ans:mid, optionen:mischen([mid, falsch(1), falsch(2)]).map(x=>[x,x])};
       const aufloesen = g.slice(1).map((x,i)=>`<span class="nw">${opS(x)}&#8239;(${sg(x.s)}${Z(v(x.h))})</span> <span class="nw">wird zu ${chip(sg(glieder[i+1]),'y')}&#8239;${Z(v(x.h))}</span>`).join(', ');
       const zw = v(gl[0]+gl[1]);
-      return aufg({kind:'zweischritt', q, qh:`${qh} =`, lead:'Löse zuerst die Klammern auf und berechne dann!', schritt:'Zwischenschritt', glieder, ergebnis:res,
+      const sprung = z => `${z<0?M:'+'}${NB}${Z(Math.abs(z))}`;
+      const loesungBild = punkteSVG([{v:glieder[0]},{v:zw},{v:res, farbe:'var(--ink)'}], {spruenge:[glieder[0], zw, res], sprungText:[sprung(glieder[1]), sprung(glieder[2])]});
+      return aufg({kind:'zweischritt', q, qh:`${qh} =`, lead:'Löse zuerst die Klammern auf und berechne dann!', schritt:'Zwischenschritt', glieder, ergebnis:res, loesungBild,
         s1:{label:'Schritt 1: Klammern auflösen (noch nicht zusammenfassen)', kurz:'Zwischenschritt', felder:[gliederFeld('Zwischenschritt ohne Klammern', glieder)], ansText:mid},
         s2:{label:'Schritt 2: Ergebnis', felder:[vzFeld('Ergebnis', res)], ansText:Z(res)},
         pre, alleinText:'Ab der nächsten Aufgabe schreibst du den Zwischenschritt selbst.',
@@ -5046,6 +5059,7 @@ const typen = {
       if(x===0||y===0||Math.abs(y)>999||x%10===0&&d%10===0) return null;
       const X=Z(x/10), D=Z(d/10), Y=Z(y/10);
       return aufg({kind:'zahlen', q:`Welche Zahl ist um ${D} ${mehr?'größer':'kleiner'} als ${X}?`, felder:[vzFeld('Zahl', y/10)], start:x/10, diff:d/10, mehr,
+        loesungBild:punkteSVG([{v:x/10},{v:y/10, farbe:'var(--ink)'}], {spruenge:[x/10, y/10], sprungText:[`${mehr?'+':M}${NB}${D}`]}),
         why:`${mehr?'Größer heißt weiter rechts auf der Zahlengeraden: plus':'Kleiner heißt weiter links auf der Zahlengeraden: minus'}. ${X} ${mehr?'+':M} ${D} = ${Y}.`,
         steps:`${X} ${mehr?'+':M} ${D} = ${Y}`});
     });
@@ -5115,7 +5129,9 @@ const plus = ['umwandeln','umMehr','pruefen','vorzeichen'];
 const plusHint = 'Gemischte Zahl und unechter Bruch · Um … größer oder kleiner · Rechnung prüfen · Positiv oder negativ?';
 
 /* ---------- Erklärung ---------- */
-const bsp = typ => typen[typ]({modus:'check'});
+const bsp = typ => typen[typ]({modus:'station', folge:0});        // alle Schritte (nicht zusammengelegt)
+// Rechenweg Schritt für Schritt wie in den Aufgaben: Angabe, dann je Schritt Überschrift und Zeile
+const wegHTML = t => `<div class="ex">${t.qh}</div><ol class="ms-weg">${t.schritte.map(s=>`<li><b>${s.label}:</b><br>${s.ansHTML}</li>`).join('')}</ol>`;
 const erklaerung = {
   beispiele: ()=>({a:bsp('glieder'), b:bsp('plusMinus'), c:bsp('mal'), d:bsp('durch')}),
   neu(kind,E){ E[kind]=bsp({a:'glieder', b:'plusMinus', c:'mal', d:'durch'}[kind]); },
@@ -5129,21 +5145,23 @@ const erklaerung = {
       <div class="ex">${E.a.stepsh}</div>
       <button class="newex" data-newex="a">Neues Beispiel</button></div>
     <div class="rule"><h3>2. Brüche addieren und subtrahieren</h3>
-      <p>Löse die Klammern auf. Bringe dann beide Brüche auf einen <b>gemeinsamen Nenner</b> (ein Vielfaches beider Nenner):
-        Erweitere Zähler und Nenner mit derselben Zahl. Rechne die Zähler zusammen, der Nenner bleibt.
-        Kürze am Ende so weit wie möglich und schreibe einen unechten Bruch als gemischte Zahl.</p>
-      <div class="ex">${E.b.stepsh}</div>
-      <p class="small muted">${E.b.why}</p>
+      <p>Schritt für Schritt: Schreibe gemischte Zahlen zuerst als unechte Brüche. Löse die Klammern auf und notiere die
+        Vorzeichen. Bringe beide Brüche auf einen <b>gemeinsamen Nenner</b> (ein Vielfaches beider Nenner): Erweitere Zähler
+        und Nenner mit derselben Zahl. Rechne die Zähler zusammen, der Nenner bleibt. Kürze am Ende so weit wie möglich
+        und schreibe einen unechten Bruch als gemischte Zahl.</p>
+      ${wegHTML(E.b)}
       <button class="newex" data-newex="b">Neues Beispiel</button></div>
     <div class="rule"><h3>3. Brüche multiplizieren</h3>
-      <p>${VZ_REGEL} Dann <b>Zähler mal Zähler</b> und <b>Nenner mal Nenner</b>. Kürze schon vorher, auch <b>über Kreuz</b>
-        (Zähler des einen Bruchs mit dem Nenner des anderen). Eine gemischte Zahl schreibst du zuerst als unechten Bruch.</p>
-      <div class="ex">${E.c.stepsh}</div>
+      <p>Eine gemischte Zahl schreibst du zuerst als unechten Bruch. Dann kommt alles auf <b>einen Bruchstrich</b>: davor
+        das Vorzeichen (${VZ_REGEL.replace('Gleiche Vorzeichen: Das Ergebnis ist positiv. Verschiedene Vorzeichen: Das Ergebnis ist negativ.','gleiche Vorzeichen ergeben +, verschiedene ergeben −')}), oben <b>Zähler mal Zähler</b>, unten
+        <b>Nenner mal Nenner</b>. Dann kürzen, auch <b>über Kreuz</b> (Zähler des einen Bruchs mit dem Nenner des anderen).</p>
+      ${wegHTML(E.c)}
       <button class="newex" data-newex="c">Neues Beispiel</button></div>
     <div class="rule"><h3>4. Brüche dividieren</h3>
       <p>Durch einen Bruch dividieren heißt <b>mit dem Kehrbruch multiplizieren</b>. Den Kehrbruch bekommst du, wenn du
-        Zähler und Nenner tauschst: Der Kehrbruch von ${br(3,4)} ist ${br(4,3)}. Das Vorzeichen bestimmst du wie beim Multiplizieren.</p>
-      <div class="ex">${E.d.stepsh}</div>
+        Zähler und Nenner tauschst: Der Kehrbruch von ${br(3,4)} ist ${br(4,3)}. Umgedreht wird <b>nur der zweite Bruch</b>,
+        der erste bleibt, und die Vorzeichen schreibst du ab. Danach rechnest du wie beim Multiplizieren.</p>
+      ${wegHTML(E.d)}
       <button class="newex" data-newex="d">Neues Beispiel</button></div>
     <p class="small muted">Das steht auch in deinem Mathe Know How.</p>
     <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
