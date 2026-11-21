@@ -442,6 +442,8 @@ svg.kreisdia .st-t{fill:var(--text)} svg.kreisdia path+text,svg.kreisdia .st-t{p
 /* Koordinatensystem auf Papier (LZK): Kästchen etwa 5 mm, damit man Punkte einzeichnen kann; ohne Tipp-Knöpfe */
 .pz-bild svg.ks-svg{width:88mm;max-height:none}
 .pz-bild .ks-setzen{display:block}
+.ks-strich{stroke:var(--text);stroke-width:1.8}
+.minus-taste{margin-left:6px}
 </style>
 </head>
 <body>
@@ -899,11 +901,13 @@ UR.einheitFehltHinweis = (felder,erg) => { const l=[...new Set(erg.map((x,i)=>x.
   return l.length ? T.einheitDazu(l.join(', ')) : ''; };
 // t.zeile {vor, zwischen, nach} (fachneutral, 21.11.2026): alle Felder in einer Zeile mit Text davor, dazwischen und danach,
 // z. B. Mathe „P( … | … )“; die Beschriftung der Felder wird dann nur vorgelesen (aria-label)
+// t.nachFeldern (fachneutral, 21.11.2026): HTML nach den Feldern, z. B. eine gemeinsame Taste; bei t.zeile rechts in der Zeile
 const zeileHTML = t => `<div class="answer zeile"><span class="zt">${t.zeile.vor||''}</span>${t.felder.map((f,i)=>`${i?`<span class="zt">${t.zeile.zwischen||''}</span>`:''}<span class="zf" role="group" aria-label="${esc(ohneTags(f.label))}">${
-  f.feldHTML?f.feldHTML('z'+i):`<input id="z${i}" class="zahl" data-feld inputmode="decimal" placeholder="?">`}</span>`).join('')}<span class="zt">${t.zeile.nach||''}</span></div>`;
+  f.feldHTML?f.feldHTML('z'+i):`<input id="z${i}" class="zahl" data-feld inputmode="decimal" placeholder="?">`}</span>`).join('')}<span class="zt">${t.zeile.nach||''}</span>${t.nachFeldern||''}</div>`;
 UR.formAnmelden('zahlen', {
   html: t => { const platz=t.felder.some(f=>f.einheit);
-    return `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off">${t.zeile?zeileHTML(t):t.felder.map((f,i)=>UR.zahlFeldHTML(f,i,platz)).join('')}${okKnopf}</form>`; },
+    return `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off">${t.zeile?zeileHTML(t)
+      :t.felder.map((f,i)=>UR.zahlFeldHTML(f,i,platz)).join('')+(t.nachFeldern?`<div class="answer">${t.nachFeldern}</div>`:'')}${okKnopf}</form>`; },
   bewerten(t,pre,raw){
     const erg=UR.zahlFelderBewerten(t.felder, Array.isArray(raw)?[...raw]:[raw], t);
     t.ergebnis=erg;
@@ -1663,7 +1667,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-21.5","datum":"21.11.2026","pruefsumme":"ed1b9651f36a18ad"};
+UR.version = {"nummer":"2026-11-21.7","datum":"21.11.2026","pruefsumme":"c77bc7736506e49e"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -3327,8 +3331,13 @@ function alsQ(x){ const s=String(rund(x)); if(!s.includes('.')) return [Number(s
 const vzTaste = id => `<button type="button" class="sign" data-vz="${id}" aria-label="${UR.TEXTE.minusSetzen}">${M}</button>`;
 // Zahl mit Vorzeichen; plus: positive Lösung mit „+“ zeigen. Ein „+“ beim Eintippen zählt wie ohne.
 const vzFeldHTML = id => `${vzTaste(id)}<input id="${id}" class="zahl" data-feld inputmode="decimal" placeholder="?">`;
-const vzFeld = (label, ans, o={}) => ({label, ans, ansText:Z(ans,o.plus), eingabe:String(rund(ans)).replace('.',','), feldHTML:vzFeldHTML, lesen:UR.leseZahl,
+const vzFeld = (label, ans, o={}) => ({label, ans, ansText:Z(ans,o.plus), eingabe:String(rund(ans)).replace('.',','), feldHTML:o.ohneTaste?nurFeldHTML:vzFeldHTML, lesen:UR.leseZahl,
   auch:o.auch, einheit:o.einheit});
+// Koordinaten (G3, Lehrkraft 21.11.2026): Felder ohne eigene Taste und EINE Minus-Taste rechts daneben (t.nachFeldern).
+// Sie setzt bzw. nimmt das Minus im Feld, in dem zuletzt getippt wurde (am Anfang das erste). So sieht kein Feld aus,
+// als stünde schon ein Minus davor.
+const nurFeldHTML = id => `<input id="${id}" class="zahl" data-feld inputmode="decimal" placeholder="?">`;
+const minusTaste = () => `<button type="button" class="sign minus-taste" data-vz-fokus aria-label="${UR.TEXTE.minusSetzen}">${M}</button>`;
 
 // gemischte Zahl: id_g (Ganze), id_z, id_n (Bruch); das versteckte Feld bekommt „[-]Ganze Zähler/Nenner“
 const mischFeldHTML = id => `<div class="mfeld">${vzTaste(id)}<input id="${id}_g" class="term ganze" data-mteil="${id}" inputmode="numeric" placeholder="Ganze" aria-label="Ganze">
@@ -3391,10 +3400,20 @@ UR.bindungen.push(app=>{ if(!app.querySelectorAll) return;   // Testumgebung ohn
   // Vorzeichen-Taste bei einem einfachen Zahlfeld: Minus davor setzen oder wegnehmen
   app.querySelectorAll('[data-vz]').forEach(b=>{ const inp=document.getElementById(b.dataset.vz); if(!inp||inp.type==='hidden') return;
     b.addEventListener('click',()=>{ const s=inp.value.trim(); inp.value=s.startsWith('-')||s.startsWith(M)?s.slice(1):'-'+s.replace(/^\+/,''); inp.focus(); }); });
+  // gemeinsame Minus-Taste: wirkt auf das Feld, in dem zuletzt getippt wurde (das Tippen auf die Taste nimmt den Fokus weg)
+  app.querySelectorAll('[data-vz-fokus]').forEach(b=>{ const form=b.closest('form'); if(!form) return;
+    const felder=[...form.querySelectorAll('input.zahl[data-feld]')]; if(!felder.length) return;
+    let letztes=felder[0];
+    // Felder untereinander (Einstieg): die Taste steht rechts neben dem Feld, in dem gerade getippt wird
+    const wandert=!b.closest('.zeile');
+    if(wandert){ const leer=b.parentNode; felder[0].after(b); if(leer&&leer!==form&&!leer.children.length) leer.remove(); }
+    felder.forEach(f=>f.addEventListener('focus',()=>{ letztes=f; if(wandert&&f.nextElementSibling!==b) f.after(b); }));
+    b.addEventListener('pointerdown',e=>e.preventDefault());   // Fokus bleibt im Feld, die Tastatur am Handy bleibt offen
+    b.addEventListener('click',()=>{ const s=letztes.value.trim(); letztes.value=s.startsWith('-')||s.startsWith(M)?s.slice(1):'-'+s.replace(/^\+/,''); letztes.focus(); }); });
 });
 
 UR.raza = {ggT, Q, qadd, qsub, qmul, qdiv, qvgl, qwert, rund, alsQ, Z, br, gemHTML, gemText, NB,
-  vzFeld, vzFeldHTML, mischFeld, mischFeldHTML, leseMisch, mischTeile, formHinweis};
+  vzFeld, vzFeldHTML, nurFeldHTML, minusTaste, mischFeld, mischFeldHTML, leseMisch, mischTeile, formHinweis};
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -3485,6 +3504,9 @@ function ksSVG(o={}){
   s+=`<text class="ks-aname" x="${W-4}" y="${Y0+20}" text-anchor="end" fill="${fx}">x</text><text class="ks-aname" x="4" y="${Y0+20}" text-anchor="start" fill="${fx}">${M}x</text>
     <text class="ks-aname" x="${X0+10}" y="15" text-anchor="start" fill="${fy}">y</text><text class="ks-aname" x="${X0+10}" y="${H-4}" text-anchor="start" fill="${fy}">${M}y</text>`;
   P.belegt.push({x:W-18, y:Y0+5, w:16, h:18}, {x:2, y:Y0+5, w:24, h:18}, {x:X0+8, y:0, w:16, h:18}, {x:X0+8, y:H-20, w:24, h:18});
+  // Striche auf den Achsen bei jeder ganzen Zahl, wie die Kinder sie selbst zeichnen (Lehrkraft, 21.11.2026)
+  for(let v=min; v<=max; v++){ if(v===0) continue;
+    s+=`<line class="ks-strich" x1="${px(v)}" x2="${px(v)}" y1="${Y0-4}" y2="${Y0+4}"/><line class="ks-strich" x1="${X0-4}" x2="${X0+4}" y1="${py(v)}" y2="${py(v)}"/>`; }
   // Zahlen an den Achsen (Platz wird belegt, damit Namen ausweichen)
   for(let v=min; v<=max; v++){ if(v===0) continue;
     s+=`<text class="ks-zahl" data-achse="x" x="${px(v)}" y="${Y0+15}" text-anchor="middle" ${halo}>${ZV(v)}</text>`;
@@ -4029,7 +4051,8 @@ const koordHinweis = (x,y) => erg => {
   if(v.every((w,i)=>w!==null&&Math.abs(w)===Math.abs([x,y][i]))) return 'Achte auf die Vorzeichen: rechts und oben +, links und unten −.';
   return '';
 };
-const koordFelder = (x,y) => [vzFeld('x-Koordinate', x), vzFeld('y-Koordinate', y)];
+// Koordinaten-Felder ohne eigene Taste, dafür EINE Minus-Taste rechts daneben (Lehrkraft, 21.11.2026)
+const koordFelder = (x,y) => [vzFeld('x-Koordinate', x, {ohneTaste:true}), vzFeld('y-Koordinate', y, {ohneTaste:true})];
 // Eingabe in einer Zeile wie im Heft: P( x | y ), links x, rechts y
 const punktZeile = n => ({vor:`${n}(`, zwischen:'|', nach:')'});
 const ansHTML = (n,x,y) => `${n}(${Z(x)}|${Z(y)})`;
@@ -4119,7 +4142,7 @@ const typen = {
       // Einstieg: x- und y-Koordinate getrennt; danach und im Check wie im Heft: P( … | … ) (Lehrkraft, 21.11.2026)
       zeile: leicht ? undefined : punktZeile(p.name),
       lead: leicht ? merk(`${ZUERST} Folge dem Weg im Bild.`) : '', papierLead:'Lies die Koordinaten ab!', bild, loesungBild, punkt:p,
-      felder:koordFelder(x,y).map((f,i)=>Object.assign(f,{ansHTML:i?Z(y):Z(x)})), hinweisNach:koordHinweis(x,y),
+      felder:koordFelder(x,y).map((f,i)=>Object.assign(f,{ansHTML:i?Z(y):Z(x)})), nachFeldern:UR.raza.minusTaste(), hinweisNach:koordHinweis(x,y),
       why:`${WEG(x,y)} Also ${ansHTML(p.name,x,y)}. ${ZUERST}`, steps:pkt(p.name,x,y)});
   },
   // G3-A03 In welchem Quadranten liegt der Punkt? (ohne Bild; nie auf einer Achse)
@@ -4195,7 +4218,7 @@ const typen = {
     const bild=ksSVG({punkte:[{x,y,name:n}], spiegel:art==='beide'?undefined:art, halb:x%1!==0||y%1!==0});
     return aufg({kind:'zahlen', q:`Spiegle ${pkt(n,x,y)} ${text}! Gib die Koordinaten des Bildpunkts ${n}′ an.`, qh:`Spiegle <b>${pkt(n,x,y)}</b> ${text}! Gib die Koordinaten des Bildpunkts <b>${n}′</b> an.`,
       art, punkt:{x,y,name:n}, bild,
-      zeile:punktZeile(n+'′'), felder:koordFelder(sx,sy).map((f,i)=>Object.assign(f,{ansHTML:i?Z(sy):Z(sx)})), hinweisNach:koordHinweis(sx,sy),
+      zeile:punktZeile(n+'′'), felder:koordFelder(sx,sy).map((f,i)=>Object.assign(f,{ansHTML:i?Z(sy):Z(sx)})), nachFeldern:UR.raza.minusTaste(), hinweisNach:koordHinweis(sx,sy),
       loesungBild:ksSVG({punkte:[{x,y,name:n},{x:sx,y:sy,name:n+'′',farbe:'var(--g)'}], spiegel:art==='beide'?undefined:art, verbindung:[[x,y,sx,sy]], halb:x%1!==0||y%1!==0}),
       why:`${regel} ${pkt(n,x,y)} → ${pkt(n+'′',sx,sy)}`, steps:pkt(n+'′',sx,sy)});
   },
@@ -4206,7 +4229,7 @@ const typen = {
     const geg=[0,1,2,3].filter(i=>i!==fehlt), [fx,fy]=P[fehlt];
     return aufg({kind:'zahlen', q:`${geg.map(i=>pkt(N[i],...P[i])).join(', ')} sind Eckpunkte des Rechtecks ABCD. Die Seiten sind parallel zu den Achsen. Gib ${N[fehlt]} an!`,
       qh:`${geg.map(i=>`<span class="nw">${pkt(N[i],...P[i])}</span>`).join(', ')} sind Eckpunkte des Rechtecks ABCD. Die Seiten sind parallel zu den Achsen. Gib <b>${N[fehlt]}</b> an!`,
-      ecken:P, fehlt, zeile:punktZeile(N[fehlt]), felder:koordFelder(fx,fy).map((f,i)=>Object.assign(f,{ansHTML:i?Z(fy):Z(fx)})), hinweisNach:koordHinweis(fx,fy),
+      ecken:P, fehlt, zeile:punktZeile(N[fehlt]), felder:koordFelder(fx,fy).map((f,i)=>Object.assign(f,{ansHTML:i?Z(fy):Z(fx)})), nachFeldern:UR.raza.minusTaste(), hinweisNach:koordHinweis(fx,fy),
       loesungBild:ksSVG({punkte:P.map(([x,y],i)=>({x,y,name:N[i],farbe:i===fehlt?'var(--g)':undefined})), figur:P}),
       why:`Zwei Ecken haben dasselbe x, zwei dasselbe y. ${N[fehlt]} hat das x von ${N[geg.find(i=>P[i][0]===fx)]} und das y von ${N[geg.find(i=>P[i][1]===fy)]}: ${pkt(N[fehlt],fx,fy)}.`, steps:pkt(N[fehlt],fx,fy)});
   },
