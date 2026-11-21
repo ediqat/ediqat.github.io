@@ -662,7 +662,7 @@ UR.umbruchSetzen = el => { if(!el.querySelectorAll) return;
 /* Einheiten (Lehrkraft 20.11.2026): Eine dazugeschriebene Einheit zählt („43 %“, „7,20 €“, „4,2cm“, „90°“). Eine
    Wo die Einheit ausdrücklich gefragt ist (Einheiten-Tasten), ist eine fehlende Einheit falsch, mit Hinweis. Steht die
    Einheit fest neben dem Feld, genügt die Zahl („43“ bei „… %“). */
-const EINHEIT_RE = /^(.*?[0-9̇])\s*(%|‰|€|°C|°|[A-Za-zÄÖÜäöüß*]{1,16}[²³]?)\s*$/;
+const EINHEIT_RE = /^(.*?[0-9̇])\s*(%|‰|€|°C|°|[A-Za-zÄÖÜäöüß*]{1,16}\.?[²³]?)\s*$/;   // auch Abkürzungen mit Punkt (Mio., Mrd.)
 UR.einheitAbtrennen = raw => { const s=String(raw??'').trim(), m=s.match(EINHEIT_RE); return m ? {rest:m[1].trim(), e:m[2]} : {rest:s, e:''}; };
 UR.leseZahlEinheit = raw => { const {rest,e}=UR.einheitAbtrennen(raw); return {v:UR.leseZahl(rest), e}; };
 UR.einheitGleich = (a,b) => String(a??'').replace(/\s/g,'')===String(b??'').replace(/\s/g,'');
@@ -670,6 +670,31 @@ UR.lvlChip = l => `<span class="chip ${l==='G'?'cg':l==='V'?'cv':'cx'}">${l}</sp
 UR.leseZahl = raw => {
   const s=String(raw||'').trim().replace(/−|–/g,'-').replace(/\s/g,'').replace('+','').replace(',','.');   // Komma oder Punkt
   if(s==='')return null; const v=Number(s); return Number.isFinite(v)?v:NaN;
+};
+// geschriebene Nachkommastellen einer Eingabe (ohne Einheit)
+UR.nachkommaGeschrieben = raw => { const m=String(raw??'').trim().replace(/\s/g,'').match(/[.,](\d*)$/); return m?m[1].length:0; };
+// kaufmännisch auf n Nachkommastellen runden (ab 5 auf, negative Zahlen vom Betrag aus), Gleitkomma-Reste vorher weg
+UR.runde = (a,n) => { const P=10**n, x=Number((Math.abs(a)*P).toPrecision(12)); return Math.sign(a)*Math.floor(x+0.5)/P; };
+/* Zahlenantwort prüfen (fachneutral). roh = Eingabe ohne Einheit, v = gelesener Wert (oder umgerechnet), f = Feld:
+     f.ans, f.auch (weitere richtige Werte), dazu genau eine Regel:
+     f.tol > 0     Messwert: Abstand höchstens tol
+     f.stellen = n Stelle genannt: auf genau n Stellen gerundet, mehr geschriebene Stellen sind falsch
+     f.offen       offenes Ergebnis: exakter Wert oder Rundung auf 1 bis 3 Stellen (nicht auf Ganze)
+     sonst         nur der exakte Wert.
+   Ohne Angabe entscheidet das Fach (UR.fach.zahlFall(f, t) → 'offen' | 'exakt'), z. B. nach Größe und Sachaufgabe.
+   umgerechnet: Wert kommt aus einer anderen Einheit, die geschriebenen Stellen zählen dann nicht. */
+UR.zahlFall = (f,t) => (f.tol||0)>0 ? 'tol' : f.stellen!==undefined&&f.stellen!==null ? 'stellen' : f.offen ? 'offen'
+  : f.exakt||f.offen===false ? 'exakt' : (UR.fach.zahlFall&&UR.fach.zahlFall(f,t||{})) || 'exakt';
+UR.zahlPasst = (roh, v, f, t, umgerechnet) => {
+  if(v===null||v===undefined||Number.isNaN(v)) return false;
+  const gl=(x,a)=>Math.abs(x-a)<=1e-9*Math.max(1,Math.abs(a)), d=UR.nachkommaGeschrieben(roh), fall=UR.zahlFall(f,t);
+  return [f.ans,...(f.auch||[])].some(a=>{
+    if(fall==='tol') return Math.abs(v-a)<=f.tol+1e-9*Math.max(1,Math.abs(a));
+    if(fall==='stellen') return gl(v,UR.runde(a,f.stellen)) && (umgerechnet||d<=f.stellen);
+    if(fall==='offen'){ if(gl(v,a)) return true; if(umgerechnet) return [1,2,3].some(k=>gl(v,UR.runde(a,k)));
+      return d>=1&&d<=3&&gl(v,UR.runde(a,d)); }
+    return gl(v,a);
+  });
 };
 
 /* ---------- Bewertungssymbole wie im Infoportal ---------- */
@@ -836,7 +861,7 @@ UR.bindungen.push(app=>{ if(!app.querySelector) return;   // Testumgebung ohne D
 });
 
 /* ---------- 'zahlen' ---------- */
-// t.felder [{label, ans, tol, ansText, einheit (fest daneben), einheiten (Tasten), einheitAns, auch:[weitere richtige Werte]}]
+// t.felder [{label, ans, tol | stellen | offen | exakt (Regel: UR.zahlPasst), ansText, einheit (fest daneben), einheiten (Tasten), einheitAns, auch:[weitere richtige Werte]}]
 // Ein Fach kann je Feld eigene Eingabe und eigenes Lesen mitbringen (fachneutral, 20.11.2026):
 //   f.feldHTML(id) → HTML mit genau einem Element [data-feld] (z. B. Bruchfeld), f.lesen(roh) → Zahl, null (leer) oder NaN,
 //   f.formOk(roh) → false, wenn der Wert stimmt, die Form aber nicht (z. B. nicht gekürzt; Feld zählt dann als falsch).
@@ -849,13 +874,14 @@ UR.zahlFeldHTML = (f,i,platz) => `<label class="lbl" for="z${i}">${f.label}</lab
 // Einheit: gewählte Taste, sonst die dazugetippte. Bei Einheiten-Tasten ist sie gefragt: fehlt sie, ist das Feld falsch
 // (fehltEinheit → Hinweis). Steht die Einheit fest daneben, genügt die Zahl;
 // eine andere Einheit zählt nur richtig umgerechnet (Umrechnung liefert das Fach: UR.umrechner).
-UR.zahlFelderBewerten = (felder,l) => felder.map(f=>{
+UR.zahlFelderBewerten = (felder,l,t) => felder.map(f=>{
   const roh0=l.shift(), wahl=f.einheiten?(l.shift()||''):null, {rest:roh, e:getippt}=UR.einheitAbtrennen(roh0);
   const soll=f.einheiten?f.einheitAns:f.einheit, e=f.einheiten?(wahl||getippt):getippt;
   const v=f.lesen?f.lesen(roh):UR.leseZahl(roh);
-  const passt=w=>w!==null&&w!==undefined&&!Number.isNaN(w)&&[f.ans,...(f.auch||[])].some(a=>Math.abs(w-a)<=(f.tol||0)+1e-9*Math.max(1,Math.abs(a)));
+  const passt=(w,um)=>f.lesen ? w!==null&&w!==undefined&&!Number.isNaN(w)&&[f.ans,...(f.auch||[])].some(a=>Math.abs(w-a)<=(f.tol||0)+1e-9*Math.max(1,Math.abs(a)))
+    : UR.zahlPasst(roh,w,f,t,um);
   const andere=!!e&&!!soll&&!UR.einheitGleich(e,soll);
-  const um=andere&&UR.umrechner ? UR.umrechner(v,e,soll) : null, umOk=um!==null&&um!==undefined&&passt(um);
+  const um=andere&&UR.umrechner ? UR.umrechner(v,e,soll) : null, umOk=um!==null&&um!==undefined&&passt(um,true);
   const wertOk=passt(v)||umOk, formOk=!f.formOk||!wertOk||f.formOk(roh);
   return {roh:zahlText(roh), v, e:f.einheiten?e:getippt, wertOk, formOk, zahlOk:wertOk&&formOk, einheitOk:(!andere||umOk)&&!(f.einheiten&&!e),
     fehltEinheit:!!f.einheiten&&!e&&passt(v)};
@@ -869,7 +895,7 @@ UR.formAnmelden('zahlen', {
   html: t => { const platz=t.felder.some(f=>f.einheit);
     return `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off">${t.felder.map((f,i)=>UR.zahlFeldHTML(f,i,platz)).join('')}${okKnopf}</form>`; },
   bewerten(t,pre,raw){
-    const erg=UR.zahlFelderBewerten(t.felder, Array.isArray(raw)?[...raw]:[raw]);
+    const erg=UR.zahlFelderBewerten(t.felder, Array.isArray(raw)?[...raw]:[raw], t);
     t.ergebnis=erg;
     t.hinweis = t.hinweisNach ? t.hinweisNach(erg) : (erg.every(x=>x.zahlOk)&&erg.some(x=>!x.einheitOk&&!x.fehltEinheit) ? T.einheitFalsch : '');
     // optional: Felder hängen zusammen (z. B. Probe mit dem eigenen Ergebnis); t.zusammen(erg) → true/false
@@ -1489,6 +1515,9 @@ UR.fachAnmelden({
   webseite: 'https://ediqat.github.io/mathe/uebungsraum/',   // Downloadseite (öffentlich, seit 20.11.2026 Unterordner)
   versionsdatei: 'https://ediqat.github.io/mathe/version.json',   // fest: so fragen auch ältere Fassungen ab
   minusTaste: true,          // eigene Taste für − (die Zahlentastatur am Handy hat keine)
+  // Zahlenantworten (LEITFADEN „Antwortprüfung und Vielfalt“): ohne genannte Stelle gilt bei echten Größen (Einheit
+  // oder Sachaufgabe) Fall B, offenes Ergebnis; reine Rechnungen nur exakt. Stelle genannt: Feld mit stellen: n.
+  zahlFall: (f,t) => f.einheit||f.einheiten||f.einheitAns||t.text||t.unit ? 'offen' : 'exakt',
   themen: [
     {kuerzel:'RaZa', name:'Rationale Zahlen', gruppe:'1. GKÜ', nummer:'1.1', stufen:'7-8', kompetenzen:[
       {id:'M-RaZa-G1', lvl:'G', text:'Ich kenne wichtige Begriffe und Eigenschaften betreffend Rationale Zahlen und kann sie erklären.'},
@@ -1622,7 +1651,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-20.88","datum":"20.11.2026","pruefsumme":"23d7bdaa47e135c5"};
+UR.version = {"nummer":"2026-11-21.2","datum":"21.11.2026","pruefsumme":"5b4aedad16911b63"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -2688,7 +2717,7 @@ function feld1(t){
 const ohneTags = h => String(h).replace(/<[^>]+>/g,'');
 // Schritt 2 als Liste von Feldern: Zahl (mit fester Einheit oder Einheiten-Tasten) oder Auswahl
 const felder2 = t => t.s2.felder || (t.s2.art==='wahl' ? [{wahl:t.s2.wahl, ans:t.s2.ans, klasse:t.s2.klasse}]
-  : [{ans:t.s2.ans, tol:t.s2.tol, auch:t.s2.auch, einheit:t.s2.einheit, einheitAns:t.s2.einheitAns}]);
+  : [{ans:t.s2.ans, tol:t.s2.tol, stellen:t.s2.stellen, offen:t.s2.offen, exakt:t.s2.exakt, auch:t.s2.auch, einheit:t.s2.einheit, einheitAns:t.s2.einheitAns}]);
 const feld2 = t => felder2(t).map((f,i)=>`${f.label?`<p class="lbl">${f.label}</p>`:''}${f.wahl
   ? `${UR.wahlFeld('s2w'+i)}${UR.wahlGruppe('s2w'+i,f.wahl,{klasse:f.klasse||'drei'})}`
   : `<div class="answer"><input class="zahl" data-feld inputmode="decimal" placeholder="?" aria-label="${esc(ohneTags(f.label||T.deineAntwort))}">${f.einheit?`<span class="einheit">${f.einheit}</span>`:''}</div>${
@@ -2696,7 +2725,9 @@ const feld2 = t => felder2(t).map((f,i)=>`${f.label?`<p class="lbl">${f.label}</
 function s1Ok(t,roh){
   const s=t.s1;
   if(s.art==='wahl') return roh===s.ans;
-  if(s.art==='zahl'){ const v=UR.leseZahlEinheit(roh).v; return v!==null&&!Number.isNaN(v)&&Math.abs(v-s.wert)<=(s.tol||0)+1e-9; }
+  // Zahl: gemeinsame Regel (UR.zahlPasst, s.stellen | s.offen | s.exakt | s.tol), Einheit fest daneben
+  if(s.art==='zahl'){ const {rest, e}=UR.einheitAbtrennen(roh);
+    return UR.zahlPasst(rest, UR.leseZahl(rest), {ans:s.wert, tol:s.tol, stellen:s.stellen, offen:s.offen, exakt:s.exakt, einheit:s.einheit}, t); }
   // zahlen: erlaubte Zahlensätze (z. B. alle in mm oder alle in cm), wertJe: Ergebnis je Satz (sonst wert)
   const r=liesRechnung(roh); return !!r&&s.zahlen.some((z,i)=>gleicheZahlen(z,r.zahlen)&&Math.abs(r.wert-((s.wertJe||[])[i]??s.wert))<1e-9);
 }
@@ -2722,8 +2753,9 @@ UR.formAnmelden('schritte', {
       // Einheit: gewählte Taste oder dazugetippt (Lehrkraft 20.11.2026); bei Einheiten-Tasten ist sie gefragt, fehlt sie, ist es falsch
       const roh0=l.shift(), {rest:roh, e:getippt}=UR.einheitAbtrennen(roh0), v=UR.leseZahl(roh), wahl=f.einheit?'':(l.shift()||'');
       const e = f.einheit ? (getippt||f.einheitAns) : (wahl||getippt||'');
-      const passt = w => w!==null&&!Number.isNaN(w)&&[f.ans,...(f.auch||[])].some(a=>Math.abs(w-a)<=(f.tol||0)+1e-9*Math.max(1,Math.abs(a)));
-      const um = !f.einheit&&e&&e!==f.einheitAns ? inEinheit(v,e,f.einheitAns) : null, umOk = um!==null&&passt(um);
+      // Zahl: gemeinsame Regel (UR.zahlPasst, LEITFADEN „Antwortprüfung und Vielfalt“)
+      const passt = (w,umg) => UR.zahlPasst(roh, w, f, t, umg);
+      const um = !f.einheit&&e&&e!==f.einheitAns ? inEinheit(v,e,f.einheitAns) : null, umOk = um!==null&&passt(um,true);
       const fehlt = !e&&passt(v), zahlOk = passt(v)||umOk, einheitOk = UR.einheitGleich(e,f.einheitAns)||umOk;
       return {f, v, e, zahlOk, einheitOk, fehlt, ok:zahlOk&&einheitOk, text:`${String(roh??'').trim()||'?'}${e?' '+e:''}`};
     });
@@ -2945,9 +2977,9 @@ UR.formAnmelden('zweischritt', {
   },
   bewerten(t,pre,raw,self){
     const l=Array.isArray(raw)?[...raw]:[raw];
-    const e1 = self ? UR.zahlFelderBewerten(t.s1.felder,l) : null;
+    const e1 = self ? UR.zahlFelderBewerten(t.s1.felder,l,t) : null;
     const preOk = self ? e1.every(x=>x.zahlOk&&x.einheitOk) : pre===t.pre.ans;
-    const e2 = UR.zahlFelderBewerten(t.s2.felder,l), valOk=e2.every(x=>x.zahlOk&&x.einheitOk);
+    const e2 = UR.zahlFelderBewerten(t.s2.felder,l,t), valOk=e2.every(x=>x.zahlOk&&x.einheitOk);
     t.hinweis = t.hinweisNach ? t.hinweisNach(e1, e2) : '';
     const txt = e => e.map(x=>x.roh||'?').join(', ');
     const s1Text = self ? txt(e1) : ohneTags((t.pre.optionen.find(o=>o[0]===pre)||[,pre||'?'])[1]);
@@ -3122,7 +3154,8 @@ UR.formAnmelden('schluss', {
         t.formelFalsch = !ok1 && satz===soll;
       } else {
         const zw=UR.einheitAbtrennen(d1), zwE=einheitNach(t,r.zw.seite);
-        ok1 = nahe(r.zw.bruch ? leseBruch(zw.rest) : UR.leseZahl(zw.rest), r.zw.wert) && (!zw.e||!zwE||UR.einheitGleich(zw.e,zwE));
+        // Zeile mit 1 %: Zwischenergebnis, nur exakt (LEITFADEN, Antwortprüfung)
+        ok1 = (r.zw.bruch ? nahe(leseBruch(zw.rest), r.zw.wert) : UR.zahlPasst(zw.rest, UR.leseZahl(zw.rest), {ans:r.zw.wert, exakt:true}, t)) && (!zw.e||!zwE||UR.einheitGleich(zw.e,zwE));
         s1Text=txt(d1).replace('/',' : '); roh2=d2; t.formelFalsch=false;
       }
     } else {
@@ -3130,11 +3163,13 @@ UR.formAnmelden('schluss', {
       s1Text = ohneTags((t.wahl[modus].find(o=>o[0]===pre)||[,'?'])[1]).replace(/\s+/g,' '); roh2=l[0]; t.formelFalsch=false;
     }
     // eine dazugetippte Einheit zählt, wenn sie passt (Lehrkraft 20.11.2026)
-    const {v, e:e2}=UR.leseZahlEinheit(roh2), eSoll=modus==='f'?ergEinheit(t):einheitNach(t,r.erg.seite);
-    const eOk=!e2||!eSoll||UR.einheitGleich(e2,eSoll), valOk=nahe(v, r.erg.wert)&&eOk;
+    // Ergebnis: Regel des Fachs (Sachaufgabe → offenes Ergebnis, LEITFADEN „Antwortprüfung und Vielfalt“), t.ergFeld kann sie festlegen
+    const {rest:roh2z, e:e2}=UR.einheitAbtrennen(roh2), v=UR.leseZahl(roh2z), eSoll=modus==='f'?ergEinheit(t):einheitNach(t,r.erg.seite);
+    const wertOk=UR.zahlPasst(roh2z, v, Object.assign({ans:r.erg.wert, einheit:eSoll||undefined}, t.ergFeld), t);
+    const eOk=!e2||!eSoll||UR.einheitGleich(e2,eSoll), valOk=wertOk&&eOk;
     t.modusLetzt = modus;
     const typisch = !valOk ? r.falsch.find(([w])=>nahe(v,w)) : null;
-    t.hinweis = nahe(v, r.erg.wert)&&!eOk ? T.einheitPasstNicht(eSoll) : typisch ? typisch[1] : t.formelFalsch ? `Die Zahlen stimmen, stehen aber an der falschen Stelle. Die Formel heißt ${r.allg}.` : '';
+    t.hinweis = wertOk&&!eOk ? T.einheitPasstNicht(eSoll) : typisch ? typisch[1] : t.formelFalsch ? `Die Zahlen stimmen, stehen aber an der falschen Stelle. Die Formel heißt ${r.allg}.` : '';
     const [soll1, soll2] = UR.formen.schluss.loesung(t).split(' | ');
     return {ok:ok1&&valOk, preOk:ok1, valOk, shown:`${s1Text} | ${txt(roh2)}`,
       stuecke:[{text:s1Text, ok:ok1, soll:soll2===undefined?'':soll1}, {text:txt(roh2), ok:valOk, soll:soll2===undefined?soll1:soll2}]};
@@ -5725,7 +5760,7 @@ const erklaerung = {
   }
 };
 
-UR.kompetenzAnmelden({id:'M-Drei-G1', typen, stationen, kern, leicht, plus, plusHint, erklaerung});
+UR.kompetenzAnmelden({id:'M-Drei-G1', typen, stationen, kern, leicht, plus, plusHint, erklaerung, festeAuswahl:['begriffe_luecke','memory','winkel_puzzle']});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -5985,8 +6020,8 @@ const typen = {
       <text class="dr-t klein" style="text-anchor:start" x="${rund(innen?W/2+5:W+6,1)}" y="${rund(innen?Hd*.68+5:Math.max(Hd/2+5,10),1)}">${D(hd)} m</text></svg>`;
     return aufg({kind:'zahlen', q:`Hauswand ${D(w)} m breit und ${D(hr)} m hoch, darüber ein Giebeldreieck mit ${D(hd)} m Höhe. Wie groß ist die Wandfläche?`, text:true,
       bild:svg.replace(/\s+/g,' '), daten:{w,hr,hd}, pruef:'giebel',
-      felder:[{label:'Rechteck', ans:R, einheit:'m²', ansText:`${D(R)} m²`}, {label:'Dreieck', ans:Dr, tol:.0051, einheit:'m²', ansText:`${D(Dr)} m²`},
-        {label:'Wand gesamt (auf eine Nachkommastelle gerundet)', ans:rund(G,1), auch:[G], einheit:'m²', ansText:`${D(rund(G,1))} m²`}],
+      felder:[{label:'Rechteck', ans:R, einheit:'m²', ansText:`${D(R)} m²`}, {label:'Dreieck', ans:Dr, einheit:'m²', ansText:`${D(Dr)} m²`},
+        {label:'Wand gesamt (auf eine Nachkommastelle gerundet)', ans:rund(G,1), stellen:1, einheit:'m²', ansText:`${D(rund(G,1))} m²`}],
       why:'Gesamtfläche = Rechteck + Dreieck; Dreieck = Grundseite · Höhe : 2.', steps:`${D(w)} · ${D(hr)} = ${D(R)}, ${D(w)} · ${D(hd)} : 2 = ${D(Dr)}, ${D(R)} + ${D(Dr)} = ${D(G)} ≈ ${D(rund(G,1))} m²`});
   },
   // G2-N05 (Plus) Fehler finden: richtiges Ergebnis mit Einheit eintippen
@@ -6437,7 +6472,7 @@ const typen = {
       lead:ctx&&ctx.einstieg?merk(`Die Höhe teilt c in zwei gleiche Teile. Im rechtwinkeligen Teildreieck gilt ${hc}² + (c : 2)² = a².`):'',
       bild:isoBild(c,h,{seitenText:{a:`${D(a)} ${u}`, b:`${D(a)} ${u}`, c:`c = ${D(c)} ${u}`}}), pruef:'hoehe_gs',
       s1:{label:'Schritt 1: halbe Basis c : 2', kurz:'c : 2', art:'zahl', wert:half, einheit:u, ans:D(half), ansText:`c : 2 = ${D(half)} ${u}`},
-      s2:{label:`Schritt 2: Höhe ${hc} mit dem Satz des Pythagoras (zwei Nachkommastellen)`, ans:H, tol:.01, einheitAns:u, ansText:`${hc} ${ungefaehr(h,2)} ${D(H)} ${u}`,
+      s2:{label:`Schritt 2: Höhe ${hc} mit dem Satz des Pythagoras (zwei Nachkommastellen)`, ans:H, stellen:2, einheitAns:u, ansText:`${hc} ${ungefaehr(h,2)} ${D(H)} ${u}`,
         fehler:[[rund(q2,2),'Du hast die Wurzel vergessen.'],[rund(Math.sqrt(a*a+half*half),2),'Unter der Wurzel steht a² minus (c : 2)², nicht plus.'],
           ...(a>c?[[rund(Math.sqrt(a*a-c*c),2),'Nimm die halbe Basis c : 2, nicht c.']]:[])]},
       pre:{ans:D(half), optionen:vorschlag(u, half, c, 2*c)}, schritt:'Halbe Basis', alleinText:'Ab der nächsten Aufgabe rechnest du die halbe Basis selbst.',
@@ -6460,7 +6495,7 @@ const typen = {
       lead:ctx&&ctx.einstieg?merk('Die Höhe halbiert die Seite. Im Teildreieck gilt h² + (a : 2)² = a².'):'',
       bild:gleichseitigBild(a,u), pruef:'hoehe_gseitig',
       s1:{label:'Schritt 1: halbe Seite a : 2', kurz:'a : 2', art:'zahl', wert:half, einheit:u, ans:D(half), ansText:`a : 2 = ${D(half)} ${u}`},
-      s2:{label:'Schritt 2: Höhe h mit dem Satz des Pythagoras (zwei Nachkommastellen)', ans:H, tol:.01, einheitAns:u, ansText:`h ${ungefaehr(h,2)} ${D(H)} ${u}`,
+      s2:{label:'Schritt 2: Höhe h mit dem Satz des Pythagoras (zwei Nachkommastellen)', ans:H, stellen:2, einheitAns:u, ansText:`h ${ungefaehr(h,2)} ${D(H)} ${u}`,
         fehler:[[rund(q2,2),'Du hast die Wurzel vergessen.'],[rund(Math.sqrt(a*a+half*half),2),'Unter der Wurzel steht a² minus (a : 2)², nicht plus.']]},
       pre:{ans:D(half), optionen:vorschlag(u, half, a, 2*a)}, schritt:'Halbe Seite', alleinText:'Ab der nächsten Aufgabe rechnest du die halbe Seite selbst.',
       why:'Die Höhe halbiert die Seite a. Im rechtwinkeligen Teildreieck ist a die längste Seite und a : 2 eine Kathete: h = √(a² − (a : 2)²).',
@@ -6472,12 +6507,12 @@ const typen = {
     const [c,h]=Math.random()<.25 ? (([k,g])=>[2*k,g])(pick([[28,45],[3,4],[6,8],[9,12],[12,16],[5,12],[10,24],[8,15],[7,24],[20,21],[12,35],[15,20],[24,7],[15,8]]))
       : [zehntel(2,60), zehntel(2,60)];
     const a=Math.sqrt((c/2)**2+h*h), A=rund(c*h/2), U=2*a+c;
-    return aufg({kind:'zahlen', q:`Gleichschenkeliges Dreieck (a = b): c = ${D(c)} ${u}, h_c = ${D(h)} ${u}. Berechne a (eine Nachkommastelle), A und u.`,
-      qh:`Gleichschenkeliges Dreieck (a = b): c = ${D(c)} ${u}, ${hc} = ${D(h)} ${u}. Berechne a (eine Nachkommastelle), A und u.`, text:true,
+    return aufg({kind:'zahlen', q:`Gleichschenkeliges Dreieck (a = b): c = ${D(c)} ${u}, h_c = ${D(h)} ${u}. Berechne a, A und u.`,
+      qh:`Gleichschenkeliges Dreieck (a = b): c = ${D(c)} ${u}, ${hc} = ${D(h)} ${u}. Berechne a, A und u.`, text:true,
       bild:isoBild(c,h,{seitenText:{c:`c = ${D(c)} ${u}`}, htext:`${hc} = ${D(h)} ${u}`}), pruef:'mehrere',
-      felder:[laengenFeld('Schenkel a', a, u, {tol:.1, einheiten:EINHEITEN, ansText:`a ${ungefaehr(a,1)} ${D(rund(a,1))} ${u}`}),
+      felder:[laengenFeld('Schenkel a (eine Nachkommastelle)', a, u, {stellen:1, einheiten:EINHEITEN, ansText:`a ${ungefaehr(a,1)} ${D(rund(a,1))} ${u}`}),
         laengenFeld('Flächeninhalt A', A, u+'²', {einheiten:EINHEITEN, ansText:`A = ${D(A)} ${u}²`}),
-        laengenFeld('Umfang u', U, u, {tol:.1, auch:[rund(2*rund(a,1)+c)], einheiten:EINHEITEN, ansText:`u ${ungefaehr(U,1)} ${D(rund(U,1))} ${u}`})],
+        laengenFeld('Umfang u (eine Nachkommastelle)', U, u, {stellen:1, auch:[rund(2*rund(a,1)+c)], einheiten:EINHEITEN, ansText:`u ${ungefaehr(U,1)} ${D(rund(U,1))} ${u}`})],
       why:`a mit dem Satz des Pythagoras im Teildreieck: a = √((c : 2)² + ${hc}²). Fläche A = ${bruch(`c · ${hc}`,'2')}, Umfang u = 2 · a + c.`,
       stepsh:`a = √(${D(rund(c/2))}² + ${D(h)}²) = ${wurzel(D(rund((c/2)**2+h*h)))} ${ungefaehr(a,1)} ${D(rund(a,1))} ${u}<br>A = ${bruch(`${D(c)} · ${D(h)}`,'2')} = ${D(A)} ${u}²<br>u = 2 · ${D(rund(a,1))} + ${D(c)} ${ungefaehr(U,1)} ${D(rund(U,1))} ${u}`});
   },
@@ -6489,7 +6524,7 @@ const typen = {
       <line class="dr-hoehe" x1="${rund(W/2,1)}" y1="0" x2="${rund(W/2,1)}" y2="${rund(hh*K/1.2,1)}"/><circle class="dr-punkt" cx="${rund(W/2,1)}" cy="0" r="4"/>
       <text class="dr-t klein" x="${rund(W/2+30,1)}" y="${rund(hh*K/2.4+5,1)}">${hh} cm</text><text class="dr-t klein" x="${rund(W/2,1)}" y="${rund(hh*K/1.2+50,1)}">${ab} cm</text></svg>`;
     return aufg({kind:'zahlen', q:`Ein Bild hat oben zwei Ösen im Abstand von ${ab} cm. Die Schnur geht von Öse zu Öse über einen Haken, der genau über der Mitte ${hh} cm über der Oberkante des Bildes ist. Wie lang ist die Schnur? (eine Nachkommastelle)`, text:true,
-      bild:svg.replace(/\s+/g,' '), pruef:'bild', felder:[{label:'Länge der Schnur', ans:rund(L,6), tol:.1, einheit:'cm', ansText:`${ungefaehr(L,1)} ${D(rund(L,1))} cm`}],
+      bild:svg.replace(/\s+/g,' '), pruef:'bild', felder:[{label:'Länge der Schnur', ans:rund(L,6), stellen:1, einheit:'cm', ansText:`${ungefaehr(L,1)} ${D(rund(L,1))} cm`}],
       why:'Der Haken und die Mitte der Oberkante teilen das Schnur-Dreieck in zwei rechtwinkelige Teildreiecke. Eine Hälfte der Schnur ist die längste Seite: √((Abstand : 2)² + Höhe²). Die Schnur ist doppelt so lang.',
       stepsh:wurzelStrich(`${half}² + ${hh}² = ${half*half+hh*hh}, √${half*half+hh*hh} ${ungefaehr(s,2)} ${D(rund(s,2))} cm, Schnur = 2 · ${D(rund(s,2))} ${ungefaehr(L,1)} ${D(rund(L,1))} cm`)});
   },
@@ -6501,7 +6536,7 @@ const typen = {
       qh:`${anz(v.angabe)} ${name} rechnet:<ol class="kon-liste">${v.zeilen.map(z=>`<li>${anz(z)}</li>`).join('')}</ol>`, text:true, lead:'Hier steckt ein Fehler.',
       pruef:'fehler_rechenweg', zeilen:v.zeilen, angabe:v.angabe,
       s1:{label:'Schritt 1: In welcher Zeile ist der erste Fehler?', kurz:'Zeile', art:'wahl', wahl:opt, ans:String(v.i+1), ansText:`Zeile ${v.i+1}`},
-      s2:{label:'Schritt 2: Wie lautet das richtige Ergebnis dieser Zeile?', ans:rund(r,6), tol:v.tol||0, einheit:v.einheit[v.i], einheitAns:v.einheit[v.i], ansText:`${D(rund(r,2))}${v.einheit[v.i]==='°'?'°':' '+v.einheit[v.i]}`},
+      s2:{label:'Schritt 2: Wie lautet das richtige Ergebnis dieser Zeile?', ans:rund(r,6), stellen:v.stellen, einheit:v.einheit[v.i], einheitAns:v.einheit[v.i], ansText:`${D(rund(r,2))}${v.einheit[v.i]==='°'?'°':' '+v.einheit[v.i]}`},
       pre:{ans:String(v.i+1), optionen:opt}, schritt:'Zeile', why:`Fehler in Zeile ${v.i+1}: ${anz(v.warum)}`, stepsh:anz(v.weg)});
   },
   // V2-N03 (Plus) Dachgiebel
@@ -6514,7 +6549,7 @@ const typen = {
       <text class="dr-t klein" x="${rund(w*K/2,1)}" y="${rund(h*K+24,1)}">${D(w)} m</text><text class="dr-t klein" x="${rund(w*K/4-18,1)}" y="${rund(h*K/2,1)}">${D(s)} m</text>
       <text class="dr-t klein" x="${rund(w*K/2+14,1)}" y="${rund(h*K/2+20,1)}">h</text></svg>`;
     return aufg({kind:'zahlen', q:`Ein Dach ist ${D(w)} m breit (Spannweite), die schrägen Sparren sind ${D(s)} m lang. Wie hoch ist der Giebel? (eine Nachkommastelle)`, text:true,
-      bild:svg.replace(/\s+/g,' '), pruef:'dach', felder:[{label:'Höhe des Giebels', ans:rund(h,6), tol:.1, einheit:'m', ansText:`h ${ungefaehr(h,1)} ${D(rund(h,1))} m`}],
+      bild:svg.replace(/\s+/g,' '), pruef:'dach', felder:[{label:'Höhe des Giebels', ans:rund(h,6), stellen:1, einheit:'m', ansText:`h ${ungefaehr(h,1)} ${D(rund(h,1))} m`}],
       why:'Die Höhe teilt den Giebel in zwei rechtwinkelige Dreiecke. Der Sparren ist die längste Seite, die halbe Spannweite eine Kathete: h = √(Sparren² − (Spannweite : 2)²).',
       stepsh:wurzelStrich(`${D(w)} : 2 = ${D(w/2)}, h = √(${D(s)}² − ${D(w/2)}²) = √${D(rund(s*s-w*w/4))} ${ungefaehr(h,1)} ${D(rund(h,1))} m`)});
   }
@@ -6532,13 +6567,13 @@ function basisAufgabe(a,h,half,u,_,o){
   if(o) return aufg(Object.assign(basis,{q:`Gleichschenkeliges Dreieck: a = b = ${D(o.aM)} m, h_c = ${D(h)} dm. Berechne c in dm.`,
     qh:`Gleichschenkeliges Dreieck: a = b = ${D(o.aM)} m, ${hc} = ${D(h)} dm. Berechne c in dm.`,
     s1:{label:`Schritt 1: Rechne a = ${D(o.aM)} m in dm um.`, kurz:'a in dm', art:'zahl', wert:a, einheit:'dm', ans:D(a), ansText:`${D(o.aM)} m = ${D(a)} dm`},
-    s2:{label:'Schritt 2: Berechne c : 2 (zwei Nachkommastellen) und c (eine Nachkommastelle).', felder:[zahlFeld('c : 2 =', half, 'dm', {tol:.01}), laengenFeld('c =', c, 'dm', {tol:.1})],
+    s2:{label:'Schritt 2: Berechne c : 2 und c.', felder:[zahlFeld('c : 2 (zwei Nachkommastellen) =', half, 'dm', {stellen:2}), laengenFeld('c (eine Nachkommastelle) =', c, 'dm', {stellen:1, auch:[2*H2]})],
       ansText:`c : 2 ${ungefaehr(half,2)} ${D(H2)} dm, c ${ungefaehr(c,1)} ${D(rund(c,1))} dm`},
     pre:{ans:D(a), optionen:vorschlag('dm', a, o.aM*100, o.aM)}, schritt:'Umrechnen', alleinText:'Ab der nächsten Aufgabe rechnest du selbst um.'}));
   return aufg(Object.assign(basis,{q:`Gleichschenkeliges Dreieck: a = b = ${D(a)} ${u}, h_c = ${D(h)} ${u}. Berechne c (eine Nachkommastelle).`,
     qh:`Gleichschenkeliges Dreieck: a = b = ${D(a)} ${u}, ${hc} = ${D(h)} ${u}. Berechne c (eine Nachkommastelle).`,
-    s1:{label:`Schritt 1: c : 2 = √(a² − ${hc}²), auf zwei Nachkommastellen`, kurz:'c : 2', art:'zahl', wert:half, tol:.01, einheit:u, ans:D(H2), ansText:`c : 2 ${ungefaehr(half,2)} ${D(H2)} ${u}`},
-    s2:{label:'Schritt 2: c = 2 · (c : 2), mit Einheit', ans:rund(c,6), tol:.1, einheitAns:u, ansText:`c ${ungefaehr(c,1)} ${D(rund(c,1))} ${u}`, fehler:fehlerC},
+    s1:{label:`Schritt 1: c : 2 = √(a² − ${hc}²), auf zwei Nachkommastellen`, kurz:'c : 2', art:'zahl', wert:half, stellen:2, einheit:u, ans:D(H2), ansText:`c : 2 ${ungefaehr(half,2)} ${D(H2)} ${u}`},
+    s2:{label:'Schritt 2: c = 2 · (c : 2), mit Einheit', ans:rund(c,6), stellen:1, auch:[2*H2], einheitAns:u, ansText:`c ${ungefaehr(c,1)} ${D(rund(c,1))} ${u}`, fehler:fehlerC},
     pre:{ans:D(H2), optionen:vorschlag(u, H2, Math.sqrt(a*a+h*h), a-h)}, schritt:'c : 2', alleinText:'Ab der nächsten Aufgabe rechnest du c : 2 selbst.'}));
 }
 
@@ -6570,7 +6605,7 @@ const FEHLERWEGE = [
       warum:`α und β sind gleich groß und teilen sich ${180-g}°: ${180-g}° : 2 = ${(180-g)/2}°.`, weg:`α = β = ${180-g}° : 2 = ${(180-g)/2}°`}; },
   () => { const a=rnd(2,20), u=pick(['cm','dm']), q=a*a-a*a/4, h=Math.sqrt(q);                // gleichseitig: Wurzel vergessen
     return {angabe:`Gleichseitiges Dreieck: a = ${a} ${u}. Berechne h (zwei Nachkommastellen).`, zeilen:[`a : 2 = ${D(a/2)} ${u}`, `h² = ${a}² − ${D(a/2)}² = ${D(q)}`, `h = ${D(q)} ${u}`],
-      richtig:[a/2,q,h], i:2, tol:.01, einheit:[u,u+'²',u], warum:`h = √${D(q)} ≈ ${D(rund(h,2))}. Die Wurzel fehlt.`, weg:`h = √${D(q)} ≈ ${D(rund(h,2))} ${u}`}; }
+      richtig:[a/2,q,h], i:2, stellen:2, einheit:[u,u+'²',u], warum:`h = √${D(q)} ≈ ${D(rund(h,2))}. Die Wurzel fehlt.`, weg:`h = √${D(q)} ≈ ${D(rund(h,2))} ${u}`}; }
 ];
 
 /* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
@@ -6892,7 +6927,7 @@ const erklaerung = {
   }
 };
 
-UR.kompetenzAnmelden({id:'M-Drei-X1', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+UR.kompetenzAnmelden({id:'M-Drei-X1', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk, festeAuswahl:['eigenschaft','memory']});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -7059,7 +7094,7 @@ const typen = {
     const halb=bruch('a','2');
     return aufgW({kind:'zahlen', q:`Gleichseitiges Dreieck: a = ${D(a)} ${u}. Berechne die Höhe h mit der Formel und mach die Probe mit dem Satz des Pythagoras.`, text:true,
       lead:`Formel: h = ${halb} · √3. Probe: h² + (${halb})² muss ungefähr a² ergeben.`, bild:BILD.gs(), pruef:'x2_anwenden', a, u,
-      felder:[{label:'h (auf zwei Nachkommastellen)', ans:rund(h,6), tol:.01, einheiten:EINHEITEN, einheitAns:u, ansText:`h ≈ ${Df(H,2)} ${u}`},
+      felder:[{label:'h (auf zwei Nachkommastellen)', ans:rund(h,6), stellen:2, einheiten:EINHEITEN, einheitAns:u, ansText:`h ≈ ${Df(H,2)} ${u}`},
               {label:`Probe mit deinem h: h² + (${halb})² =`, ans:rund(a*a,6), tol:.3, einheit:`${u}²`, ansText:`${Df(H,2)}² + ${D(a/2)}² ≈ ${D(rund(H*H+a*a/4,2))} ${u}² (a² = ${D(rund(a*a,4))} ${u}²)`}],
       // die Probe muss zum eigenen h passen (gerechnet mit dem eingetippten h, in der Einheit der Angabe)
       zusammen:erg=>{ const v=erg[0].e&&erg[0].e!==u?UR.umrechner(erg[0].v,erg[0].e,u):erg[0].v; return v!==null&&erg[1].v!==null&&Math.abs(erg[1].v-(v*v+a*a/4))<=.06; },
@@ -7071,7 +7106,7 @@ const typen = {
     const a=lang(ctx)?zehntel(2,20):rnd(2,20), u=pick(['cm','cm','m','dm']), A=a*a/4*Math.sqrt(3);
     return aufgW({kind:'zahlen', q:`Gleichseitiges Dreieck: a = ${D(a)} ${u}. Berechne die Fläche A (auf zwei Nachkommastellen).`, text:true,
       lead:`Formel: A = ${bruch('a²','4')} · √3`, bild:BILD.gs(), pruef:'x2_flaeche', a, u,
-      felder:[{label:'A', ans:rund(A,6), tol:.01, einheiten:EINHEITEN, einheitAns:`${u}²`, ansText:`A ≈ ${Df(A,2)} ${u}²`}],
+      felder:[{label:'A', ans:rund(A,6), stellen:2, einheiten:EINHEITEN, einheitAns:`${u}²`, ansText:`A ≈ ${Df(A,2)} ${u}²`}],
       why:`Die Formel kommt aus A = ${bruch('a · h','2')} mit h = ${bruch('a','2')} · √3. Hier: A = ${bruch(`${D(a)}²`,'4')} · √3 = ${D(rund(a*a/4,6))} · √3 ≈ ${Df(A,2)} ${u}².`});
   },
   // X2-N01 (Kern) Seitenlänge aus der Höhe
@@ -7079,7 +7114,7 @@ const typen = {
     const h=rnd(2,20), u=pick(['cm','cm','m','dm']), a=2*h/Math.sqrt(3);
     return aufgW({kind:'zahlen', q:`Ein gleichseitiges Dreieck hat die Höhe h = ${h} ${u}. Berechne die Seitenlänge a (auf zwei Nachkommastellen).`, text:true,
       lead:`Forme h = ${bruch('a','2')} · √3 nach a um.`, bild:BILD.gs(), pruef:'x2_seite', h, u,
-      felder:[{label:'a', ans:rund(a,6), tol:.01, einheiten:EINHEITEN, einheitAns:u, ansText:`a ≈ ${Df(a,2)} ${u}`}],
+      felder:[{label:'a', ans:rund(a,6), stellen:2, einheiten:EINHEITEN, einheitAns:u, ansText:`a ≈ ${Df(a,2)} ${u}`}],
       why:`Aus h = ${bruch('a','2')} · √3 folgt a = ${bruch('2 · h','√3')} = ${bruch(`2 · ${h}`,'√3')} ≈ ${Df(a,2)} ${u}. Probe: ${Df(a,2)} : 2 · √3 ≈ ${D(rund(rund(a,2)/2*Math.sqrt(3),2))} ${u}.`});
   },
   // X2-A05 Begründung wählen
@@ -7149,7 +7184,7 @@ const erklaerung = {
   }
 };
 
-UR.kompetenzAnmelden({id:'M-Drei-X2', typen, stationen, kern, leicht, plus, plusHint, erklaerung});
+UR.kompetenzAnmelden({id:'M-Drei-X2', typen, stationen, kern, leicht, plus, plusHint, erklaerung, festeAuswahl:['herleitung_ordnen','begruendung','herleiten_frei']});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -7360,7 +7395,7 @@ const erklaerung = {
 };
 
 const lzk = {merkmal:{absolut_relativ:'absolut_relativ', gpw_satz:'gpw', gpw_ablesen:'gpw', begriffe_verbinden:'begriffe'}};
-UR.kompetenzAnmelden({id:'M-Proz-G1', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+UR.kompetenzAnmelden({id:'M-Proz-G1', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk, festeAuswahl:['absolut_relativ','begriffe_verbinden']});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -7560,7 +7595,7 @@ const erklaerung = {
 
 const lzk = {merkmal:{anteil_bild:'anteil_bild', anteil_bemalen:'anteil_bild', tabelle:'tabelle', memory:'tabelle', proz_dezimal:'proz_dezimal',
   proz_bruch:'proz_bruch', bruch_proz:'proz_bruch'}};
-UR.kompetenzAnmelden({id:'M-Proz-G2', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+UR.kompetenzAnmelden({id:'M-Proz-G2', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk, festeAuswahl:['memory']});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -7805,7 +7840,7 @@ const erklaerung = {
 };
 
 const lzk = {merkmal:{kopf1:'kopf', kopf_mehr:'kopf', prozentwert:'prozentwert', prozentsatz:'prozentsatz', grundwert:'grundwert', sach:'sach'}};
-UR.kompetenzAnmelden({id:'M-Proz-G3', typen, stationen, kern, plus, plusHint, erklaerung, lzk});
+UR.kompetenzAnmelden({id:'M-Proz-G3', typen, stationen, kern, plus, plusHint, erklaerung, lzk, festeAuswahl:['formel_bauen']});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -7971,7 +8006,7 @@ const erklaerung = {
 };
 
 const lzk = {merkmal:{regeln:'regeln_streifen', laengen:'laengen_streifen', rest:'rest', ablesen:'ablesen_streifen', waehlen:'waehlen_streifen', zeichnen_streifen:'zeichnen'}};
-UR.kompetenzAnmelden({id:'M-Proz-G4', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+UR.kompetenzAnmelden({id:'M-Proz-G4', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk, festeAuswahl:['regeln']});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -7995,7 +8030,7 @@ const prozent = (bis, komma=.2) => Math.random()<komma ? rnd(11, bis*10-1)/10 : 
 const afVorschlaege = (p,rauf) => { const l=[];
   for(const x of [af(p,rauf), af(p,!rauf), rund(p/100), rund(rauf?1+p/10:1-p/1000), rund(p/10)]) if(l.length<3&&x>0&&!l.includes(x)) l.push(x);
   return mischen(l.map(x=>[String(x), Z(x)])); };
-const afFeld = (p,rauf) => ({label:'Schritt 1: Änderungsfaktor', kurz:'Änderungsfaktor', felder:[{label:'ÄF =', ans:af(p,rauf), ansText:Z(af(p,rauf))}], ansText:Z(af(p,rauf))});
+const afFeld = (p,rauf) => ({label:'Schritt 1: Änderungsfaktor', kurz:'Änderungsfaktor', felder:[{label:'ÄF =', ans:af(p,rauf), ansText:Z(af(p,rauf)), exakt:true}], ansText:Z(af(p,rauf))});
 
 /* ---------- Sachaufgaben (V1-A04): Signalwörter wechseln; große Zahlen mit Runden ---------- */
 // g: [von, bis, Schritt], e: Einheit, nk: Nachkommastellen des Ergebnisses (ohne Runden), runde: Stellen beim Runden
@@ -8022,7 +8057,7 @@ const typen = {
     const rauf=Math.random()<.5, p=rauf ? prozent(100) : prozent(99), f=af(p,rauf);
     const t={kind:'zweischritt', q:`Der Wert wird um ${P(p)} ${rauf?'erhöht':'vermindert'}.`, lead:'Gib den Änderungsfaktor an!', schritt:'Formel',
       s1:{label:'Schritt 1: Welche Formel passt?', kurz:'Formel', wahl:[['plus',`ÄF = 1 + ${br('p',100)}`],['minus',`ÄF = 1 ${M} ${br('p',100)}`]], ans:rauf?'plus':'minus', ansText:rauf?'1 + p : 100':`1 ${M} p : 100`},
-      s2:{label:'Schritt 2: Änderungsfaktor', felder:[{label:'ÄF =', ans:f, ansText:Z(f)}], ansText:Z(f)},
+      s2:{label:'Schritt 2: Änderungsfaktor', felder:[{label:'ÄF =', ans:f, ansText:Z(f), exakt:true}], ansText:Z(f)},
       hinweisNach:(e1,e2)=>e2[0].v!==null&&Math.abs(e2[0].v-af(p,!rauf))<1e-9 ? `Achtung: ${rauf?'Erhöht → ÄF größer als 1':'Vermindert → ÄF kleiner als 1'}.` : '',
       why:`${rauf?'Erhöht':'Vermindert'} um ${P(p)}: ${afWeg(p,rauf)}. ${rauf?'Bei einer Erhöhung ist der ÄF größer als 1.':'Bei einer Verminderung ist der ÄF kleiner als 1.'}`};
     return aufg(mitMerk(wahlSchritt1(t),ctx));
@@ -8059,7 +8094,7 @@ const typen = {
       if(v.runde ? nachkomma(w)<=v.runde : !(nachkomma(w)<=(v.nk??2))) return null;   // Runden nur, wo es nötig ist
       const ganz = v.e==='Mrd.'?`${Z(g)}${NB}Milliarden`:v.e==='Mio.'?`${Z(g)}${NB}Millionen`:mitE(g,v.e);
       return aufg(mitMerk({kind:'zweischritt', text:true, q:v.s(ganz, P(p)), lead:'Bestimme zuerst den Änderungsfaktor und rechne dann!', schritt:'Schritt 1',
-        s1:afFeld(p,v.rauf), s2:{label:`Schritt 2: Ergebnis${v.runde?' (gerundet)':''}`, felder:[{label:'', ans:erg, ansText:mitE(erg,v.e), einheit:v.e}], ansText:mitE(erg,v.e)},
+        s1:afFeld(p,v.rauf), s2:{label:`Schritt 2: Ergebnis${v.runde?' (gerundet)':''}`, felder:[{label:'', ans:erg, ansText:mitE(erg,v.e), einheit:v.e, stellen:v.runde}], ansText:mitE(erg,v.e)},
         pre:{ans:String(f), optionen:afVorschlaege(p,v.rauf)},
         hinweisNach:(e1,e2)=>v.runde&&e2[0].v!==null&&Math.abs(e2[0].v-w)<1e-9 ? `Richtig gerechnet, aber noch auf ${v.runde===1?'eine Nachkommastelle':'zwei Nachkommastellen'} runden.` : '',
         why:`${v.rauf?'Erhöht':'Vermindert'}: ${afWeg(p,v.rauf)}. ${Z(g)} · ${Z(f)} = ${Z(w)}${v.runde?` ≈ ${Z(erg)}`:''} → ${mitE(erg,v.e)}.`}, ctx));
@@ -8073,7 +8108,7 @@ const typen = {
       const l=[]; for(const x of [f, rund(f1+f2-1), 1, f1, f2]) if(l.length<3&&!l.includes(x)) l.push(x);   // typisch: Prozente verrechnet, „wieder gleich“
       const opt=mischen(l.map(x=>[String(x),Z(x)]));
       return aufg({kind:'zweischritt', text:true, q:`Eine Ware kostet ${E(g)}. Der Preis wird erst um ${P(p1)} ${erst?'erhöht':'gesenkt'}, dann um ${P(p2)} ${erst?'gesenkt':'erhöht'}. Was kostet die Ware am Ende?`,
-        schritt:'Schritt 1', s1:{label:'Schritt 1: Änderungsfaktor insgesamt', kurz:'ÄF insgesamt', felder:[{label:'ÄF =', ans:f, ansText:Z(f)}], ansText:Z(f)},
+        schritt:'Schritt 1', s1:{label:'Schritt 1: Änderungsfaktor insgesamt', kurz:'ÄF insgesamt', felder:[{label:'ÄF =', ans:f, ansText:Z(f), exakt:true}], ansText:Z(f)},
         s2:{label:'Schritt 2: Preis am Ende', felder:[{label:'', ans:w, ansText:E(w), einheit:'€'}], ansText:E(w)}, pre:{ans:String(f), optionen:opt},
         why:`Die zwei Änderungsfaktoren werden multipliziert: ${Z(f1)} · ${Z(f2)} = ${Z(f)}. ${Z(g)} · ${Z(f)} = ${E(w)}. Erst + und dann − gleich viele Prozent ergibt nicht wieder den alten Preis.`});
     });
@@ -8393,10 +8428,10 @@ const typen = {
       const pm = Math.random()<.5 ? rnd(1,99) : Math.random()<.5 ? rnd(1,99)/10 : rnd(1,99)/100, pr=rund(pm/10), d=rund(pm/1000);
       if(nachkomma(d)>5) return null;
       if(Math.random()<.6) return aufg({kind:'zahlen', q:`${PM(pm)} in Prozent und als Dezimalzahl`, lead:'Stelle als Prozent und als Dezimalzahl dar!',
-        felder:[{label:'in Prozent', ans:pr, ansText:P(pr), einheit:'%'},{label:'als Dezimalzahl', ans:d, ansText:Z(d)}],
+        felder:[{label:'in Prozent', ans:pr, ansText:P(pr), einheit:'%', exakt:true},{label:'als Dezimalzahl', ans:d, ansText:Z(d), exakt:true}],
         why:`‰ : 10 = %: ${PM(pm)} = ${P(pr)}. ‰ : 1${NB}000 = Dezimalzahl: ${PM(pm)} = ${Z(d)}.`});
       return aufg({kind:'zahlen', q:`${P(pr)} in Promille und als Dezimalzahl`, lead:'Stelle als Promille und als Dezimalzahl dar!',
-        felder:[{label:'in Promille', ans:pm, ansText:PM(pm), einheit:'‰'},{label:'als Dezimalzahl', ans:d, ansText:Z(d)}],
+        felder:[{label:'in Promille', ans:pm, ansText:PM(pm), einheit:'‰', exakt:true},{label:'als Dezimalzahl', ans:d, ansText:Z(d), exakt:true}],
         why:`% · 10 = ‰: ${P(pr)} = ${PM(pm)}. % : 100 = Dezimalzahl: ${P(pr)} = ${Z(d)}.`});
     });
   },
@@ -8467,7 +8502,7 @@ const erklaerung = {
 };
 
 const lzk = {merkmal:{begriff:'begriff_promille', umrechnen:'umrechnen_promille', promillewert:'promillewert', anteil:'promillesatz', grundwert:'grundwert_promille', alltag:'promille_alltag'}};
-UR.kompetenzAnmelden({id:'M-Proz-X1', typen, stationen, kern, leicht, erklaerung, lzk});
+UR.kompetenzAnmelden({id:'M-Proz-X1', typen, stationen, kern, leicht, erklaerung, lzk, festeAuswahl:['begriff']});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -8540,8 +8575,8 @@ const typen = {
     const opt=mischen([[String(af),Z(af)],[String(rund(p/100)),Z(rund(p/100))],[String(rund(1+p/10)),Z(rund(1+p/10))]]);
     return aufg({kind:'zweischritt', text:true, q:`${E(k)} werden ${n} Jahre lang zu einem fixen Zinssatz von ${P(p)} angelegt. Die Zinsen werden jedes Jahr dazugezählt (Zinseszins). Wie groß ist das Endkapital?`,
       lead:'Du brauchst einen Taschenrechner.', schritt:'Schritt 1',
-      s1:{label:'Schritt 1: Änderungsfaktor', kurz:'Änderungsfaktor', felder:[{label:'', ans:af, ansText:Z(af)}], ansText:Z(af)},
-      s2:{label:'Schritt 2: Endkapital (auf Cent)', felder:[{label:'', ans:end, tol:0.01, ansText:E(end), einheit:'€'}], ansText:E(end)},
+      s1:{label:'Schritt 1: Änderungsfaktor', kurz:'Änderungsfaktor', felder:[{label:'', ans:af, ansText:Z(af), exakt:true}], ansText:Z(af)},
+      s2:{label:'Schritt 2: Endkapital (auf Cent)', felder:[{label:'', ans:end, stellen:2, ansText:E(end), einheit:'€'}], ansText:E(end)},
       pre:{ans:String(af), optionen:opt}, einfach,
       hinweisNach:(e1,e2)=>e2[0].v!==null&&Math.abs(e2[0].v-einfach)<0.006 ? `Das sind einfache Zinsen (${E(einfach)}). Beim Zinseszins werden die Zinsen jedes Jahr mitverzinst: ${Z(k)} · ${Z(af)}<sup>${n}</sup>.` : '',
       why:`Änderungsfaktor = 1 + ${br(Z(p),'100')} = ${Z(af)}. Jedes Jahr wird mit ${Z(af)} multipliziert: ${Z(k)} · ${Z(af)}<sup>${n}</sup> = ${E(end)}. Zum Vergleich ohne Zinseszins: ${E(einfach)}.`});
@@ -8601,7 +8636,7 @@ const erklaerung = {
 const E_ = E;
 
 const lzk = {merkmal:{begriffe:'begriffe_zins', jahreszinsen:'jahreszinsen', monate:'zinsen_teil', tage:'zinsen_teil', zinseszins:'zinseszins'}};
-UR.kompetenzAnmelden({id:'M-Proz-X2', typen, stationen, kern, plus, plusHint, erklaerung, lzk});
+UR.kompetenzAnmelden({id:'M-Proz-X2', typen, stationen, kern, plus, plusHint, erklaerung, lzk, festeAuswahl:['begriffe']});
 })(window.UR = window.UR || {});
 </script>
 <script>UR.start(document.getElementById('app'));</script>
