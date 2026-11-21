@@ -1667,7 +1667,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-21.7","datum":"21.11.2026","pruefsumme":"c77bc7736506e49e"};
+UR.version = {"nummer":"2026-11-21.8","datum":"21.11.2026","pruefsumme":"696be3245f3a707b"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -4052,7 +4052,8 @@ const koordHinweis = (x,y) => erg => {
   return '';
 };
 // Koordinaten-Felder ohne eigene Taste, dafür EINE Minus-Taste rechts daneben (Lehrkraft, 21.11.2026)
-const koordFelder = (x,y) => [vzFeld('x-Koordinate', x, {ohneTaste:true}), vzFeld('y-Koordinate', y, {ohneTaste:true})];
+// in der Zeile P( … | … ) ohne eigene Taste (eine Taste rechts daneben); einzelne Felder untereinander mit Taste davor
+const koordFelder = (x,y,zeile=true) => [vzFeld('x-Koordinate', x, {ohneTaste:zeile}), vzFeld('y-Koordinate', y, {ohneTaste:zeile})];
 // Eingabe in einer Zeile wie im Heft: P( x | y ), links x, rechts y
 const punktZeile = n => ({vor:`${n}(`, zwischen:'|', nach:')'});
 const ansHTML = (n,x,y) => `${n}(${Z(x)}|${Z(y)})`;
@@ -4142,7 +4143,7 @@ const typen = {
       // Einstieg: x- und y-Koordinate getrennt; danach und im Check wie im Heft: P( … | … ) (Lehrkraft, 21.11.2026)
       zeile: leicht ? undefined : punktZeile(p.name),
       lead: leicht ? merk(`${ZUERST} Folge dem Weg im Bild.`) : '', papierLead:'Lies die Koordinaten ab!', bild, loesungBild, punkt:p,
-      felder:koordFelder(x,y).map((f,i)=>Object.assign(f,{ansHTML:i?Z(y):Z(x)})), nachFeldern:UR.raza.minusTaste(), hinweisNach:koordHinweis(x,y),
+      felder:koordFelder(x,y,!leicht).map((f,i)=>Object.assign(f,{ansHTML:i?Z(y):Z(x)})), nachFeldern:leicht?undefined:UR.raza.minusTaste(), hinweisNach:koordHinweis(x,y),
       why:`${WEG(x,y)} Also ${ansHTML(p.name,x,y)}. ${ZUERST}`, steps:pkt(p.name,x,y)});
   },
   // G3-A03 In welchem Quadranten liegt der Punkt? (ohne Bild; nie auf einer Achse)
