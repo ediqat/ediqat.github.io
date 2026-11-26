@@ -564,6 +564,18 @@ svg.quadrat .qp{fill:var(--ink-soft);stroke:var(--ink);stroke-width:1}
 .choices.raster{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(min-width:520px){.choices.raster{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .zo-ding svg.quadrat{display:block;margin:0 auto 2px}
+/* Potenzen und Wurzeln X1, X2: Term-Felder, Wurzelfeld, Hochzahl als Bruch, Taste „Hochzahl“ */
+.answer.pfz input.pf-tk{flex:none;width:6.5ch;min-width:0}
+.pfz .wurzel .rad input.pf{margin:2px 0}
+.pfz .pf-hb .pf-bruch{gap:1px;font-size:1rem}
+.pfz .pf-hb .pf-bruch>span:first-child{border-bottom-width:1.5px;padding-bottom:1px}
+.pfz .pf-pot>.pf-hb{margin-top:-.2em}
+.pf-tasten{margin-top:6px}
+.sign.hoch-taste{width:auto;min-width:0;padding:0 14px;font-size:1rem;font-weight:700}
+.sign.hoch-taste.an{background:var(--x);border-color:var(--x);color:#fff}
+.answer.pfz input.hoch-an{outline:2px dashed var(--x);outline-offset:1px}
+.pw-hb{display:inline-block;vertical-align:.9em;font-size:.55em;line-height:1}
+.pw-hb .bruch{font-size:1em}
 </style>
 </head>
 <body>
@@ -1906,7 +1918,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-26.19","datum":"26.11.2026","pruefsumme":"a36db3d42293951f"};
+UR.version = {"nummer":"2026-11-26.23","datum":"26.11.2026","pruefsumme":"f32d43f1c390bd9a"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -4337,6 +4349,8 @@ Object.assign(UR.mathe, {ksSVG, ksSetzen, ksGeo:geo, ksKey, ksText, ksAusPixel, 
    - Antwortform 'pfeld': Felder mitten in der Schreibweise wie im Heft: Potenzfeld (Basis-Feld und kleines Hochzahl-Feld,
      normale Ziffern, auch über 9), Wurzelfeld a·√b (Wurzelzeichen mit vollem Strich, auch mit Index), Bruch aus zwei Feldern,
      Gleitkommafeld (Zahl · 10 hoch Hochzahl). Eine gemeinsame Minus-Taste rechts daneben (wie P( … | … ) bei RaZa-G3).
+   - Term-Felder (X1, X2) mit Taste „Hochzahl“: danach getippte Ziffern stehen hochgestellt; Wurzelfeld a·√b und Bruch mit
+     Wurzel (bau().wurzelFeld, bau().bruchWurzel), Hochzahl als Bruch (bau().hochBruch), Monome kurz geschrieben (mono)
    - Quadrat-Bilder (n × n Plättchen), Tabelle der Quadratzahlen
    Taschenrechner-Tasten werden nirgends genannt (Tastenfolgen TI-30eco RS ungeprüft), nur die Rechnung. */
 (function(UR){
@@ -4464,7 +4478,17 @@ function bau(){
       return `<div class="answer pf-einheiten">${UR.wahlFeld(id)}${UR.wahlGruppe(id, liste.map(e=>[e,e]), {klasse:'einheiten'})}</div>`; },
     potenz(basis, hochzahl){ return `<span class="pf-pot">${typeof basis==='string'?`<span class="pf-fest">${basis}</span>`:this.basis(basis)}${this.hoch(hochzahl)}</span>`; },
     wurzel(inhaltHTML, index){ return UR.wurzelHTML(inhaltHTML, index&&index!==2?index:''); },
-    bruch(oben, unten){ return `<span class="pf-bruch"><span>${oben}</span><span>${unten}</span></span>`; }
+    bruch(oben, unten){ return `<span class="pf-bruch"><span>${oben}</span><span>${unten}</span></span>`; },
+    // Feld nach Art: Zahl ('zahl'), Term ('term'); kurz = schmales Term-Feld (unter der Wurzel, im Bruch)
+    feld(d, kurz){ return d.art==='term' ? feld(d, kurz?'pf-t pf-tk':'pf-t') : feld(d,'pf-z'); },
+    // Wurzelfeld a·√b (X1): Feld vor und Feld unter der Wurzel (voller Strich, auch mit Index)
+    wurzelFeld(vor, unter, index){ return `${this.feld(Object.assign({name:'vor der Wurzel'},vor), true)}<span class="pf-mal">·</span>${this.wurzel(this.feld(Object.assign({name:'unter der Wurzel'},unter), true), index)}`; },
+    // Bruch mit Wurzel (X1-A04): Zähler und Nenner vor der Wurzel, Feld unter der Wurzel
+    bruchWurzel(z, n, unter){ return `${this.bruch(this.feld(Object.assign({name:'Zähler'},z), true), this.feld(Object.assign({name:'Nenner'},n), true))}<span class="pf-mal">·</span>${this.wurzel(this.feld(Object.assign({name:'unter der Wurzel'},unter), true))}`; },
+    // Bruch aus zwei Feldern (Zahl oder Term)
+    bruchFelder(z, n){ return this.bruch(this.feld(Object.assign({name:'Zähler'},z), true), this.feld(Object.assign({name:'Nenner'},n), true)); },
+    // Hochzahl als Bruch (X2-A07): Basis fest, Zähler und Nenner der Hochzahl als kleine Felder
+    hochBruch(basis, z, n){ return `<span class="pf-pot"><span class="pf-fest">${basis}</span><span class="pf-sup pf-hb">${this.bruch(feld(Object.assign({name:'Zähler der Hochzahl'},z),'pf-h'), feld(Object.assign({name:'Nenner der Hochzahl'},n),'pf-h'))}</span></span>`; }
   };
 }
 const normName = s => String(s??'').trim().replace(/[−–]/g,'-').replace(/\s/g,'').replace(/^\((.*)\)$/,'$1').toLowerCase();
@@ -4481,10 +4505,54 @@ function feldOk(f, roh, t){
   };
   return [f.ans, ...(f.auch||[])].some(passt);
 }
+/* Taste „Hochzahl“ für Term-Felder (X1, X2, Lehrkraft 26.11.2026): Danach getippte Ziffern stehen hochgestellt (a⁵), bis ein
+   anderes Zeichen kommt oder die Taste noch einmal gedrückt wird. Kein Dacherl. Wirkt auf das Term-Feld, in dem zuletzt getippt wurde. */
+const hochTaste = () => `<div class="answer pf-tasten"><button type="button" class="sign hoch-taste" data-hoch-taste aria-pressed="false">Hochzahl</button></div>`;
+const HOCHZ = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+// eingefügten Teil hochstellen: vorher → jetzt; liefert {wert, pos, aus (Modus endet)}
+function hochEinfuegen(vorher, jetzt){
+  let p=0; while(p<vorher.length&&p<jetzt.length&&vorher[p]===jetzt[p]) p++;
+  let s=0; while(s<vorher.length-p&&s<jetzt.length-p&&vorher[vorher.length-1-s]===jetzt[jetzt.length-1-s]) s++;
+  const neu=jetzt.slice(p, jetzt.length-s); let out='', aus=false;
+  for(const c of neu){ if(!aus&&/\d/.test(c)) out+=HOCHZ[c]; else { aus=true; out+=c; } }
+  return {wert:jetzt.slice(0,p)+out+jetzt.slice(jetzt.length-s), pos:p+out.length, aus};
+}
+UR.bindungen.push(app=>{
+  app.querySelectorAll('[data-hoch-taste]').forEach(b=>{
+    const form=b.closest('form'); if(!form) return;
+    const felder=[...form.querySelectorAll('input.pf-t')]; if(!felder.length) return;
+    let letztes=felder[0], an=false;
+    const setze = v => { an=v; b.classList.toggle('an',v); b.setAttribute('aria-pressed',String(v)); felder.forEach(f=>f.classList.toggle('hoch-an', v&&f===letztes)); };
+    felder.forEach(f=>{
+      let vorher=f.value;
+      f.addEventListener('focus',()=>{ if(f!==letztes){ letztes=f; setze(false); } vorher=f.value; });
+      f.addEventListener('input',()=>{
+        if(an){ const e=hochEinfuegen(vorher, f.value); if(e.wert!==f.value){ f.value=e.wert; try{ f.setSelectionRange(e.pos,e.pos); }catch(x){} } if(e.aus) setze(false); }
+        vorher=f.value;
+      });
+    });
+    b.addEventListener('pointerdown',e=>e.preventDefault());   // Fokus bleibt im Feld, die Tastatur am Handy bleibt offen
+    b.addEventListener('click',()=>{ setze(!an); letztes.focus(); });
+  });
+});
+
+/* ---------- Monome (X1, X2): Zahl und Variablen mit Hochzahlen, Kurzschreibweise wie im Heft ---------- */
+// c: ganze Zahl (≥ 1), e: {a:5, b:1}; Variablen alphabetisch, Hochzahl 1 nicht geschrieben, 1 vor Variablen weggelassen
+const hochT = n => n===1 ? '' : hoch(n);
+function mono(c, e={}){
+  const v=Object.keys(e).filter(x=>e[x]).sort().map(x=>x+hochT(e[x])).join('');
+  if(!v) return String(c);
+  return (c===1?'':String(c))+v;
+}
+// wie mono, aber die Zahl im Heft-Format (Tausender-Abstand)
+const monoH = (c, e={}) => { const v=mono(1,e); return v==='1' ? R.Z(c) : (c===1?'':R.Z(c))+v; };
+// Term-Hinweis: gleicher Wert, aber nicht kurz und geordnet geschrieben
+const termKurzHinweis = 'Der Wert stimmt, aber schreibe kurz und geordnet: zuerst die Zahl, dann die Variablen alphabetisch, ohne Malpunkt, ohne 1 vor der Variablen und ohne Hochzahl 1.';
+
 const pfPapier = zeile => zeile.replace(/<input[^>]*>/g,'<span class="pz-strich pf-strich"></span>');
 UR.formAnmelden('pfeld', {
   html: t => `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off">${t.vorFeldern||''}
-    <div class="answer zeile pfz">${t.zeile}${t.minus?R.minusTaste():''}</div>${t.nachFeldern||''}
+    <div class="answer zeile pfz">${t.zeile}${t.minus?R.minusTaste():''}</div>${t.hochTaste?hochTaste():''}${t.nachFeldern||''}
     <div class="answer"><button class="big" type="submit">${UR.TEXTE.ok}</button></div></form>`,
   bewerten(t,pre,raw){
     const l=Array.isArray(raw)?raw:[raw];
@@ -4578,6 +4646,7 @@ const stellenText = s => `${Math.abs(s)} Stelle${Math.abs(s)===1?'':'n'} nach ${
 UR.powu = {M, NB, rnd, pick, mischen, versuche, zieher, D, dKurz, dMul, dPot, dAdd, dSub, dNeg, dVgl, dAbs, dRund, dStellen, dZahl, dPlain, dText, dEingabe,
   wurzelRund, istPotenz, hoch, ZT, basisText, pot, brH, brT, klH, bruchPotH, bruchPotT, wz, malT, STELLE, rundWort, rundLead,
   rundFeld, exaktFeld, bruchFeld, kuerzenHinweis, bau, normName, aufg, merk, quadratSVG, quadratTabelle,
+  mono, monoH, hochT, termKurzHinweis, hochEinfuegen,
   dZehn, dMalZehn, dGleit, gleitT, gleitLesen, istNormiert, gleitHinweis, ZEHN_NAME, ZEHN_KURZ, zehnerTabelle, kommaPfeil, stellenText};
 })(window.UR = window.UR || {});
 </script>
@@ -7888,6 +7957,552 @@ const erklaerung = {
 const lzk = {merkmal:{zehnerpotenz:'powu_v2_zehnerpotenz', zehnerpotenz_zahl:'powu_v2_zehnerpotenz_zahl', gleitkomma:'powu_v2_gleitkomma',
   gleitkomma_zahl:'powu_v2_gleitkomma_zahl', normiert:'powu_v2_normiert', sach_gleit:'powu_v2_sach'}};
 UR.kompetenzAnmelden({id:'M-PoWu-V2', ohneFallB:true, typen, stationen, kern, leicht, plus, plusHint, festeAuswahl, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.2 Potenzen-und-Wurzeln/M-PoWu-X1.js */
+/* Baustein M-PoWu-X1: „Ich kann partiell Wurzelziehen.“
+   Steckbrief: M-PoWu-X1.md, Auswahl der Lehrkraft: AUSWAHL.md (26.11.2026). Wurzelfeld a·√b (Feld vor und Feld unter der Wurzel,
+   voller Strich), Bruch mit Wurzel (X1-A04), Term-Felder mit Taste „Hochzahl“ (X1-A03, X1-A04 mit Variablen). Richtig ist nur die
+   ganz vereinfachte Form: unter der Wurzel keine Quadratzahl als Teiler und keine Hochzahl über 1, Bruch gekürzt. Variablen sind positiv. */
+(function(UR){
+const {rnd, pick, mischen, versuche, zieher, D, dText, wurzelRund, wz, rundWort, exaktFeld, bau, normName, aufg, merk, mono, termKurzHinweis, quadratTabelle} = UR.powu;
+const R = UR.raza, Z = R.Z, br = R.br, ggT = R.ggT;
+const T = UR.terme;
+
+// n = s^h · r mit größtem s (h = 2: Quadratzahl, h = 3: Kubikzahl)
+function zerlege(n, h=2){ for(let a=Math.floor(Math.pow(n,1/h))+1; a>=1; a--) if(a**h<=n && n%(a**h)===0) return {s:a, r:n/a**h}; }
+const QF = [2,3,5,6,7,10,11,13];                   // quadratfreie Zahlen unter der Wurzel
+const QUADRATE = Array.from({length:14},(_,i)=>(i+2)**2);
+const ganz = s => { const r=normName(s).replace(/^\+/,''); return /^\d+$/.test(r) ? Number(r) : null; };
+// Zahl unter der Wurzel: steckt noch eine Quadratzahl (Kubikzahl) darin?
+const nochTeiler = (y, h=2) => { const z=zerlege(y,h); return z && z.s>1 ? z : null; };
+const nochText = (y, h=2) => { const z=nochTeiler(y,h); return z ? `${Z(y)} = ${Z(z.s**h)} · ${Z(z.r)}` : ''; };
+const POOL_A02 = []; for(let a=2;a<=10;a++) for(const b of QF) if(a*a*b<=500) POOL_A02.push([a,b]);
+const POOL_A05 = []; for(let a=2;a<=10;a++) for(const b of QF) POOL_A05.push([a,b]);
+const POOL_N02 = []; for(let a=2;a<=6;a++) for(const b of [2,3,4,5,6,7,9,10,11,12,13]) if(a**3*b<=1000) POOL_N02.push([a,b]);
+const ziehA02 = zieher(POOL_A02), ziehA05 = zieher(POOL_A05), ziehN02 = zieher(POOL_N02);
+const VARS = ['a','b','m','x','y'];
+// Variablen-Hochzahlen halbieren: außen ⌊e/2⌋, innen e mod 2
+const halb = e => { const o={}, i={}; for(const v in e){ o[v]=Math.floor(e[v]/2); i[v]=e[v]%2; } return {o, i}; };
+const doppelt = e => { const d={}; for(const v in e) d[v]=2*e[v]; return d; };
+// gleichwertig als Terme (Variablen positiv): (vor)² · unter = Radikand
+const gw = (a,b) => { try{ return T.gleichwertig(a,b); }catch(e){ return false; } };
+
+const typen = {
+  // X1-A01 Größte Quadratzahl als Teiler finden
+  teiler(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const n=versuche(()=>{ const n=rnd(8,500), {s,r}=zerlege(n); return s>=2&&s<=15&&r>1 ? n : null; }), {s,r}=zerlege(n);
+    const kleinere=QUADRATE.filter(q=>q<s*s&&n%q===0);
+    return aufg({kind:'zahlen', q:`Größte Quadratzahl, die ${Z(n)} teilt`, qh:`<span class="pw-gross">${Z(n)}</span>`, lead:'Finde die größte Quadratzahl, die ein Teiler ist!',
+      felder:[exaktFeld(`Größte Quadratzahl in ${Z(n)}:`, s*s)], n,
+      bild:leicht?merk(`Quadratzahlen: ${QUADRATE.filter(q=>q<=n).map(q=>Z(q)).join(', ')}. Beginne bei der größten und prüfe, ob ${Z(n)} : Quadratzahl ohne Rest aufgeht.`):'',
+      hinweisNach:erg=>{ const v=erg[0].v; if(!Number.isInteger(v)||v<=0) return '';
+        if(v===s) return `Gesucht ist die Quadratzahl selbst: ${s}² = ${s*s}.`;
+        const q=Number.isInteger(Math.sqrt(v));
+        if(!q) return `${Z(v)} ist keine Quadratzahl.`;
+        if(n%v) return `${Z(v)} ist kein Teiler von ${Z(n)}.`;
+        if(v<s*s) return `${Z(v)} teilt ${Z(n)}, aber es gibt eine größere Quadratzahl.`;
+        return ''; },
+      fehlerBild:quadratTabelle(15, s),
+      why:`${Z(n)} = ${Z(s*s)} · ${r}: Die größte Quadratzahl ist ${Z(s*s)} = ${s}²${kleinere.length?` (nicht ${kleinere.map(q=>Z(q)).join(' oder ')})`:''}.`,
+      steps:`${Z(n)} = ${Z(s*s)} · ${r}`});
+  },
+  // X1-A02 Partiell Wurzelziehen (Zahl): Feld vor und Feld unter der Wurzel
+  partiell(ctx){
+    const leicht=!!(ctx&&ctx.leicht), [a,b]=ziehA02(), n=a*a*b, B=bau();
+    const zeile=`<span class="zt">${wz(Z(n))} =</span>${B.wurzelFeld({ans:a, ansText:String(a)}, {ans:b, ansText:String(b)})}`;
+    const weg=`${wz(Z(n))} = ${wz(`${Z(a*a)} · ${b}`)} = ${a} · ${wz(b)}`;
+    return aufg({kind:'pfeld', q:`${wz(Z(n))} = ?`, qh:`<span class="pw-gross">${wz(Z(n))}</span>`, lead:'Vereinfache durch partielles Wurzelziehen!', zeile, felder:B.felder, a, b,
+      bild:leicht?merk(`${Z(n)} = ${Z(a*a)} · ${b}, und ${wz(Z(a*a))} = ${a}. Die Wurzel aus der Quadratzahl kommt vor die Wurzel.`):'',
+      hinweisNach:r=>{ const x=ganz(r[0]), y=ganz(r[1]); if(x===null||y===null) return '';
+        if(x*x*y===n && nochTeiler(y)) return `Der Wert stimmt, aber unter der Wurzel steckt noch eine Quadratzahl: ${nochText(y)}.`;
+        if(x*y===n && Number.isInteger(Math.sqrt(x))) return `Vor die Wurzel kommt die Wurzel der Quadratzahl: ${wz(Z(x))} = ${Math.sqrt(x)}.`;
+        if(x*x*y!==n) return `Prüfe: ${x}² · ${y} = ${Z(x*x*y)}, nicht ${Z(n)}.`;
+        return ''; },
+      loesungText:weg, why:`${weg}: ${Z(a*a)} ist die größte Quadratzahl in ${Z(n)}, ${wz(Z(a*a))} = ${a}.`, steps:weg});
+  },
+  // X1-A03 Partiell Wurzelziehen mit Variablen (Term-Felder mit Taste „Hochzahl“)
+  partiell_var(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    return versuche(()=>{
+      const zwei=!leicht&&Math.random()<.4, vs=zwei?mischen(VARS).slice(0,2).sort():[pick(VARS)];
+      const e={}; vs.forEach(v=>e[v]=zwei?rnd(1,7):rnd(2,9));
+      if(!Object.values(e).some(x=>x>=3)) return null;
+      const k=Math.random()<.3?1:rnd(2,50), {s,r}=zerlege(k), {o,i}=halb(e);
+      const rad=mono(k,e), vor=mono(s,o), unter=mono(r,i);
+      if(vor==='1'||unter==='1') return null;
+      const B=bau(), zeile=`<span class="zt">${wz(rad)} =</span>${B.wurzelFeld({art:'term', ans:vor, ansText:vor}, {art:'term', ans:unter, ansText:unter})}`;
+      const quad=mono(s*s,doppelt(o)), weg=`${wz(rad)} = ${wz(`${quad} · ${unter}`)} = ${vor} · ${wz(unter)}`;
+      return aufg({kind:'pfeld', q:`${wz(rad)} = ? (Variablen sind positiv)`, qh:`<span class="pw-gross">${wz(rad)}</span>`,
+        lead:'Vereinfache durch partielles Wurzelziehen! (Die Variablen sind positiv.)', zeile, felder:B.felder, hochTaste:true, rad, vor, unter,
+        bild:leicht?merk(`${rad} = ${quad} · ${unter}, und ${wz(quad)} = ${vor}. Gerade Hochzahlen kommen aus der Wurzel, dabei wird die Hochzahl halbiert.`):'',
+        hinweisNach:h=>{ if(!h[0]||!h[1]) return '';
+          if(gw(`(${h[0]})^2·(${h[1]})`, rad)) return gw(h[0],vor)&&gw(h[1],unter) ? termKurzHinweis
+            : 'Der Wert stimmt, aber unter der Wurzel steht noch etwas, das herauskann: Quadratzahlen und gerade Hochzahlen.';
+          return `Prüfe: (vor der Wurzel)² · (unter der Wurzel) muss wieder ${rad} ergeben. Beim Herausziehen wird die Hochzahl halbiert: ${wz('a⁴')} = a².`; },
+        loesungText:weg, why:`${weg}: Quadratzahlen und gerade Hochzahlen kommen aus der Wurzel, die Hochzahl wird halbiert (${wz('a⁴')} = a², denn a² · a² = a⁴).`, steps:weg});
+    });
+  },
+  // X1-A04 Wurzel aus einem Bruch: Bruch vor der Wurzel (Zähler, Nenner) und Feld unter der Wurzel
+  wurzel_bruch(ctx){
+    const leicht=!!(ctx&&ctx.leicht), B=bau();
+    if(leicht||Math.random()<.5){
+      // Stufe 1: Zahlenbruch, Nenner eine Quadratzahl
+      return versuche(()=>{
+        const m=rnd(2,7), n=m*m, z=rnd(8,200), {s,r}=zerlege(z); if(s<2||r<2||ggT(z,n)!==1) return null;
+        const g=ggT(s,m), p=s/g, q=m/g; if(q<2) return null;
+        const zeile=`${B.bruchWurzel({ans:p, ansText:String(p)}, {ans:q, ansText:String(q)}, {ans:r, ansText:String(r)})}`;
+        const weg=`${wz(br(Z(z),n))} = ${br(wz(Z(z)), wz(n))} = ${br(`${s} · ${wz(r)}`, m)}${g>1?` = ${br(p,q)} · ${wz(r)}`:` = ${br(p,q)} · ${wz(r)}`}`;
+        const wegT=`√(${Z(z)} durch ${n}) = ${s} · √(${r}) durch ${m}${g>1?` = ${p} durch ${q} · √(${r})`:''}`;
+        return aufg({kind:'pfeld', q:`√(${Z(z)} durch ${n}) = ?`, qh:`<span class="pw-gross">${wz(br(Z(z),n))} =</span>`, lead:'Vereinfache durch partielles Wurzelziehen!',
+          zeile, felder:B.felder, stufe:1, z, n,
+          bild:leicht?merk(`Zähler und Nenner getrennt: ${wz(br(Z(z),n))} = ${br(wz(Z(z)), wz(n))}, dabei ist ${Z(z)} = ${Z(s*s)} · ${r} und ${wz(n)} = ${m}.`):'',
+          hinweisNach:h=>{ const x=ganz(h[0]), y=ganz(h[1]), u=ganz(h[2]); if(x===null||!y||u===null) return '';
+            if(x*x*u*n===z*y*y){ if(nochTeiler(u)) return `Der Wert stimmt, aber unter der Wurzel steckt noch eine Quadratzahl: ${nochText(u)}.`;
+              if(ggT(x,y)>1) return 'Der Wert stimmt. Kürze den Bruch vor der Wurzel noch vollständig.'; }
+            return `Ziehe die Wurzel aus Zähler und Nenner getrennt: ${wz(n)} = ${m}, ${wz(Z(z))} = ${s} · ${wz(r)}.`; },
+          loesungText:wegT, loesungH:weg, why:`${weg}.`, steps:wegT});
+      });
+    }
+    // Stufe 2: Variablenbruch wie in der LZK (√(196a³ durch 81b²))
+    return versuche(()=>{
+      const [v1,v2]=mischen(VARS).slice(0,2), s=rnd(1,14), r=pick([1,1,2,3,5]), m=rnd(2,9), p=pick([3,5,7]), q=pick([0,2,2,4,6]);
+      const kz=s*s*r; if(kz>200||ggT(kz,m*m)!==1) return null;
+      const zr=mono(kz,{[v1]:p}), nr=mono(m*m,{[v2]:q});
+      const za=mono(s,{[v1]:(p-1)/2}), na=mono(m,{[v2]:q/2}), un=mono(r,{[v1]:1});
+      const zeile=`${B.bruchWurzel({art:'term', ans:za, ansText:za}, {art:'term', ans:na, ansText:na}, {art:'term', ans:un, ansText:un})}`;
+      const weg=`${wz(br(zr,nr))} = ${br(wz(zr), wz(nr))} = ${br(za,na)} · ${wz(un)}`;
+      const wegT=`√(${zr} durch ${nr}) = ${za} durch ${na} · √(${un})`;
+      const soll=`(${zr})/(${nr})`;
+      return aufg({kind:'pfeld', q:`√(${zr} durch ${nr}) = ? (Variablen sind positiv)`, qh:`<span class="pw-gross">${wz(br(zr,nr))} =</span>`,
+        lead:'Vereinfache durch partielles Wurzelziehen! (Die Variablen sind positiv.)', zeile, felder:B.felder, hochTaste:true, stufe:2, zr, nr,
+        hinweisNach:h=>{ if(!h[0]||!h[1]||!h[2]) return '';
+          if(gw(`((${h[0]})/(${h[1]}))^2·(${h[2]})`, soll)) return gw(h[0],za)&&gw(h[1],na)&&gw(h[2],un) ? termKurzHinweis
+            : 'Der Wert stimmt, aber es geht noch einfacher: Bruch kürzen, und unter der Wurzel bleibt nur, was nicht herauskann.';
+          return `Ziehe die Wurzel aus Zähler und Nenner getrennt: ${wz(nr)} = ${na}. Gerade Hochzahlen werden halbiert.`; },
+        loesungText:wegT, loesungH:weg, why:`${weg}: Zähler und Nenner getrennt, gerade Hochzahlen halbieren, was übrig bleibt, steht unter der Wurzel.`, steps:wegT});
+    });
+  },
+
+  /* ---------- Plus ---------- */
+  // X1-A05 Faktor unter die Wurzel
+  unter_wurzel(){
+    const [a,b]=ziehA05(), B=bau();
+    const zeile=`<span class="zt">${a} · ${wz(b)} =</span>${B.wurzel(B.zahl({ans:a*a*b, ansText:String(a*a*b), name:'unter der Wurzel'}))}`;
+    return aufg({kind:'pfeld', q:`${a} · √(${b}) als eine Wurzel`, qh:`<span class="pw-gross">${a} · ${wz(b)}</span>`, lead:'Schreibe als eine einzige Wurzel!', zeile, felder:B.felder, a, b,
+      hinweisNach:r=>{ const v=ganz(r[0]); if(v===null) return '';
+        if(v===a*b) return `Der Faktor kommt quadriert unter die Wurzel: ${a}² · ${b} = ${a*a*b}.`;
+        if(v===a*a) return `Multipliziere noch mit der Zahl unter der Wurzel: ${a}² · ${b}.`;
+        return ''; },
+      loesungText:`${a} · √(${b}) = √(${a*a*b})`, why:`${a} = ${wz(a*a)}, also ${a} · ${wz(b)} = ${wz(`${a*a} · ${b}`)} = ${wz(a*a*b)}: ${a}² · ${b} = ${a*a*b}.`});
+  },
+  // X1-A06 Welche Schreibweise ist fertig?
+  fertig_wahl(){
+    const a=pick([4,6,8,9,10,12]), b=pick([2,3,5,6,7,10,11]), n=a*a*b;
+    const teiler=[]; for(let f=1;f<a;f++) if(a%f===0) teiler.push(f);
+    const gross=teiler.filter(f=>f>1), wahl=gross.length>=2 ? mischen(gross).slice(0,2) : [...gross, 1];
+    const text = f => f===1 ? wz(Z(n)) : `${f} · ${wz(Z(n/(f*f)))}`;
+    const opt=mischen([['r',`${a} · ${wz(b)}`], ...wahl.map((f,i)=>[String.fromCharCode(97+i), text(f)])]);
+    return aufg({kind:'fragen', q:`${wz(Z(n))}: ${opt.map(o=>o[1]).join(' oder ')}?`, qh:`<span class="pw-gross">${wz(Z(n))}</span>`, lead:'Wähle die Schreibweise, die ganz vereinfacht ist!', a, b,
+      gruppen:[{frage:'Welche Schreibweise ist ganz vereinfacht?', optionen:opt, ans:'r'}],
+      why:`Alle drei haben denselben Wert. ${wahl.map(f=>`Bei ${text(f)} geht es weiter: ${nochText(n/(f*f))}.`).join(' ')} Fertig ist ${a} · ${wz(b)}: In ${b} steckt keine Quadratzahl mehr.`});
+  },
+  // X1-N01 Sachaufgabe: Quadratseite als Wurzel (exakt und gerundet, Einheiten-Tasten)
+  sach_quadrat(){
+    const A=versuche(()=>{ const v=rnd(8,200), {s,r}=zerlege(v); return s>=2&&r>1 ? v : null; }), {s,r}=zerlege(A);
+    const u=pick(['cm','m']), k=rnd(1,3), g=wurzelRund(D(A),2,k).r, B=bau();
+    const zeile=`<span class="zt">a =</span>${B.wurzelFeld({ans:s, ansText:String(s)}, {ans:r, ansText:String(r)})}<span class="zt">≈</span>${B.zahl({ans:Number(dText(g).replace(',','.')), stellen:k, ansText:dText(g,k), name:'gerundet'})}`;
+    const nach=B.einheit(['mm','cm','m','cm²','m²'], u);
+    const weg=`a = ${wz(A)} = ${wz(`${s*s} · ${r}`)} = ${s} · ${wz(r)} ≈ ${dText(g,k)} ${u}`;
+    return aufg({kind:'pfeld', text:true, q:`Ein Quadrat hat ${A} ${u}² Flächeninhalt. Gib die Seite a als vereinfachte Wurzel und ${rundWort(k)} gerundet an.`,
+      lead:'Gib die Seite exakt und gerundet an!', zeile, felder:B.felder, nachFeldern:nach, A, einheit:u,
+      hinweisNach:h=>{ if(!h[3]) return 'Wähle noch die Einheit.'; if(/²/.test(h[3])) return `Die Seite ist eine Länge: Die Einheit ist ${u}, nicht ${u}².`;
+        const x=ganz(h[0]), y=ganz(h[1]); if(x!==null&&y!==null&&x*x*y===A&&nochTeiler(y)) return `Der Wert stimmt, aber unter der Wurzel steckt noch eine Quadratzahl: ${nochText(y)}.`;
+        return ''; },
+      loesungText:weg, why:`${weg}. Die Seite eines Quadrats ist die Wurzel aus dem Flächeninhalt.`});
+  },
+  // X1-N02 Partiell Kubikwurzelziehen
+  kubik(){
+    const [a,b]=ziehN02(), n=a**3*b, B=bau();
+    const zeile=`<span class="zt">${wz(Z(n),3)} =</span>${B.wurzelFeld({ans:a, ansText:String(a)}, {ans:b, ansText:String(b)}, 3)}`;
+    const weg=`${wz(Z(n),3)} = ${wz(`${a**3} · ${b}`,3)} = ${a} · ${wz(b,3)}`;
+    return aufg({kind:'pfeld', q:`${wz(Z(n),3)} = ?`, qh:`<span class="pw-gross">${wz(Z(n),3)}</span>`, lead:'Vereinfache!', zeile, felder:B.felder, a, b,
+      hinweisNach:r=>{ const x=ganz(r[0]), y=ganz(r[1]); if(x===null||y===null) return '';
+        if(x**3*y===n && nochTeiler(y,3)) return `Der Wert stimmt, aber unter der Wurzel steckt noch eine Kubikzahl: ${nochText(y,3)}.`;
+        if(x*x*y===n) return 'Bei der Kubikwurzel brauchst du eine Kubikzahl (8, 27, 64, 125, 216), keine Quadratzahl.';
+        if(x*y===n && Number.isInteger(Math.round(Math.cbrt(x))) && Math.round(Math.cbrt(x))**3===x) return `Vor die Wurzel kommt die Kubikwurzel: ${wz(x,3)} = ${Math.round(Math.cbrt(x))}.`;
+        return ''; },
+      loesungText:weg, why:`${weg}: ${a**3} = ${a}³ ist die größte Kubikzahl in ${Z(n)}.`, steps:weg});
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Quadratzahl als Teiler', hint:'72 = 36 · 2', types:['teiler']},
+  {id:'S2', name:'Partiell Wurzelziehen', hint:'√147 = 7 · √3', types:['partiell']},
+  {id:'S3', name:'Mit Variablen und Brüchen', hint:'√(a⁵) = a² · √a', types:['partiell_var','wurzel_bruch']}
+];
+const kern = ['teiler','partiell','partiell_var','wurzel_bruch'];
+const leicht = ['teiler','partiell','partiell_var','wurzel_bruch'];
+const plus = ['unter_wurzel','fertig_wahl','sach_quadrat','kubik'];
+const plusHint = 'Faktor unter die Wurzel · Welche Schreibweise ist fertig? · Quadratseite · Kubikwurzel';
+
+/* ---------- Erklärung ---------- */
+const erklaerung = {
+  beispiele: ()=>({p:pick(POOL_A02)}),
+  neu(kind,E){ if(kind==='p') E.p=pick(POOL_A02); },
+  html: E => { const [a,b]=E.p, n=a*a*b;
+    return `<section class="sheet"><h2>Partiell Wurzelziehen</h2>
+    <div class="rule"><h3>1. Die Regel</h3>
+      <p>Steckt in der Zahl unter der Wurzel eine Quadratzahl, kann man ihre Wurzel herausziehen: ${wz('a² · b')} = a · ${wz('b')}.</p>
+      <div class="ex">${wz(Z(n))} = ${wz(`${Z(a*a)} · ${b}`)} = ${a} · ${wz(b)}</div>
+      <p>Nimm die <b>größte</b> Quadratzahl, die die Zahl teilt. Fertig ist es, wenn unter der Wurzel keine Quadratzahl mehr steckt.</p>
+      <button class="newex" data-newex="p">Neues Beispiel</button></div>
+    <div class="rule"><h3>2. Quadratzahlen</h3>${quadratTabelle(15)}</div>
+    <div class="rule"><h3>3. Mit Variablen</h3>
+      <p>Gerade Hochzahlen kommen aus der Wurzel, die Hochzahl wird halbiert: ${wz('a⁴')} = a², denn a² · a² = a⁴.</p>
+      <div class="ex">${wz('a⁵')} = ${wz('a⁴ · a')} = a² · ${wz('a')}</div>
+      <div class="ex">${wz('18x³')} = ${wz('9x² · 2x')} = 3x · ${wz('2x')}</div>
+      <p>Für die Hochzahl tippst du auf die Taste „Hochzahl“, dann die Ziffer.</p></div>
+    <div class="rule"><h3>4. Wurzel aus einem Bruch</h3>
+      <p>Ziehe die Wurzel aus Zähler und Nenner getrennt und kürze:</p>
+      <div class="ex">${wz(br(75,16))} = ${br(wz(75), wz(16))} = ${br(5,4)} · ${wz(3)}</div></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 1.2 Potenzen und Wurzeln.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`; }
+};
+
+const lzk = {merkmal:{teiler:'powu_x1_teiler', partiell:'powu_x1_partiell', partiell_var:'powu_x1_variablen', wurzel_bruch:'powu_x1_bruch'}};
+UR.kompetenzAnmelden({id:'M-PoWu-X1', ohneFallB:true, typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.2 Potenzen-und-Wurzeln/M-PoWu-X2.js */
+/* Baustein M-PoWu-X2: „Ich kenne Regeln für das Rechnen mit Potenzen und Wurzeln und kann sie anwenden.“
+   Steckbrief: M-PoWu-X2.md, Auswahl der Lehrkraft: AUSWAHL.md (26.11.2026). Potenzfeld (Basis-Feld und Hochzahl-Feld, normale Ziffern,
+   Hochzahlen auch über 9), Term-Felder mit Taste „Hochzahl“ (X2-A06), Bruch aus zwei Feldern. Im Kern nur positive Hochzahlen,
+   Ergebnisse als Bruch; negative Hochzahlen nur im Plus (X2-A04, X2-N02). X2-A08 mit fester Auswahl. */
+(function(UR){
+const {M, rnd, pick, mischen, versuche, wz, hoch, hochT, pot, basisText, klH, bruchPotH, bruchPotT, exaktFeld, bau, normName, aufg, merk, mono, monoH, termKurzHinweis} = UR.powu;
+const R = UR.raza, Z = R.Z, br = R.br, ggT = R.ggT;
+const T = UR.terme;
+const VARS = ['a','b','x','y','z'];
+const NAMEN = ['Leo','Mia','Jan','Eva','Tim','Lara','Ben','Nora','Ali','Zoe'];
+const ganz = s => { const r=normName(s).replace(/^\+/,''); return /^-?\d+$/.test(r) ? Number(r) : null; };
+const gw = (a,b) => { try{ return T.gleichwertig(a,b); }catch(e){ return false; } };
+const basisZufall = () => Math.random()<.5 ? pick(VARS) : rnd(2,9);
+const bT = b => basisText(b);
+// Potenzfeld für das Ergebnis: Basis-Feld und Hochzahl-Feld, im leichteren Einstieg steht die Basis fest
+const potFeld = (B, b, h, fest) => B.potenz(fest ? bT(b) : {art:'basis', ans:b, ansText:String(b), name:'Basis'}, {ans:h, ansText:String(h), name:'Hochzahl'});
+const farbe = (cls, s) => `<span class="${cls}">${s}</span>`;
+// Bruch aus zwei Zahlfeldern: zählt, wenn der Wert stimmt und der Bruch gekürzt ist (Minus auch im Nenner erlaubt)
+function bruchGesamt(zs, ns){
+  return (rohs, erg) => { const x=ganz(rohs[0]), y=ganz(rohs[1]); if(x===null||!y) return false;
+    const ok = x*ns===y*zs && ggT(x,y)===1; if(ok) erg.forEach(e=>{ e.ok=true; }); return ok; };
+}
+const bruchWertGleich = (rohs, zs, ns) => { const x=ganz(rohs[0]), y=ganz(rohs[1]); return x!==null&&!!y&&x*ns===y*zs; };
+
+const typen = {
+  // X2-A01 Gleiche Basis: Potenzen multiplizieren und dividieren (nur positive Hochzahlen)
+  gleiche_basis(ctx){
+    const leicht=!!(ctx&&ctx.leicht), b=basisZufall(), mal=Math.random()<.55;
+    const [m,n]=versuche(()=>{ const m=rnd(2,15), n=rnd(2,15); return mal||m>n ? [m,n] : null; }), h=mal?m+n:m-n, B=bau();
+    const op=mal?'·':':', aufgabe=`${pot(b,m)} ${op} ${pot(b,n)}`;
+    const zeile=`<span class="zt">${aufgabe} =</span>${potFeld(B,b,h,leicht)}`;
+    const regel = mal ? 'Gleiche Basis multiplizieren: Hochzahlen addieren.' : 'Gleiche Basis dividieren: Hochzahlen subtrahieren.';
+    return aufg({kind:'pfeld', q:`${aufgabe} = ?`, qh:`<span class="pw-gross">${aufgabe}</span>`, lead:'Schreibe als eine einzige Potenz!', zeile, felder:B.felder, b, m, n, mal,
+      bild:leicht?merk(`${regel} ${bT(b)}${farbe('cg',hoch(m))} ${op} ${bT(b)}${farbe('cv',hoch(n))} = ${bT(b)}${farbe('cg',hoch(m))}${farbe('cx',mal?'⁺':'⁻')}${farbe('cv',hoch(n))} = ${pot(b,h)}`):'',
+      hinweisNach:r=>{ const hv=ganz(r[r.length-1]);
+        if(!leicht&&r[0]&&normName(r[0])!==normName(String(b))) return 'Die Basis bleibt gleich: Nur mit den Hochzahlen wird gerechnet.';
+        if(hv===null) return '';
+        if(mal&&hv===m*n) return 'Beim Multiplizieren mit gleicher Basis werden die Hochzahlen addiert, nicht multipliziert.';
+        if(!mal&&hv===m+n) return 'Beim Dividieren mit gleicher Basis werden die Hochzahlen subtrahiert.';
+        if(!mal&&m%n===0&&hv===m/n) return 'Beim Dividieren mit gleicher Basis werden die Hochzahlen subtrahiert, nicht dividiert.';
+        return ''; },
+      loesungText:`${aufgabe} = ${bT(b)}${hoch(m)}${mal?'⁺':'⁻'}${hoch(n)} = ${pot(b,h)}`, why:`${regel} ${m} ${mal?'+':M} ${n} = ${h}, also ${pot(b,h)}.`});
+  },
+  // X2-A02 Potenz von einer Potenz
+  pot_pot(ctx){
+    const leicht=!!(ctx&&ctx.leicht), b=basisZufall();
+    const [m,n]=versuche(()=>{ const m=rnd(2,9), n=rnd(2,9); return m*n<=40 ? [m,n] : null; }), h=m*n, B=bau();
+    const aufgabe=`(${pot(b,m)})${hoch(n)}`, zeile=`<span class="zt">${aufgabe} =</span>${potFeld(B,b,h,leicht)}`;
+    return aufg({kind:'pfeld', q:`${aufgabe} = ?`, qh:`<span class="pw-gross">${aufgabe}</span>`, lead:'Schreibe als eine einzige Potenz!', zeile, felder:B.felder, b, m, n,
+      bild:leicht?merk(`Potenz von einer Potenz: Hochzahlen multiplizieren. (${bT(b)}${farbe('cg',hoch(m))})${farbe('cv',hoch(n))} = ${Array(n).fill(pot(b,m)).join(' · ')} = ${pot(b,h)}`):'',
+      hinweisNach:r=>{ const hv=ganz(r[r.length-1]);
+        if(!leicht&&r[0]&&normName(r[0])!==normName(String(b))) return 'Die Basis bleibt gleich: Nur mit den Hochzahlen wird gerechnet.';
+        if(hv===m+n) return 'Potenz von einer Potenz: Die Hochzahlen werden multipliziert, nicht addiert.';
+        return ''; },
+      loesungText:`${aufgabe} = ${pot(b,h)}`, why:`Potenz von einer Potenz: Hochzahlen multiplizieren, ${m} · ${n} = ${h}, also ${pot(b,h)}.`});
+  },
+  // X2-A03 Produkt und Quotient hoch n: Zahl-Feld (ausgerechnet), Basis-Feld und Hochzahl-Feld je Faktor
+  produkt_hoch(ctx){
+    const leicht=!!(ctx&&ctx.leicht), art=leicht?pick(['ka','ab']):pick(['ka','ka','ab','kab','bruch','kbruch']), n=rnd(2,4), B=bau();
+    const [v1,v2]=mischen(['a','b','x','y']).slice(0,2).sort(), k=rnd(2,5), m=versuche(()=>{ const m=rnd(2,5); return ggT(m,k)===1 ? m : null; });
+    const pf = v => B.potenz({art:'basis', ans:v, ansText:v, name:'Basis'}, {ans:n, ansText:String(n), name:'Hochzahl'});
+    const zf = (w,name) => B.zahl({ans:w, ansText:Z(w), name});
+    let innen, qh, q, zeile, loes, vars, zahl=null, nenner=null;
+    if(art==='ka'){ innen=`${k}${v1}`; vars=[v1]; zahl=k; zeile=`${zf(k**n,'Zahl')}<span class="pf-mal">·</span>${pf(v1)}`; loes=`${Z(k**n)}${v1}${hoch(n)}`; }
+    else if(art==='ab'){ innen=`${v1}${v2}`; vars=[v1,v2]; zeile=`${pf(v1)}<span class="pf-mal">·</span>${pf(v2)}`; loes=`${v1}${hoch(n)}${v2}${hoch(n)}`; }
+    else if(art==='kab'){ innen=`${k}${v1}${v2}`; vars=[v1,v2]; zahl=k; zeile=`${zf(k**n,'Zahl')}<span class="pf-mal">·</span>${pf(v1)}<span class="pf-mal">·</span>${pf(v2)}`; loes=`${Z(k**n)}${v1}${hoch(n)}${v2}${hoch(n)}`; }
+    else { const mitK=art==='kbruch'; vars=[v1]; nenner=m; if(mitK) zahl=k;
+      zeile=B.bruch(mitK?`${zf(k**n,'Zahl im Zähler')}<span class="pf-mal">·</span>${pf(v1)}`:pf(v1), zf(m**n,'Nenner'));
+      innen=null; loes=`${mitK?Z(k**n):''}${v1}${hoch(n)} durch ${Z(m**n)}`; }
+    const zaehlerT = (zahl?String(zahl):'')+(art==='bruch'||art==='kbruch'?v1:innen.replace(/^\d/,''));
+    if(nenner){ qh=`${klH(br(zaehlerT, m))}<span class="pw-sup">${hoch(n)}</span>`; q=`(${zaehlerT} durch ${m})${hoch(n)} = ?`; }
+    else { qh=`(${innen})${hoch(n)}`; q=`(${innen})${hoch(n)} = ?`; }
+    const anzahl=B.felder.length;
+    // Faktoren in jeder Reihenfolge (a²b² oder b²a²): Paare Basis/Hochzahl vergleichen
+    const gesamt = vars.length===2 ? (rohs, erg) => {
+      const o=zahl?1:0, zOk=!zahl||erg[0].ok, p=[[rohs[o],rohs[o+1]],[rohs[o+2],rohs[o+3]]].map(([b,h])=>`${normName(b)}|${normName(h)}`).sort().join('#');
+      const ok = zOk && p===vars.map(v=>`${v}|${n}`).sort().join('#'); if(ok) erg.forEach(e=>{ e.ok=true; }); return ok; } : undefined;
+    const weg = nenner ? `(${zaehlerT} durch ${m})${hoch(n)} = ${zahl?`${zahl}${hoch(n)}`:''}${v1}${hoch(n)} durch ${m}${hoch(n)} = ${loes}`
+      : `(${innen})${hoch(n)} = ${[zahl?`${zahl}${hoch(n)}`:null, ...vars.map(v=>v+hoch(n))].filter(Boolean).join(' · ')} = ${loes}`;
+    return aufg({kind:'pfeld', q, qh:`<span class="pw-gross">${qh}</span>`, lead:'Vereinfache! Rechne die Potenz der Zahl aus.', zeile, felder:B.felder, gesamt, art, n, anzahl,
+      bild:leicht?merk(`Die Hochzahl gehört zu jedem Faktor: (2a)³ = 2³ · a³ = 8a³.`):'',
+      hinweisNach:r=>{
+        if(zahl){ const zr=normName(r[0]), zv=ganz(r[0]);
+          if(zv===zahl) return `Die Hochzahl gehört zu jedem Faktor, auch zur Zahl: ${zahl}${hoch(n)} = ${Z(zahl**n)}.`;
+          if(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/.test(zr)) return `Rechne die Potenz der Zahl aus: ${zahl}${hoch(n)} = ${Z(zahl**n)}.`; }
+        if(nenner){ const nv=ganz(r[r.length-1]); if(nv===nenner) return `Auch der Nenner bekommt die Hochzahl: ${m}${hoch(n)} = ${Z(m**n)}.`; }
+        return ''; },
+      loesungText:weg, why:`Die Hochzahl gehört zu jedem Faktor${nenner?' im Zähler und im Nenner':''}: ${weg}.`});
+  },
+  // X2-A05 Wurzelregeln anwenden (ohne Taschenrechner, ganzzahliges Ergebnis)
+  wurzelregeln(ctx){
+    const leicht=!!(ctx&&ctx.leicht), mal=Math.random()<.55, istQ = x => Number.isInteger(Math.sqrt(x));
+    const [a,b,c]=versuche(()=>{ const c=rnd(2,15);
+      if(mal){ const tl=[]; for(let a=2;a<=c*c/2;a++) if(c*c%a===0&&!istQ(a)&&!istQ(c*c/a)) tl.push(a); if(!tl.length) return null; const a=pick(tl); return [a,c*c/a,c]; }
+      const b=rnd(2,13); if(istQ(b)||c*c*b>800) return null; return [c*c*b,b,c]; });
+    const op=mal?'·':':', aufgabe=`${wz(Z(a))} ${op} ${wz(Z(b))}`, innen=mal?a*b:a/b;
+    const weg = mal ? `${aufgabe} = ${wz(`${Z(a)} · ${Z(b)}`)} = ${wz(Z(innen))} = ${c}` : `${aufgabe} = ${wz(`${Z(a)} : ${Z(b)}`)} = ${wz(Z(innen))} = ${c}`;
+    return aufg({kind:'zahlen', q:`${aufgabe} = ?`, qh:`<span class="pw-gross">${aufgabe}</span>`, lead:'Rechne mit den Wurzelregeln, ohne Taschenrechner!', felder:[exaktFeld(`${aufgabe} =`, c)], a, b, mal,
+      bild:leicht?merk(mal?`${wz('a')} · ${wz('b')} = ${wz('a · b')}: Erst unter einer Wurzel multiplizieren, dann die Wurzel ziehen.`:`${wz('a')} : ${wz('b')} = ${wz('a : b')}: Erst unter einer Wurzel dividieren, dann die Wurzel ziehen.`):'',
+      hinweisNach:erg=>{ const v=erg[0].v; if(v===innen) return `Das ist die Zahl unter der Wurzel. Ziehe noch die Wurzel: ${wz(Z(innen))} = ${c}.`; return ''; },
+      why:`${weg}.`, steps:weg});
+  },
+  // X2-A06 Vereinfachen wie in der LZK (Term-Felder mit Taste „Hochzahl“; Ergebnis als Bruch statt negativer Hochzahl)
+  vereinfachen(ctx){
+    const stufe=rnd(1,3), B=bau();
+    let za, na;
+    if(stufe===1){
+      // Bruch mit Potenzen und Zahlen: Zahlen kürzen, gleiche Basen (Hochzahlen subtrahieren)
+      return versuche(()=>{
+        const zwei=Math.random()<.7, vs=mischen(['a','b','c','d','x','y']).slice(0,zwei?2:1).sort();
+        const g=rnd(2,15), kz=rnd(1,12), kn=rnd(1,12); if(ggT(kz,kn)!==1||kz*g>200||kn*g>200||kz===kn) return null;
+        const eo={}, eu={}; vs.forEach(v=>{ eo[v]=rnd(1,9); eu[v]=rnd(1,9); });
+        const ro={}, ru={}; vs.forEach(v=>{ const d=eo[v]-eu[v]; ro[v]=Math.max(d,0); ru[v]=Math.max(-d,0); });
+        const oben=mono(kz*g,eo), unten=mono(kn*g,eu); za=mono(kz,ro); na=mono(kn,ru);
+        if(na==='1') return null;      // ein Nenner bleibt (sonst wäre es nur ein Produkt)
+        return fertig(B, `${oben} durch ${unten}`, br(oben,unten), za, na, `(${oben})/(${unten})`, 'Zahlen kürzen, gleiche Basen: Hochzahlen subtrahieren. Was im Nenner größer ist, bleibt im Nenner.',
+          `${br(oben,unten)} = ${na==='1'?za:br(za,na)}: ${Z(kz*g)} und ${Z(kn*g)} durch ${g} kürzen; ${vs.map(v=>`${v}${hoch(eo[v])} : ${v}${hoch(eu[v])}`).join(', ')}`, stufe);
+      });
+    }
+    if(stufe===2){
+      return versuche(()=>{
+        const v=pick(['a','b','g','x','y']);
+        if(Math.random()<.6){
+          // (ⁿ√(wⁿ) · gᵖ)^q · gʳ
+          const w=rnd(2,9), n=rnd(2,7), qq=rnd(2,4), p=rnd(2,5), r=rnd(1,4); if(w**n>5e6||w**qq>10000) return null;
+          const wurzel=wz(Z(w**n),n), aufgabe=`(${wurzel} · ${pot(v,p)})${hoch(qq)} · ${v}${hochT(r)}`, h=p*qq+r;
+          za=mono(w**qq,{[v]:h});
+          return fertig(B, aufgabe, aufgabe, za, '1', `(${w})^${qq}·${v}^${h}`, 'Zuerst die Wurzel ausrechnen, dann jeden Faktor hoch der Hochzahl (Potenz von einer Potenz: Hochzahlen multiplizieren), zum Schluss gleiche Basen multiplizieren (Hochzahlen addieren).',
+            `${wurzel} = ${w}, (${w} · ${pot(v,p)})${hoch(qq)} = ${Z(w**qq)}${pot(v,p*qq)}, mal ${v}${hochT(r)} ergibt ${monoH(w**qq,{[v]:h})}`, stufe);
+        }
+        // √(K² · v^2p) · v^r
+        const K=rnd(2,12), p=rnd(1,5), r=rnd(1,5), rad=mono(K*K,{[v]:2*p}), aufgabe=`${wz(rad)} · ${v}${hochT(r)}`;
+        za=mono(K,{[v]:p+r});
+        return fertig(B, aufgabe, aufgabe, za, '1', `${K}·${v}^${p+r}`, 'Zuerst die Wurzel ziehen (Hochzahl halbieren), dann gleiche Basen multiplizieren (Hochzahlen addieren).',
+          `${wz(rad)} = ${mono(K,{[v]:p})}, mal ${v}${hochT(r)} ergibt ${za}`, stufe);
+      });
+    }
+    // Stufe 3 wie in der LZK: (k·aᵖ·b^q)ⁿ durch (L·aʳ·bˢ)
+    return versuche(()=>{
+      const zwei=Math.random()<.7, vs=mischen(['a','b','c','d','x','y']).slice(0,zwei?2:1).sort();
+      const k=rnd(2,4), n=rnd(2,3), L=rnd(2,20), K=k**n, g=ggT(K,L); if(g===1) return null;
+      const eo={}, eu={}; vs.forEach(v=>{ eo[v]=rnd(1,4); eu[v]=rnd(1,6); });
+      const ro={}, ru={}; vs.forEach(v=>{ const d=n*eo[v]-eu[v]; ro[v]=Math.max(d,0); ru[v]=Math.max(-d,0); });
+      const innen=mono(k,eo), unten=mono(L,eu); za=mono(K/g,ro); na=mono(L/g,ru);
+      if(za==='1'&&na==='1') return null;
+      const obenT=`(${innen})${hoch(n)}`;
+      return fertig(B, `${obenT} durch ${unten}`, br(obenT,unten), za, na, `((${innen})^${n})/(${unten})`, 'Zuerst die Klammer: jeder Faktor hoch der Hochzahl. Dann Zahlen kürzen und gleiche Basen dividieren (Hochzahlen subtrahieren).',
+        `${obenT} = ${mono(K,Object.fromEntries(vs.map(v=>[v,n*eo[v]])))}, dann durch ${unten}: ${Z(K)} : ${L} gekürzt, Hochzahlen subtrahieren`, stufe);
+    });
+  },
+
+  /* ---------- Plus ---------- */
+  // X2-A04 Hochzahl 0 und negative Hochzahl (Ergebnis als gekürzter Bruch, bei Buchstaben Potenzfeld im Nenner)
+  hoch_null_negativ(){
+    const art=pick(['null','zahl','zahl','var']), B=bau();
+    if(art==='null'){
+      const b=pick([basisZufall(), -rnd(2,9)]);
+      return aufg({kind:'pfeld', q:`${pot(b,0)} = ?`, qh:`<span class="pw-gross">${pot(b,0)}</span>`, lead:'Berechne!', zeile:`<span class="zt">${pot(b,0)} =</span>${B.zahl({ans:1, ansText:'1', name:'Ergebnis'})}`,
+        felder:B.felder, minus:true, art, b,
+        hinweisNach:r=>{ const v=ganz(r[0]); return v===0||v===b ? 'Hoch 0 ergibt immer 1.' : ''; },
+        loesungText:`${pot(b,0)} = 1`, why:`Hoch 0 ergibt immer 1: ${pot(b,3)} : ${pot(b,3)} = ${pot(b,0)} = 1.`});
+    }
+    if(art==='var'){
+      const v=pick(VARS), n=rnd(2,6);
+      const zeile=`<span class="zt">${pot(v,-n)} =</span>${B.bruch(B.zahl({ans:1, ansText:'1', name:'Zähler'}), B.potenz({art:'basis', ans:v, ansText:v, name:'Basis'}, {ans:n, ansText:String(n), name:'Hochzahl'}))}`;
+      return aufg({kind:'pfeld', q:`${pot(v,-n)} = ?`, qh:`<span class="pw-gross">${pot(v,-n)}</span>`, lead:'Schreibe ohne negative Hochzahl!', zeile, felder:B.felder, minus:true, art, v, n,
+        hinweisNach:r=>{ const h=ganz(r[2]); return h===-n ? 'Im Nenner steht die Hochzahl ohne Minus: Das Minus bedeutet „Kehrwert“.' : ''; },
+        loesungText:`${pot(v,-n)} = 1 durch ${pot(v,n)}`, loesungH:`${pot(v,-n)} = ${br(1,pot(v,n))}`, why:`Negative Hochzahl: Kehrwert. ${pot(v,-n)} = 1 : ${pot(v,n)} = ${br(1,pot(v,n))}.`});
+    }
+    const [b,n]=versuche(()=>{ const b=Math.random()<.25?-rnd(2,5):rnd(2,10), n=rnd(1,6); return Math.abs(b)**n<=1e6 ? [b,n] : null; });
+    const N=b**n, zs=N<0?-1:1, ns=Math.abs(N);
+    const zeile=`<span class="zt">${pot(b,-n)} =</span>${B.bruchFelder({ans:zs, ansText:zs<0?`${M}1`:'1'}, {ans:ns, ansText:Z(ns)})}`;
+    return aufg({kind:'pfeld', q:`${pot(b,-n)} = ?`, qh:`<span class="pw-gross">${pot(b,-n)}</span>`, lead:'Schreibe als Bruch ohne negative Hochzahl!', zeile, felder:B.felder, minus:true, art, b, n,
+      gesamt:bruchGesamt(zs,ns),
+      hinweisNach:r=>{ if(bruchWertGleich(r,zs,ns)) return 'Der Wert stimmt. Kürze den Bruch noch vollständig.';
+        if(bruchWertGleich(r,-zs,ns)) return b>0 ? `Eine negative Hochzahl macht die Zahl nicht negativ: ${pot(b,-n)} = 1 : ${pot(b,n)}.` : 'Achte auf das Vorzeichen: Ist die Hochzahl gerade, wird das Ergebnis positiv.';
+        const y=ganz(r[1]); if(y===Math.abs(b)*n&&n>1) return `Rechne die Potenz aus: ${pot(b,n)} = ${Z(N)}.`;
+        return ''; },
+      loesungText:`${pot(b,-n)} = 1 durch ${pot(b,n)} = ${zs<0?M:''}1 durch ${Z(ns)}`, loesungH:`${pot(b,-n)} = ${br(1,pot(b,n))} = ${zs<0?M:''}${br(1,Z(ns))}`,
+      why:`Negative Hochzahl: Kehrwert. ${pot(b,-n)} = 1 : ${pot(b,n)} = ${zs<0?M:''}${br(1,Z(ns))}.`});
+  },
+  // X2-A07 Wurzel als Potenz mit Bruch-Hochzahl (und umgekehrt als Auswahl)
+  bruch_hochzahl(){
+    const v=pick(VARS);
+    if(Math.random()<.6){
+      const kuerzen=Math.random()<.25, [m,n]=versuche(()=>{ const n=rnd(2,9), m=rnd(1,9); if(m%n===0) return null; return (ggT(m,n)>1)===kuerzen ? [m,n] : null; });
+      const g=ggT(m,n), p=m/g, q=n/g, B=bau(), wurzel=wz(mono(1,{[v]:m}),n);
+      const zeile=`<span class="zt">${wurzel} =</span>${B.hochBruch(v, {ans:p, ansText:String(p)}, {ans:q, ansText:String(q)})}`;
+      return aufg({kind:'pfeld', q:`${wurzel} = ${v} hoch ?`, qh:`<span class="pw-gross">${wurzel}</span>`, lead:'Schreibe als Potenz mit einem Bruch als Hochzahl!', zeile, felder:B.felder, richtung:1, m, n,
+        hinweisNach:r=>{ const x=ganz(r[0]), y=ganz(r[1]); if(x===null||!y) return '';
+          if(x*n===y*m) return 'Der Wert stimmt. Kürze den Bruch in der Hochzahl noch.';
+          if(x*m===y*n) return 'Vertauscht: Die Hochzahl unter der Wurzel kommt in den Zähler, der Wurzelexponent in den Nenner.';
+          return ''; },
+      loesungText:`${wurzel} = ${v} hoch (${p} durch ${q})`, loesungH:`${wurzel} = ${v}<span class="pw-hb">${br(p,q)}</span>`,
+        why:`Die n-te Wurzel ist die Hochzahl 1 durch n: ${wurzel} = ${v}<span class="pw-hb">${br(m,n)}</span>${g>1?` = ${v}<span class="pw-hb">${br(p,q)}</span>`:''}. Die Hochzahl unter der Wurzel steht im Zähler, der Wurzelexponent im Nenner.`});
+    }
+    const [m,n]=versuche(()=>{ const n=rnd(2,9), m=rnd(2,9); return m!==n&&ggT(m,n)===1 ? [m,n] : null; });
+    const potH=`${v}<span class="pw-hb">${br(m,n)}</span>`;
+    const opt=mischen([['r',wz(mono(1,{[v]:m}),n)], ['t',wz(mono(1,{[v]:n}),m)], ['d',`${pot(v,m)} : ${n}`]]);
+    return aufg({kind:'fragen', q:`${v} hoch (${m} durch ${n}) als Wurzel: ${opt.map(o=>o[1]).join(' oder ')}?`, qh:`<span class="pw-gross">${potH}</span>`, lead:'Schreibe als Wurzel!', richtung:2, m, n, v,
+      gruppen:[{frage:'Welche Wurzel ist gleich?', optionen:opt, ans:'r'}],
+      why:`Der Nenner der Hochzahl ist der Wurzelexponent, der Zähler die Hochzahl unter der Wurzel: ${potH} = ${wz(mono(1,{[v]:m}),n)}.`});
+  },
+  // X2-A08 Regel und Beispiel zuordnen (feste Auswahl)
+  regel_zuordnen(){
+    const l=mischen(REGELN).slice(0,4).map(r=>({r, b:pick(r.bsp)}));
+    const dinge=l.map((x,i)=>({id:'d'+i, html:x.b[1]||x.b[0], kurz:x.b[0]})), ziele=mischen(l.map((x,i)=>({id:'z'+i, text:x.r.regel})));
+    const ans={}; l.forEach((x,i)=>ans['d'+i]='z'+i);
+    return aufg({kind:'zuordnen', q:`Regeln: ${l.map(x=>x.b[0]).join('; ')}`, qh:'Beispiel → Regel', lead:'Ordne Beispiel und Regel zu!', dinge, ziele, ans, paare:l.map(x=>[x.b[0],x.r.id]),
+      why:l.map(x=>`${x.b[1]||x.b[0]}: ${x.r.regel}`).join('; ')+'.'});
+  },
+  // X2-N01 Fehler finden
+  fehler_regel(){
+    return versuche(()=>{
+      const art=pick(Object.keys(FEHLER)), v=pick(VARS), name=pick(NAMEN), m=rnd(2,6), n=rnd(2,6), k=rnd(2,5), b=rnd(2,5);
+      let falsch, richtig;
+      if(art==='addiert'){ if(m*n===m+n) return null; falsch=`(${pot(v,m)})${hoch(n)} = ${pot(v,m+n)}`; richtig=`(${pot(v,m)})${hoch(n)} = ${pot(v,m*n)}`; }
+      else if(art==='einfaktor'){ falsch=`(${k}${v})${hoch(n)} = ${k}${pot(v,n)}`; richtig=`(${k}${v})${hoch(n)} = ${Z(k**n)}${pot(v,n)}`; }
+      else if(art==='basen'){ falsch=`${pot(b,m)} · ${pot(b,n)} = ${pot(b*b,m+n)}`; richtig=`${pot(b,m)} · ${pot(b,n)} = ${pot(b,m+n)}`; }
+      else if(art==='null'){ falsch=`${pot(Math.random()<.5?v:k,0)} = 0`; richtig=`${falsch.replace(/ = 0$/,'')} = 1`; }
+      else if(art==='summe'){ if(m===n) return null; falsch=`${pot(v,m)} + ${pot(v,n)} = ${pot(v,m+n)}`; richtig=`${pot(v,m)} + ${pot(v,n)} lässt sich nicht zusammenfassen; ${pot(v,m)} · ${pot(v,n)} = ${pot(v,m+n)}`; }
+      else { if(m*n===m+n) return null; falsch=`${pot(v,m)} · ${pot(v,n)} = ${pot(v,m*n)}`; richtig=`${pot(v,m)} · ${pot(v,n)} = ${pot(v,m+n)}`; }
+      const andere=mischen(Object.keys(FEHLER).filter(x=>x!==art&&!(KONFLIKT[art]||[]).includes(x))).slice(0,2);
+      const opt=mischen([art,...andere].map(x=>[x,FEHLER[x]]));
+      return aufg({kind:'fragen', q:`${name}: ${falsch}. Was stimmt nicht?`, qh:`${name} schreibt <span class="pw-gross">${falsch}</span>`, lead:'Finde den Fehler!', art,
+        gruppen:[{frage:'Was stimmt nicht?', optionen:opt, ans:art, klasse:'lang'}],
+        why:`${FEHLER[art]} Richtig: ${richtig}.`});
+    });
+  },
+  // X2-N02 Negative Basis und Bruch als Basis
+  bruch_basis(){
+    const [z,n,k]=versuche(()=>{ const z=rnd(-5,5), n=rnd(2,5), k=pick([-4,-3,-2,-1,2,3,4]);
+      if(!z||ggT(z,n)!==1||(k<0&&Math.abs(z)<2)) return null; return [z,n,k]; });
+    const e=Math.abs(k), oben=k>0?z**e:n**e*(z<0&&e%2?-1:1), unten=k>0?n**e:Math.abs(z)**e, B=bau();
+    const zeile=`<span class="zt">${bruchPotH(z,n,k)} =</span>${B.bruchFelder({ans:oben, ansText:oben<0?`${M}${Z(-oben)}`:Z(oben)}, {ans:unten, ansText:Z(unten)})}`;
+    const kehr = k<0 ? ` = ${bruchPotH(z<0?-n:n, Math.abs(z), e)}` : '';
+    const kehrT = k<0 ? ` = ${bruchPotT(z<0?-n:n, Math.abs(z), e)}` : '';
+    const ergH = `${oben<0?M:''}${br(Z(Math.abs(oben)),Z(unten))}`;
+    return aufg({kind:'pfeld', q:`${bruchPotT(z,n,k)} = ?`, qh:`<span class="pw-gross">${bruchPotH(z,n,k)}</span>`, lead:'Berechne! Schreibe das Ergebnis als gekürzten Bruch.', zeile, felder:B.felder, minus:true, z, n, k,
+      gesamt:bruchGesamt(oben,unten),
+      hinweisNach:r=>{ if(bruchWertGleich(r,oben,unten)) return 'Der Wert stimmt. Kürze den Bruch noch vollständig.';
+        if(k<0&&bruchWertGleich(r,z**e,n**e)) return 'Negative Hochzahl: Nimm zuerst den Kehrwert, dann potenziere.';
+        if(bruchWertGleich(r,-oben,unten)) return 'Achte auf das Vorzeichen: Eine negative Basis mit gerader Hochzahl ergibt eine positive Zahl, mit ungerader eine negative.';
+        return ''; },
+      loesungText:`${bruchPotT(z,n,k)}${kehrT} = ${oben<0?M:''}${Z(Math.abs(oben))} durch ${Z(unten)}`, loesungH:`${bruchPotH(z,n,k)}${kehr} = ${ergH}`,
+      why:`${k<0?'Negative Hochzahl: zuerst den Kehrwert nehmen. ':''}${bruchPotH(z,n,k)}${kehr} = ${ergH}: Zähler und Nenner werden potenziert.`});
+  }
+};
+
+// gemeinsamer Abschluss für X2-A06: Ergebnis als Term-Feld, mit Nenner als Bruch aus zwei Term-Feldern
+function fertig(B, qText, qH, za, na, soll, regel, wegH, stufe){
+  const mitN = na!=='1';
+  const zeile=`<span class="zt">${qH} =</span>${mitN ? B.bruchFelder({art:'term', ans:za, ansText:za}, {art:'term', ans:na, ansText:na}) : B.feld({art:'term', ans:za, ansText:za, name:'Ergebnis'})}`;
+  const ergT = mitN ? `${za} durch ${na}` : za, ergH = mitN ? br(za,na) : za;
+  return aufg({kind:'pfeld', q:`${qText} = ?`, qh:`<span class="pw-gross">${qH}</span>`, lead:'Vereinfache so weit wie möglich!', zeile, felder:B.felder, hochTaste:true, stufe, za, na,
+    hinweisNach:h=>{ if(!h[0]||(mitN&&!h[1])) return '';
+      const ein = mitN ? `(${h[0]})/(${h[1]})` : h[0];
+      if(gw(ein, soll)) return (mitN ? gw(h[0],za)&&gw(h[1],na) : true) ? termKurzHinweis : 'Der Wert stimmt, aber es geht noch einfacher: Zahlen kürzen und gleiche Basen zusammenfassen.';
+      return regel; },
+    loesungText:`${qText} = ${ergT}`, loesungH:`${qH} = ${ergH}`, why:`${regel} ${wegH}.`, steps:`${qText} = ${ergT}`});
+}
+
+/* X2-A08: Regeln mit festen Beispielen [Text, HTML] */
+const REGELN = [
+  {id:'prod', regel:'gleiche Basis multiplizieren: Hochzahlen addieren', bsp:[['a⁵ · a² = a⁷'],['x³ · x⁴ = x⁷'],['2³ · 2⁵ = 2⁸'],['y⁶ · y = y⁷']]},
+  {id:'quot', regel:'gleiche Basis dividieren: Hochzahlen subtrahieren', bsp:[['a⁶ : a² = a⁴'],['x⁹ : x⁵ = x⁴'],['3⁷ : 3³ = 3⁴'],['b⁸ : b = b⁷']]},
+  {id:'potpot', regel:'Potenz von einer Potenz: Hochzahlen multiplizieren', bsp:[['(a³)⁴ = a¹²'],['(x²)⁵ = x¹⁰'],['(2⁴)³ = 2¹²'],['(y⁶)² = y¹²']]},
+  {id:'prodn', regel:'Produkt hoch n: jeder Faktor hoch n', bsp:[['(2a)³ = 8a³'],['(ab)⁴ = a⁴b⁴'],['(3x)² = 9x²'],['(xy)⁵ = x⁵y⁵']]},
+  {id:'null', regel:'Hochzahl 0: Das Ergebnis ist 1', bsp:[['a⁰ = 1'],['7⁰ = 1'],['x⁰ = 1'],['(−5)⁰ = 1']]},
+  {id:'neg', regel:'negative Hochzahl: Kehrwert', bsp:[['a⁻³ = 1 durch a³', `a⁻³ = ${br(1,'a³')}`],['2⁻⁴ = 1 durch 2⁴', `2⁻⁴ = ${br(1,'2⁴')}`],['x⁻² = 1 durch x²', `x⁻² = ${br(1,'x²')}`],['5⁻¹ = 1 durch 5', `5⁻¹ = ${br(1,5)}`]]}
+];
+/* X2-N01: Fehlerarten (allgemein formuliert, damit die anderen Antworten nicht zufällig auch passen) */
+const FEHLER = {
+  addiert:'Bei einer Potenz von einer Potenz werden die Hochzahlen multipliziert, nicht addiert.',
+  einfaktor:'Die Hochzahl gehört zu jedem Faktor in der Klammer, auch zur Zahl.',
+  basen:'Die Basis bleibt gleich, die Basen werden nicht multipliziert.',
+  null:'Hoch 0 ergibt immer 1, nicht 0.',
+  summe:'Bei einer Summe darf man die Hochzahlen nicht addieren, die Regel gilt nur für Produkte.',
+  mult:'Beim Multiplizieren mit gleicher Basis werden die Hochzahlen addiert, nicht multipliziert.'
+};
+// Antworten, die bei dieser Fehlerart auch passen könnten, kommen nicht als falsche Wahl
+const KONFLIKT = {basen:['mult'], mult:['basen']};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Gleiche Basis', hint:'a⁵ · a⁴ = a⁹', types:['gleiche_basis']},
+  {id:'S2', name:'Potenz von Potenz, Produkt hoch n', hint:'(a³)⁴ = a¹², (2a)³ = 8a³', types:['pot_pot','produkt_hoch']},
+  {id:'S3', name:'Wurzelregeln', hint:'√2 · √18 = 6', types:['wurzelregeln']},
+  {id:'S4', name:'Alles gemischt (wie LZK)', hint:'Zahlen kürzen, gleiche Basen', types:['vereinfachen']}
+];
+const kern = ['gleiche_basis','pot_pot','produkt_hoch','wurzelregeln','vereinfachen'];
+const leicht = ['gleiche_basis','pot_pot','produkt_hoch','wurzelregeln'];
+const plus = ['hoch_null_negativ','bruch_hochzahl','regel_zuordnen','fehler_regel','bruch_basis'];
+const plusHint = 'Hochzahl 0 und negative Hochzahl · Wurzel als Potenz · Regeln zuordnen · Fehler finden · Bruch als Basis';
+const festeAuswahl = ['regel_zuordnen'];
+
+/* ---------- Erklärung ---------- */
+const erklaerung = {
+  beispiele: ()=>({b:pick(VARS), m:rnd(2,7), n:rnd(2,6)}),
+  neu(kind,E){ if(kind==='r'){ E.b=pick(VARS); E.m=rnd(2,7); E.n=rnd(2,6); } },
+  html: E => { const {b,m,n}=E, mm=m+n;
+    return `<section class="sheet"><h2>Rechnen mit Potenzen und Wurzeln</h2>
+    <div class="rule"><h3>1. Gleiche Basis</h3>
+      <p>Multiplizieren: Hochzahlen addieren. Dividieren: Hochzahlen subtrahieren. Die Basis bleibt gleich.</p>
+      <div class="ex">${pot(b,m)} · ${pot(b,n)} = ${pot(b,m+n)}</div><div class="ex">${pot(b,mm)} : ${pot(b,n)} = ${pot(b,m)}</div>
+      <button class="newex" data-newex="r">Neues Beispiel</button></div>
+    <div class="rule"><h3>2. Potenz von einer Potenz</h3>
+      <p>Hochzahlen multiplizieren:</p><div class="ex">(${pot(b,m)})${hoch(n)} = ${pot(b,m*n)}</div></div>
+    <div class="rule"><h3>3. Produkt und Bruch hoch n</h3>
+      <p>Jeder Faktor bekommt die Hochzahl, auch die Zahl und der Nenner:</p>
+      <div class="ex">(2a)³ = 2³ · a³ = 8a³</div><div class="ex">${klH(br('x',3))}<span class="pw-sup">²</span> = ${br('x²',9)}</div></div>
+    <div class="rule"><h3>4. Hochzahl 0 und negative Hochzahl</h3>
+      <div class="ex">a⁰ = 1</div><div class="ex">a⁻³ = ${br(1,'a³')}</div>
+      <p>In den Aufgaben schreibst du Ergebnisse ohne negative Hochzahl, also als Bruch.</p></div>
+    <div class="rule"><h3>5. Wurzelregeln</h3>
+      <div class="ex">${wz('a')} · ${wz('b')} = ${wz('a · b')}: ${wz(2)} · ${wz(18)} = ${wz(36)} = 6</div>
+      <div class="ex">${wz('a')} : ${wz('b')} = ${wz('a : b')}: ${wz(75)} : ${wz(3)} = ${wz(25)} = 5</div>
+      <p>Für Hochzahlen in Termen tippst du auf die Taste „Hochzahl“, dann die Ziffern.</p></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 1.2 Potenzen und Wurzeln.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`; }
+};
+
+const lzk = {merkmal:{gleiche_basis:'powu_x2_basis', pot_pot:'powu_x2_potpot', produkt_hoch:'powu_x2_produkt', wurzelregeln:'powu_x2_wurzel', vereinfachen:'powu_x2_lzk'}};
+UR.kompetenzAnmelden({id:'M-PoWu-X2', ohneFallB:true, typen, stationen, kern, leicht, plus, plusHint, festeAuswahl, erklaerung, lzk});
 })(window.UR = window.UR || {});
 </script>
 <script>
