@@ -532,6 +532,10 @@ input.term[readonly]{background:var(--ink-soft);color:var(--ink);font-weight:700
 .pfz .pf-sup{display:inline-flex}
 .answer.pfz input.pf-h{width:3.2ch;font-size:1rem;padding:3px 1px;border-radius:8px}
 .answer.pfz input.pf-t{width:auto;flex:1 1 9ch;min-width:7ch}
+.answer.pfz input.pf-m{width:5.6ch}
+.answer.pfz input.pf-lang{width:auto;flex:1 1 12ch;min-width:9ch;max-width:19ch}
+.pfz .pf-mal{margin:0 2px}
+.pf-einheiten{margin-top:8px}
 .pfz .pf-bruch{display:inline-flex;flex-direction:column;align-items:center;gap:3px;vertical-align:middle}
 .pfz .pf-bruch>span:first-child{border-bottom:2.5px solid currentColor;padding-bottom:3px}
 .pfz .wurzel .rad{padding-top:.25em}
@@ -547,6 +551,12 @@ input.term[readonly]{background:var(--ink-soft);color:var(--ink);font-weight:700
 .pw-bp .pw-sup{align-self:flex-start;font-size:1.05em}
 .pw-mark{color:var(--x);background:var(--x-soft);border-radius:4px;padding:0 .1em}
 .pw-gross{font-size:1.7rem;font-weight:800}
+/* V2: Tabelle der Zehnerpotenzen (Potenz, Zahl, Name) und Kommaverschiebung als Pfeil */
+.ztab{display:grid;grid-template-columns:auto auto auto;gap:1px 12px;font-size:.92rem;text-align:left;justify-content:center;align-items:baseline}
+.ztab span:nth-child(3n+1){font-weight:700;text-align:right}
+.ztab span:nth-child(3n+2){text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;font-size:.84em}
+.ztab span.an{font-weight:800;color:var(--x)}
+svg.kommapfeil{display:block;margin:4px auto;max-width:100%;height:auto;flex:none}
 svg.quadrat .qp{fill:var(--ink-soft);stroke:var(--ink);stroke-width:1}
 .qtab{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 10px;font-size:.95rem;text-align:left}
 .qtab span.an{font-weight:800;color:var(--ink)}
@@ -1896,7 +1906,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-26.10","datum":"26.11.2026","pruefsumme":"592ea232eec43470"};
+UR.version = {"nummer":"2026-11-26.19","datum":"26.11.2026","pruefsumme":"a36db3d42293951f"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -4439,6 +4449,7 @@ const kuerzenHinweis = erg => erg.some(x=>x.wertOk&&!x.formOk) ? 'Der Wert stimm
 function bau(){
   const felder=[];
   const feld = (def, cls) => { const id='pf'+felder.length; felder.push(Object.assign({art:'zahl'}, def, {id}));
+    if(def.breit) cls+=' pf-lang';
     return `<input id="${id}" class="zahl pf ${cls}" data-feld inputmode="${def.art==='zahl'?'decimal':'text'}" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="?" aria-label="${esc(def.name||'')}">`; };
   return {felder,
     zahl: d => feld(d,'pf-z'),
@@ -4446,6 +4457,11 @@ function bau(){
     hoch: d => `<span class="pf-sup">${feld(d,'pf-h')}</span>`,
     term: d => feld(Object.assign({art:'term'},d),'pf-t'),
     // Potenz: Basis-Feld (oder fester Text) und Hochzahl-Feld
+    // Gleitkommazahl: Zahl-Feld · 10 hoch Hochzahl-Feld (Basis 10 fest)
+    gleitkomma(zahlDef, hochDef){ return `${feld(Object.assign({name:'Zahl vor der Zehnerpotenz'},zahlDef),'pf-z pf-m')}<span class="pf-mal">·</span>${this.potenz('10', Object.assign({name:'Hochzahl von 10'},hochDef))}`; },
+    // Einheiten-Tasten nach der Zeile (in t.nachFeldern): ein Feld mehr, der Wert ist die getippte Einheit
+    einheit(liste, ans){ const id='pf'+felder.length; felder.push({art:'name', ans, ansText:ans, name:'Einheit', id, einheitTaste:true});
+      return `<div class="answer pf-einheiten">${UR.wahlFeld(id)}${UR.wahlGruppe(id, liste.map(e=>[e,e]), {klasse:'einheiten'})}</div>`; },
     potenz(basis, hochzahl){ return `<span class="pf-pot">${typeof basis==='string'?`<span class="pf-fest">${basis}</span>`:this.basis(basis)}${this.hoch(hochzahl)}</span>`; },
     wurzel(inhaltHTML, index){ return UR.wurzelHTML(inhaltHTML, index&&index!==2?index:''); },
     bruch(oben, unten){ return `<span class="pf-bruch"><span>${oben}</span><span>${unten}</span></span>`; }
@@ -4457,7 +4473,10 @@ function feldOk(f, roh, t){
   const passt = a => {
     if(f.art==='term') return UR.terme.bewerte(f.modus||'genau', roh, a, t).ok;
     if(f.art==='name' || (f.art==='basis' && typeof a==='string')) return normName(roh)===normName(a);
-    const r=normName(roh).replace(/^\+/,''), v=UR.leseZahl(r);
+    const r=normName(roh).replace(/^\+/,'');
+    // exakte Dezimalzahl (V2: 10⁻⁹, 9 990 000 000 000): Wert ohne Gleitkomma vergleichen
+    if(f.dez){ let d; try{ d=D(r); }catch(e){ return false; } return dVgl(d, D(a))===0; }
+    const v=UR.leseZahl(r);
     return UR.zahlPasst(r, v, f.stellen!=null?f:Object.assign({exakt:true},f), t);
   };
   return [f.ans, ...(f.auch||[])].some(passt);
@@ -4505,9 +4524,61 @@ function quadratSVG(n, o={}){
 // Tabelle der Quadratzahlen 1² bis bis² (Merkkarte, Rückmeldung, Erklärung)
 const quadratTabelle = (bis=15, markiert) => `<div class="qtab">${Array.from({length:bis},(_,i)=>i+1).map(n=>`<span class="${n===markiert?'an':''}">${n}² = ${R.Z(n*n)}</span>`).join('')}</div>`;
 
+/* ---------- Zehnerpotenzen und Gleitkommazahlen (V2) ---------- */
+// 10^k als exakte Dezimalzahl, a · 10^k exakt
+const dZehn = k => k>=0 ? {n:P10(k), k:0} : {n:1n, k:-k};
+const dMalZehn = (a,k) => { a=dKurz(a); return k>=0 ? dKurz({n:a.n*P10(k), k:a.k}) : dKurz({n:a.n, k:a.k-k}); };
+// normierte Gleitkommadarstellung: a = m · 10^k mit 1 ≤ |m| < 10
+function dGleit(a){ a=dKurz(a); if(a.n===0n) throw new Error('0 hat keine Gleitkommadarstellung');
+  const L=String(a.n<0n?-a.n:a.n).length; return {m:dKurz({n:a.n, k:L-1}), k:L-1-a.k}; }
+const gleitT = (m,k) => `${ZT(m)} · 10${hoch(k)}`;
+// Eingabe Zahl und Hochzahl lesen (null, wenn nicht lesbar)
+function gleitLesen(mRoh, kRoh){
+  try{ const m=D(normName(mRoh).replace(/^\+/,'')), ks=normName(kRoh).replace(/^\+/,''); if(!/^-?\d+$/.test(ks)) return null;
+    return {m, k:Number(ks), wert:dMalZehn(m,Number(ks))}; }catch(e){ return null; }
+}
+const istNormiert = m => dVgl(dAbs(m),D(1))>=0 && dVgl(dAbs(m),D(10))<0;
+// Hinweis zur Gleitkomma-Eingabe: gleicher Wert, aber nicht normiert; Vorzeichen der Hochzahl; Stellen verzählt
+function gleitHinweis(mRoh, kRoh, ziel){
+  const e=gleitLesen(mRoh,kRoh); if(!e) return '';
+  const s=dGleit(ziel);
+  if(dVgl(e.wert,ziel)===0 && !istNormiert(e.m)) return 'Der Wert stimmt, aber das ist noch keine Gleitkommazahl: Vor dem Komma steht genau eine Ziffer (1 bis 9).';
+  if(dVgl(e.m,s.m)===0 && e.k===-s.k && s.k!==0) return s.k<0 ? 'Die Zahl ist kleiner als 1: Die Hochzahl ist negativ.' : 'Die Zahl ist größer als 10: Die Hochzahl ist positiv.';
+  if(dVgl(e.m,s.m)===0 && Math.abs(e.k-s.k)===1) return 'Zähle noch einmal, um wie viele Stellen das Komma wandert.';
+  return '';
+}
+const ZEHN_NAME = {'-12':'Billionstel','-9':'Milliardstel','-6':'Millionstel','-3':'Tausendstel','-2':'Hundertstel','-1':'Zehntel','0':'Eins',
+  '1':'Zehn','2':'Hundert','3':'Tausend','6':'Million','9':'Milliarde','12':'Billion','15':'Billiarde','18':'Trillion','21':'Trilliarde'};
+// Tabelle der Zehnerpotenzen (Merkkarte, Erklärung): Potenz, Zahl, Name
+const zehnerTabelle = (liste, markiert) => `<div class="ztab">${liste.map(k=>`<span class="${k===markiert?'an':''}">10${hoch(k)}</span><span class="${k===markiert?'an':''}">${dText(dZehn(k))}</span><span class="${k===markiert?'an':''}">${ZEHN_NAME[k]||''}</span>`).join('')}</div>`;
+const ZEHN_KURZ = [-9,-6,-3,-2,-1,1,2,3,6,9,12];
+/* Kommaverschiebung als Pfeil: start · 10^s = ziel. Die Ziffern stehen in einer Reihe, das Komma springt von seiner alten
+   Stelle (blass) Stelle für Stelle zur neuen; jeder Sprung ist ein Bogen mit Nummer. text: Zeile unter dem Bild. */
+function kommaPfeil(start, s, text){
+  start=dKurz(start); const S=String(start.n<0n?-start.n:start.n), p0=S.length-start.k, p1=p0+s;
+  const links=Math.min(0,p0-1,p1-1), rechts=Math.max(S.length,p0,p1);
+  const z=('0'.repeat(-links)+S+'0'.repeat(rechts-S.length)).split(''), a=p0-links, b=p1-links, w=20, x0=12, y=58, n=z.length;
+  const ersteZ=z.findIndex(c=>c!=='0'), letzteZ=n-1-[...z].reverse().findIndex(c=>c!=='0');
+  const blass = i => (i<ersteZ && i!==b-1) || (i>letzteZ && i>=b);
+  let g=''; z.forEach((c,i)=>{ g+=`<text x="${x0+i*w+w/2}" y="${y}" text-anchor="middle" font-size="24" font-weight="700" fill="var(--${blass(i)?'muted':'text'})">${c}</text>`; });
+  // das alte Komma (blass) auch am Ende einer ganzen Zahl zeigen, das neue nur zwischen Ziffern
+  const komma = (p,cls) => p>0&&(p<n||cls==='muted') ? `<text x="${x0+p*w}" y="${y+4}" text-anchor="middle" font-size="26" font-weight="800" fill="var(--${cls})">,</text>` : '';
+  g+=komma(a,'muted')+komma(b,'x');
+  const r=b>a?1:-1;
+  for(let i=0;i<Math.abs(b-a);i++){ const g1=a+i*r, g2=g1+r, xa=x0+g1*w, xb=x0+g2*w, ym=y-30;
+    g+=`<path d="M${xa} ${y-20} Q${(xa+xb)/2} ${ym-8} ${xb} ${y-20}" fill="none" stroke="var(--x)" stroke-width="2"/>`
+     +`<path d="M${xb-r*6} ${y-25} L${xb} ${y-20} L${xb-r*7} ${y-17}" fill="none" stroke="var(--x)" stroke-width="2" stroke-linecap="round"/>`
+     +`<text x="${(xa+xb)/2}" y="${ym-10}" text-anchor="middle" font-size="11" fill="var(--muted)">${i+1}</text>`; }
+  // Breite: Ziffern bzw. Beschriftung (etwa 8 px je Zeichen); das Bild wird nie größer gezeichnet als vorgesehen
+  const B=Math.max(x0*2+n*w, text?[...text].length*8.4+12:0), dx=(B-(x0*2+n*w))/2;
+  return `<svg class="kommapfeil" viewBox="${-dx} 0 ${B} ${text?88:68}" width="${B}" style="width:${B}px" role="img" aria-label="Das Komma wandert ${Math.abs(s)} Stellen nach ${s>0?'rechts':'links'}">${g}${text?`<text x="${B/2-dx}" y="84" text-anchor="middle" font-size="14" font-weight="700" fill="var(--text)">${text}</text>`:''}</svg>`;
+}
+const stellenText = s => `${Math.abs(s)} Stelle${Math.abs(s)===1?'':'n'} nach ${s>0?'rechts':'links'}`;
+
 UR.powu = {M, NB, rnd, pick, mischen, versuche, zieher, D, dKurz, dMul, dPot, dAdd, dSub, dNeg, dVgl, dAbs, dRund, dStellen, dZahl, dPlain, dText, dEingabe,
   wurzelRund, istPotenz, hoch, ZT, basisText, pot, brH, brT, klH, bruchPotH, bruchPotT, wz, malT, STELLE, rundWort, rundLead,
-  rundFeld, exaktFeld, bruchFeld, kuerzenHinweis, bau, normName, aufg, merk, quadratSVG, quadratTabelle};
+  rundFeld, exaktFeld, bruchFeld, kuerzenHinweis, bau, normName, aufg, merk, quadratSVG, quadratTabelle,
+  dZehn, dMalZehn, dGleit, gleitT, gleitLesen, istNormiert, gleitHinweis, ZEHN_NAME, ZEHN_KURZ, zehnerTabelle, kommaPfeil, stellenText};
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -7110,7 +7181,7 @@ function zufallsZahl(von, bis, stellen){
 // gerundetes Ergebnis einer Potenz: exakt rechnen, dann auf k Stellen
 function potenzAufgabe(b, e, k){ const w=dPot(b,e); return {w, g:dRund(w,k), muss:dStellen(w)>k}; }
 // Kern rundet f.ans selbst (UR.runde): muss mit der exakten Rundung übereinstimmen
-const kernGleich = (wert, g, k) => Math.abs(UR.runde(wert,k)-dZahl(g)) < 1e-9*Math.max(1,Math.abs(dZahl(g)));
+const kernGleich = (wert, g, k) => Math.abs(UR.runde(wert,k)-dZahl(g)) <= 1e-12*Math.max(1,Math.abs(dZahl(g)));   // so genau wie der Kern vergleicht
 const k13 = () => pick([1,2,2,3]);
 const zuLang = (roh,k) => UR.nachkommaGeschrieben(roh)>k ? `Auf ${STELLE[k]} runden heißt ${k} Nachkommastelle${k>1?'n':''}, nicht mehr.` : '';
 const beispielZeile = html => merk(`So geht es: ${html}`);
@@ -7304,6 +7375,519 @@ const erklaerung = {
 
 const lzk = {merkmal:{quadrieren:'powu_quadrieren', kubieren:'powu_kubieren', quadratwurzel:'powu_quadratwurzel', kubikwurzel:'powu_kubikwurzel', bruch_potenz:'powu_bruch_hoch'}};
 UR.kompetenzAnmelden({id:'M-PoWu-G3', ohneFallB:true, typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.2 Potenzen-und-Wurzeln/M-PoWu-V1.js */
+/* Baustein M-PoWu-V1: „Ich kann Potenzen und Wurzeln berechnen.“
+   Steckbrief: M-PoWu-V1.md, Auswahl der Lehrkraft: AUSWAHL.md (26.11.2026). Rundungsstelle immer in der Aufgabe, im Wechsel
+   Zehntel bis Tausendstel (Fall A), exakt gerechnet. Keine Taschenrechner-Tasten (V1-A08 zurückgestellt), nur die Rechnung. */
+(function(UR){
+const {M, rnd, pick, mischen, versuche, D, dMul, dPot, dAdd, dSub, dNeg, dVgl, dAbs, dRund, dStellen, dZahl, dText, dMalZehn, wurzelRund, istPotenz,
+  hoch, ZT, basisText, STELLE, pot, brH, brT, bruchPotH, bruchPotT, wz, malT, rundWort, rundFeld, exaktFeld, aufg, merk} = UR.powu;
+const R = UR.raza;
+
+// Dezimalzahl mit k Nachkommastellen zwischen von und bis (als Text erzeugt, also exakt)
+function zufallsZahl(von, bis, stellen){
+  const k = stellen ?? pick([0,1,2,2]), P=10**k;
+  return D((rnd(Math.ceil(von*P), Math.floor(bis*P))/P).toFixed(k));
+}
+// Der Kern rundet f.ans selbst (UR.runde): muss mit der exakten Rundung übereinstimmen
+const kernGleich = (wert, g, k) => Math.abs(UR.runde(wert,k)-dZahl(g)) <= 1e-12*Math.max(1,Math.abs(dZahl(g)));   // so genau wie der Kern vergleicht
+const zuLang = (roh,k) => UR.nachkommaGeschrieben(roh)>k ? `Auf ${STELLE[k]} runden heißt ${k} Nachkommastelle${k>1?'n':''}, nicht mehr.` : '';
+const soGehts = html => merk(`So geht es: ${html}`);
+const gerade = e => e%2===0;
+// Vorzeichen-Hinweis: negative Basis bzw. negativer Radikand, Kind hat das falsche Vorzeichen
+function vzHinweis(v, sollNeg, warum){
+  if(v===null||v===undefined||Number.isNaN(v)||v===0) return '';
+  return (v<0)!==sollNeg ? warum : '';
+}
+const VZ_POT = e => gerade(e) ? `Die Hochzahl ${e} ist gerade: Das Ergebnis ist positiv.` : `Die Hochzahl ${e} ist ungerade: Das Minus bleibt, das Ergebnis ist negativ.`;
+
+/* Wurzel aus einer Rechnung (V1-A05): Formen a² + b², a² − b² (a > b), a² + b² + c² */
+const FORMEN = ['plus','minus','drei'];
+function radikand(form, z){
+  const q=z.map(x=>dPot(x,2));
+  return form==='minus' ? dSub(q[0],q[1]) : q.reduce(dAdd);
+}
+const termText = (form, z) => z.map(x=>`${dText(x)}²`).join(form==='minus'?' − ':' + ');
+
+const NAMEN = ['Jonas','Mia','Lena','Paul','Emir','Sara','Noah','Lea','Elif','David','Anna','Luca'];
+
+const typen = {
+  // V1-A01 Potenz mit beliebiger Hochzahl
+  potenz(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    return versuche(()=>{
+      let b = Math.random()<.25 ? zufallsZahl(0.3,0.99,2) : zufallsZahl(1,9.99,pick([1,2,2]));
+      if(b.n===0n || dStellen(b)===0) return null;
+      if(Math.random()<.3) b=dNeg(b);
+      const e=rnd(4,9), k=pick([1,2,3]), w=dPot(b,e), g=dRund(w,k), a=Math.abs(dZahl(w));
+      if(a<0.05 || a>1e7 || g.n===0n || dStellen(w)<=k || !kernGleich(dZahl(w),g,k)) return null;
+      const aufgabe=pot(b,e), wort=rundWort(k), neg=b.n<0n, sollNeg=neg&&!gerade(e);
+      return aufg({kind:'zahlen', q:`${aufgabe} ${wort}`, qh:`<span class="pw-gross">${aufgabe}</span>`, lead:`Berechne mit dem Taschenrechner und runde ${wort}!`,
+        felder:[rundFeld(`${aufgabe} ≈`, dZahl(w), g, k, {vz:true})], basis:b, hochzahl:e, stellen:k,
+        bild:leicht?soGehts(`${pot(D('2.35'),7)} = 2,35 · 2,35 · … (7 Faktoren) = 395,79932… ≈ 395,799 (auf Tausendstel). Bei negativer Basis: gerade Hochzahl +, ungerade −.`):'',
+        hinweisNach:erg=>(neg?vzHinweis(erg[0].v, sollNeg, VZ_POT(e)):'') || zuLang(erg[0].roh,k),
+        why:`${aufgabe} = ${malT(b,Math.min(e,3))} · … (${e} Faktoren) ≈ ${dText(dRund(w,k+2),k+2)} ≈ ${dText(g,k)}.${neg?' '+VZ_POT(e):''}`,
+        steps:`${aufgabe} ≈ ${dText(g,k)}`});
+    });
+  },
+  // V1-A02 n-te Wurzel mit dem Taschenrechner
+  nte_wurzel(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    return versuche(()=>{
+      const n=rnd(3,8);
+      let x = Math.random()<.7 ? D(rnd(2,99999)) : zufallsZahl(2,9999,1);
+      if(!gerade(n) && Math.random()<.35) x=dNeg(x);
+      if(istPotenz(x,n) && Math.random()<.9) return null;
+      const k=pick([1,2,3]), {r:g, nahe, wert}=wurzelRund(x,n,k);
+      if(nahe || g.n===0n || !kernGleich(wert,g,k)) return null;
+      const aufgabe=wz(dText(x),n), wort=rundWort(k), neg=x.n<0n;
+      const VZ=`Bei ungeradem Wurzelexponenten bleibt das Vorzeichen: Aus einer negativen Zahl kommt eine negative Wurzel, denn (${dText(g,k)})${hoch(n)} ist negativ.`;
+      return aufg({kind:'zahlen', q:`${aufgabe} ${wort}`, qh:`<span class="pw-gross">${aufgabe}</span>`, lead:`Berechne mit dem Taschenrechner und runde ${wort}!`,
+        felder:[rundFeld(`${aufgabe} ≈`, wert, g, k, {vz:true})], radikand:x, wurzel:n, stellen:k,
+        bild:leicht?soGehts(`${wz('500',4)} ≈ 4,7287 ≈ 4,729 (auf Tausendstel), Probe: 4,729⁴ ≈ 500. Die kleine Zahl am Wurzelzeichen sagt, wie oft die Wurzel als Faktor stehen muss.`):'',
+        hinweisNach:erg=>(neg?vzHinweis(erg[0].v, true, VZ):'') || zuLang(erg[0].roh,k),
+        why:`${aufgabe} ≈ ${dText(g,k)}, denn ${basisText(g)}${hoch(n)} ≈ ${dText(x)} (Probe: ${n}-mal mit sich selbst malnehmen).${neg?' '+VZ:''}`,
+        steps:`${aufgabe} ≈ ${dText(g,k)}`});
+    });
+  },
+  // V1-A03 Vorzeichen einer Potenz (zwei Schritte: Vorzeichen wählen, dann das Ergebnis)
+  vorzeichen(){
+    const [b,e]=pick(VZ_POOL), w=b**e, neg=!gerade(e), aufgabe=pot(b,e);
+    const rechnung = e<=6 ? `${malT(b,e)} = ${dText(D(w))}` : `${e} Faktoren ${basisText(b)}, der Betrag ist ${Math.abs(b)}${hoch(e)} = ${dText(D(Math.abs(w)))}`;
+    const t={kind:'zweischritt', schritt:'Vorzeichen', q:aufgabe, qh:`<span class="pw-gross">${aufgabe}</span>`, lead:'Berechne die Potenz ohne Taschenrechner!',
+      basis:b, hochzahl:e,
+      s1:{label:'Schritt 1: Welches Vorzeichen hat das Ergebnis?', kurz:'Vorzeichen', wahl:[['+','+ positiv'],['-',`${M} negativ`]], ans:neg?'-':'+', ansText:neg?'negativ':'positiv'},
+      s2:{label:'Schritt 2: Rechne aus!', felder:[exaktFeld(`${aufgabe} =`, w, {vz:true})], ansText:dText(D(w))},
+      hinweisNach:(e1,e2)=>{ const v=e2&&e2[0]?e2[0].v:null; return v!==null&&v!==undefined&&Math.abs(v)===Math.abs(w)&&v!==w ? VZ_POT(e) : ''; },
+      why:`${VZ_POT(e)} ${rechnung}.`};
+    return aufg(UR.prozent.wahlSchritt1(t));
+  },
+  // V1-A04 −3² oder (−3)²? (beide Schreibweisen nebeneinander, Reihenfolge wechselt)
+  klammer(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const n=pick([2,2,2,3,4]), a=n===2?rnd(2,12):n===3?rnd(2,6):rnd(2,5);
+    const ohne={t:`${M}${a}${hoch(n)}`, w:-(a**n)}, mit={t:`(${M}${a})${hoch(n)}`, w:(-a)**n};
+    const l = Math.random()<.5 ? [ohne,mit] : [mit,ohne];
+    const why=`${ohne.t} heißt ${M}(${malT(a,n)}) = ${dText(D(ohne.w))}: Die Hochzahl gehört nur zur ${a}, das Minus bleibt davor. ${mit.t} heißt ${malT(-a,n)} = ${dText(D(mit.w))}: Die Klammer macht das Minus zur Basis.${gerade(n)?'':` Bei der ungeraden Hochzahl ${n} kommt beide Male dasselbe heraus.`}`;
+    return aufg({kind:'zahlen', q:`${l[0].t} und ${l[1].t}`, qh:`<span class="pw-gross">${l[0].t} und ${l[1].t}</span>`, lead:'Berechne! Achte auf die Klammer!',
+      felder:l.map(x=>exaktFeld(`${x.t} =`, x.w, {vz:true})), a, hochzahl:n,
+      bild:leicht?soGehts(`${M}5² = ${M}(5 · 5) = ${M}25, aber (${M}5)² = (${M}5) · (${M}5) = 25. Ohne Klammer gehört die Hochzahl nur zur Zahl.`):'',
+      hinweisNach:erg=>gerade(n)&&erg.every(x=>x.v!==null&&x.v!==undefined)&&erg[0].v===erg[1].v ? 'Achte auf die Klammer: Ohne Klammer gehört die Hochzahl nur zur Zahl, das Minus bleibt davor.' : '',
+      why});
+  },
+  // V1-A05 Wurzel aus einer Rechnung (zwei Schritte: Wert unter der Wurzel, dann die Wurzel)
+  wurzel_rechnung(){
+    return versuche(()=>{
+      const form=pick(FORMEN), z=Array.from({length:form==='drei'?3:2},()=>zufallsZahl(1.2,20,pick([0,1,1])));
+      if(form==='minus'){ z.sort((x,y)=>dVgl(y,x)); if(dVgl(z[0],z[1])===0) return null; }
+      const Rd=radikand(form,z); if(dVgl(Rd,D(1))<0) return null;
+      if(istPotenz(Rd,2) && Math.random()<.8) return null;
+      const k=pick([1,2,3]), {r:g, nahe, wert}=wurzelRund(Rd,2,k);
+      if(nahe || !kernGleich(wert,g,k)) return null;
+      // falsche Vorschläge für den Einstieg: Hochzahl als Faktor, Klammer um die Summe
+      const f1 = form==='minus' ? dSub(dMul(z[0],D(2)),dMul(z[1],D(2))) : z.map(x=>dMul(x,D(2))).reduce(dAdd);
+      const s = form==='minus' ? dSub(z[0],z[1]) : z.reduce(dAdd), f2=dPot(s,2);
+      const vor=[Rd,f1,f2]; if(vor.some((x,i)=>vor.findIndex(y=>dVgl(x,y)===0)!==i) || dVgl(f1,D(0))<=0) return null;
+      const term=termText(form,z), aufgabe=wz(term), wort=rundWort(k);
+      return aufg({kind:'zweischritt', schritt:'Wert unter der Wurzel', q:`${aufgabe} ${wort}`, qh:`<span class="pw-gross">${aufgabe}</span>`,
+        lead:`Berechne in zwei Schritten und runde ${wort}!`, form, zahlen:z, stellen:k,
+        pre:{ans:'r', optionen:mischen([['r',dText(Rd)],['f1',dText(f1)],['f2',dText(f2)]])},
+        s1:{label:'Schritt 1: Rechne aus, was unter der Wurzel steht!', kurz:'Unter der Wurzel', felder:[exaktFeld(`${term} =`, Rd)], ansText:dText(Rd)},
+        s2:{label:`Schritt 2: Ziehe die Wurzel und runde ${wort}!`, felder:[rundFeld('Wurzel ≈', wert, g, k)], ansText:dText(g,k)},
+        hinweisNach:(e1,e2)=>{ const v=e2&&e2[0]?e2[0].v:null;
+          if(v!==null&&v!==undefined&&Math.abs(v-dZahl(s))<1e-9) return form==='minus' ? 'Die Wurzel aus einer Differenz ist nicht die Differenz der Zahlen: Erst die Quadrate ausrechnen und abziehen, dann die Wurzel aus dem Ergebnis ziehen.'
+            : 'Die Wurzel aus einer Summe ist nicht die Summe der Zahlen: Erst die Quadrate ausrechnen und zusammenzählen, dann die Wurzel aus dem Ergebnis ziehen.';
+          return e2&&e2[0]?zuLang(e2[0].roh,k):''; },
+        why:`Erst die Quadrate ausrechnen und ${form==='minus'?'abziehen':'zusammenzählen'}: ${term} = ${z.map(x=>dText(dPot(x,2))).join(form==='minus'?' − ':' + ')} = ${dText(Rd)}. Dann die Wurzel aus dem Ergebnis: ${wz(dText(Rd))} ≈ ${dText(g,k)}. Die Wurzel wird nicht aus jeder Zahl einzeln gezogen.`});
+    });
+  },
+  // V1-A06 Potenz eines Bruchs mit Taschenrechner
+  bruch_potenz(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    return versuche(()=>{
+      const z=(Math.random()<.4?-1:1)*rnd(1,9), n=rnd(2,9), e=rnd(5,9);
+      if(R.ggT(Math.abs(z),n)!==1 || Math.abs(z)/n<0.5) return null;
+      const zz=z**e, nn=n**e, k=pick([1,2,3]), wort=rundWort(k);
+      const P=10n**BigInt(k), A=BigInt(Math.abs(zz)), B=BigInt(nn), r=(2n*A*P+B)/(2n*B), g={n:zz<0?-r:r, k};
+      if(r===0n) return null;
+      const wert=zz/nn; if(!kernGleich(wert,g,k)) return null;
+      const exakt=(P*A)%B===0n, aufgabeH=bruchPotH(z,n,e), aufgabeT=bruchPotT(z,n,e), sollNeg=zz<0;
+      const vzSatz = z<0 ? ' '+VZ_POT(e) : '';
+      return aufg({kind:'zahlen', q:`${aufgabeT} ${wort}`, qh:`<span class="pw-gross">${aufgabeH}</span>`, lead:`Berechne mit dem Taschenrechner und runde ${wort}!`,
+        felder:[rundFeld(`${aufgabeH} ${exakt?'=':'≈'}`, wert, g, k, {vz:true})], z, n, e, stellen:k,
+        bild:leicht?soGehts(`${bruchPotH(-5,6,7)}: Zähler und Nenner hoch 7, also ${brH(-78125,279936)} ≈ ${M}0,279 (auf Tausendstel).`):'',
+        hinweisNach:erg=>(z<0?vzHinweis(erg[0].v, sollNeg, VZ_POT(e)):'') || zuLang(erg[0].roh,k),
+        why:`Zähler und Nenner werden beide hoch ${e} genommen: ${aufgabeH} = ${brH(zz,nn)} ${exakt?'=':'≈'} ${dText(g,k)}.${vzSatz}`,
+        stepsh:`${aufgabeH} = ${brH(zz,nn)} ${exakt?'=':'≈'} ${dText(g,k)}`});
+    });
+  },
+
+  /* ---------- Plus ---------- */
+  // V1-A07 Sachaufgabe mit Potenzen (Wachstum und Skalierung, exakt)
+  sachaufgabe(){
+    return versuche(()=>{
+      const art=pick(['wachsen','wachsen','wachsen','wuerfel','quadrat']);
+      if(art==='wachsen'){
+        const f=pick([2,2,3,4,5]), h=rnd(2,10), s=pick([rnd(2,20), rnd(2,50)*10, rnd(1,5)*100]), w=s*f**h;
+        if(w>=1e7) return null;   // unter 10 Millionen: der Zahlenvergleich des Kerns ist dort exakt genug
+        const K={2:['Eine Zellkultur','Zellen','verdoppelt sich jede Stunde','Stunden'], 3:['Eine Bakterienkolonie','Bakterien','verdreifacht sich jeden Tag','Tagen'],
+          4:['Eine Algenart in einem Teich','Algen','vervierfacht sich jede Woche','Wochen'], 5:['Ein Pilz im Labor','Sporen','bildet jeden Tag 5-mal so viele Sporen','Tagen']}[f];
+        const q = f===5 ? `${K[0]} hat am Anfang ${R.Z(s)} ${K[1]} und ${K[2]}. Wie viele ${K[1]} sind es nach ${h} ${K[3]}?`
+          : `${K[0]} mit ${R.Z(s)} ${K[1]} ${K[2]}. Wie viele ${K[1]} sind es nach ${h} ${K[3]}?`;
+        return aufg({kind:'zahlen', text:true, q, lead:'Rechne mit einer Potenz!', felder:[exaktFeld(`${K[1]}:`, w)], art, s, f, h,
+          why:`Nach jeder Zeiteinheit mal ${f}, nach ${h} ${K[3]} also ${h}-mal mal ${f}: ${R.Z(s)} · ${f}${hoch(h)} = ${R.Z(s)} · ${R.Z(f**h)} = ${R.Z(w)}.`,
+          steps:`${R.Z(s)} · ${f}${hoch(h)} = ${R.Z(w)}`});
+      }
+      const k=rnd(2,10), e=art==='wuerfel'?3:2, wieLang=k===2?'doppelt so lang':k===3?'dreimal so lang':`${k}-mal so lang`;
+      const q = art==='wuerfel' ? `Die Kante eines Würfels wird ${wieLang}. Wievielmal so groß wird das Volumen?` : `Die Seite eines Quadrats wird ${wieLang}. Wievielmal so groß wird der Flächeninhalt?`;
+      return aufg({kind:'zahlen', text:true, q, lead:'Rechne mit einer Potenz!', felder:[exaktFeld('Wievielmal so groß?', k**e)], art, k,
+        why:`${art==='wuerfel'?'Das Volumen ist Kante · Kante · Kante':'Der Flächeninhalt ist Seite · Seite'}: Jede ${art==='wuerfel'?'Kante':'Seite'} wird mal ${k} genommen, also ${k}${hoch(e)} = ${k**e}. Das ${k**e}-Fache.`,
+        steps:`${k}${hoch(e)} = ${k**e}`});
+    });
+  },
+  // V1-N01 Fehler finden
+  fehler(){
+    const art=pick(Object.keys(FEHLER)), name=pick(NAMEN);
+    let aussage, richtig;
+    if(art==='klammer'){ const a=rnd(2,9), n=pick([2,2,4]); aussage=`${M}${a}${hoch(n)} = ${R.Z(a**n)}`; richtig=`${M}${a}${hoch(n)} = ${M}${R.Z(a**n)}: Die Hochzahl gehört nur zur ${a}.`; }
+    else if(art==='vorzeichen'){ const a=rnd(2,5), n=pick([3,5]); aussage=`(${M}${a})${hoch(n)} = ${R.Z(a**n)}`; richtig=`(${M}${a})${hoch(n)} = ${M}${R.Z(a**n)}: Bei ungerader Hochzahl bleibt das Minus.`; }
+    else if(art==='faktor'){ const [a,n]=versuche(()=>{ const a=rnd(2,9), n=rnd(2,4); return a**n!==a*n?[a,n]:null; }); aussage=`${a}${hoch(n)} = ${a*n}`; richtig=`${a}${hoch(n)} = ${malT(a,n)} = ${R.Z(a**n)}, nicht ${a} · ${n}.`; }
+    else { const [a,b]=versuche(()=>{ const a=rnd(2,12), b=rnd(2,12); return a!==b?[a,b]:null; }), s=a*a+b*b, r=wurzelRund(D(s),2,2).r, ganz=istPotenz(D(s),2);
+      aussage=`${wz(`${a}² + ${b}²`)} = ${a+b}`; richtig=`${wz(`${a}² + ${b}²`)} = ${wz(String(s))} ${ganz?'=':'≈'} ${dText(r)}, nicht ${a} + ${b}.`; }
+    const andere=mischen(Object.keys(FEHLER).filter(x=>x!==art)).slice(0,2);
+    return aufg({kind:'fragen', q:`${name} rechnet: ${aussage}. Was stimmt nicht?`, qh:`${name} rechnet: <span class="pw-gross">${aussage}</span>`, lead:'Finde den Fehler!', art,
+      gruppen:[{frage:'Was stimmt nicht?', optionen:mischen([[art,FEHLER[art]],...andere.map(x=>[x,FEHLER[x]])]), ans:art, klasse:'lang'}],
+      why:`Richtig ist: ${richtig}`});
+  },
+  // V1-N02 Passt das Ergebnis? (Überschlag: Zahl der Nachkommastellen, Kommafehler, Hochzahl als Faktor)
+  plausibel(){
+    return versuche(()=>{
+      const b=zufallsZahl(0.05,20,pick([1,2])), e=pick([2,3]), d=dStellen(b);
+      if(d===0 || dVgl(b,D('0.05'))<0) return null;
+      const w=dPot(b,e), falsch=mischen([dMalZehn(w,1), dMalZehn(w,-1), dMul(b,D(e))]).filter(x=>dVgl(x,w)!==0).slice(0,2);
+      if(falsch.length<2 || dVgl(falsch[0],falsch[1])===0) return null;
+      const aufgabe=pot(b,e);
+      return aufg({kind:'fragen', q:`Welches Ergebnis kann für ${aufgabe} stimmen? ${[w,...falsch].map(x=>dText(x)).join(' oder ')}`, qh:`<span class="pw-gross">${aufgabe} = ?</span>`,
+        lead:'Prüfe, welches Ergebnis stimmen kann!', basis:b, hochzahl:e,
+        gruppen:[{frage:'Welches Ergebnis passt?', optionen:mischen([['r',dText(w)],['a',dText(falsch[0])],['b',dText(falsch[1])]]), ans:'r'}],
+        why:`${aufgabe} = ${malT(b,e)}. ${dText(b)} hat ${d} Nachkommastelle${d>1?'n':''}, ${aufgabe} hat dann ${d*e}: ${aufgabe} = ${dText(w)}.`});
+    });
+  },
+  // V1-N03 Basis und Hochzahl vertauscht
+  vertauscht(){
+    const [a,b]=versuche(()=>{ const a=rnd(2,9), b=rnd(2,9); return a!==b?[a,b]:null; });
+    const x=a**b, y=b**a, ans=x>y?'a':x<y?'b':'g', p1=`${a}${hoch(b)}`, p2=`${b}${hoch(a)}`;
+    return aufg({kind:'fragen', q:`Was ist größer: ${p1} oder ${p2}?`, qh:`<span class="pw-gross">${p1} oder ${p2}</span>`, lead:'Vergleiche die Potenzen!', a, b,
+      gruppen:[{frage:'Was ist größer?', optionen:[['a',`${p1} ist größer`],['b',`${p2} ist größer`],['g','beide sind gleich groß']], ans, klasse:'drei'}],
+      why:`${p1} = ${R.Z(x)}, ${p2} = ${R.Z(y)}: ${ans==='g'?'beide sind gleich groß.':`${ans==='a'?p1:p2} ist größer.`} Basis und Hochzahl darf man nicht vertauschen.`});
+  }
+};
+const VZ_POOL = [...Array.from({length:24},(_,i)=>[-1,i+2]), ...[2,3,4,5,6,7].map(e=>[-2,e]), ...[2,3,4,5].map(e=>[-3,e]), ...[2,3,4,5].map(e=>[-10,e])];
+const FEHLER = {klammer:'Die Hochzahl gehört nur zur Zahl, nicht zum Minus davor.', faktor:'Die Hochzahl wurde als Faktor gerechnet (mal statt hoch).',
+  wurzelsumme:'Die Wurzel aus einer Summe ist nicht die Summe der Zahlen.', vorzeichen:'Bei ungerader Hochzahl bleibt das Minus.'};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Potenzen mit großer Hochzahl', hint:'2,35⁷ ≈ 395,799', types:['potenz']},
+  {id:'S2', name:'Vorzeichen und Klammern', hint:`(${M}1)¹⁵ = ${M}1, ${M}5² oder (${M}5)²`, types:['vorzeichen','klammer']},
+  {id:'S3', name:'n-te Wurzeln', hint:`${wz('500',4)} ≈ 4,729`, types:['nte_wurzel']},
+  {id:'S4', name:'Wurzel aus einer Rechnung, Bruch als Basis', hint:`${wz('9,3² + 5,6²')} ≈ 10,86`, types:['wurzel_rechnung','bruch_potenz']}
+];
+const kern = ['potenz','nte_wurzel','vorzeichen','klammer','wurzel_rechnung','bruch_potenz'];
+const leicht = ['potenz','nte_wurzel','klammer','bruch_potenz'];
+const plus = ['sachaufgabe','fehler','plausibel','vertauscht'];
+const plusHint = 'Sachaufgaben · Fehler finden · Passt das Ergebnis? · Basis und Hochzahl vertauscht';
+
+/* ---------- Erklärung ---------- */
+const erklaerung = {
+  beispiele: ()=>({b:zufallsZahl(1.1,3,2), e:rnd(4,7), x:rnd(50,5000), n:rnd(3,6)}),
+  neu(kind,E){ if(kind==='p'){ E.b=zufallsZahl(1.1,3,2); E.e=rnd(4,7); } if(kind==='w'){ E.x=rnd(50,5000); E.n=rnd(3,6); } },
+  html: E => { const w=dPot(E.b,E.e), r=wurzelRund(D(E.x),E.n,3).r;
+    return `<section class="sheet"><h2>Potenzen und Wurzeln berechnen</h2>
+    <div class="rule"><h3>1. Potenzen mit großer Hochzahl</h3>
+      <div class="ex">${pot(E.b,E.e)} = ${malT(E.b,E.e)} ≈ ${dText(w,3)}</div>
+      <p>Die Hochzahl sagt, wie oft die Basis als Faktor steht. Der Taschenrechner rechnet das für dich aus; runde danach auf die Stelle, die die Aufgabe nennt.</p>
+      <button class="newex" data-newex="p">Neues Beispiel</button></div>
+    <div class="rule"><h3>2. Negative Basis</h3>
+      <div class="ex">(${M}2)⁴ = (${M}2) · (${M}2) · (${M}2) · (${M}2) = 16</div>
+      <div class="ex">(${M}2)⁵ = ${M}32</div>
+      <p>Gerade Hochzahl: Das Ergebnis ist positiv. Ungerade Hochzahl: Das Minus bleibt.</p></div>
+    <div class="rule"><h3>3. Achtung Klammer</h3>
+      <div class="ex">${M}5² = ${M}(5 · 5) = ${M}25</div>
+      <div class="ex">(${M}5)² = (${M}5) · (${M}5) = 25</div>
+      <p>Ohne Klammer gehört die Hochzahl nur zur Zahl, das Minus bleibt davor. Mit Klammer ist die negative Zahl die Basis.</p></div>
+    <div class="rule"><h3>4. n-te Wurzel</h3>
+      <div class="ex">${wz(R.Z(E.x),E.n)} ≈ ${dText(r,3)}, denn ${dText(r,3)}${hoch(E.n)} ≈ ${R.Z(E.x)}</div>
+      <p>Die kleine Zahl am Wurzelzeichen sagt, wie oft die Wurzel mit sich selbst malgenommen werden muss. Ist sie ungerade, darf unter der Wurzel auch eine negative Zahl stehen, das Ergebnis ist dann negativ: ${wz(`${M}32`,5)} = ${M}2. Ist sie gerade, geht das nicht.</p>
+      <button class="newex" data-newex="w">Neues Beispiel</button></div>
+    <div class="rule"><h3>5. Wurzel aus einer Rechnung</h3>
+      <div class="ex">${wz('9,3² + 5,6²')} = ${wz('86,49 + 31,36')} = ${wz('117,85')} ≈ 10,86</div>
+      <p>Erst ausrechnen, was unter der Wurzel steht, dann die Wurzel ziehen. Die Wurzel wird nicht aus jeder Zahl einzeln gezogen.</p></div>
+    <div class="rule"><h3>6. Brüche hoch n</h3>
+      <p>Zähler und Nenner werden beide hoch genommen: ${bruchPotH(-5,6,7)} = ${brH(-78125,279936)} ≈ ${M}0,279.</p></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 1.2 Potenzen und Wurzeln.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`; }
+};
+
+const lzk = {merkmal:{potenz:'powu_v1_potenz', nte_wurzel:'powu_v1_nte_wurzel', vorzeichen:'powu_v1_vorzeichen', klammer:'powu_v1_klammer',
+  wurzel_rechnung:'powu_v1_wurzel_rechnung', bruch_potenz:'powu_v1_bruch_hoch'}};
+UR.kompetenzAnmelden({id:'M-PoWu-V1', ohneFallB:true, typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.2 Potenzen-und-Wurzeln/M-PoWu-V2.js */
+/* Baustein M-PoWu-V2: „Ich kenne die Gleitkommadarstellung und kann sie verwenden.“
+   Steckbrief: M-PoWu-V2.md, Auswahl der Lehrkraft: AUSWAHL.md (26.11.2026). Gleitkommafeld (Form 'pfeld': Zahl · 10 hoch Hochzahl,
+   nur die normierte Schreibweise 1 ≤ Zahl < 10 zählt), Zahlen exakt (10⁻⁹ als 0,000000001, nie über Gleitkomma), Tabelle der
+   Zehnerpotenzen, Kommaverschiebung als Pfeil. V2-A06: Nennt die Aufgabe die Einheit, steht sie fest neben dem Feld, sonst Einheiten-Tasten. */
+(function(UR){
+const {M, rnd, pick, mischen, versuche, D, dVgl, dKurz, dText, dZehn, dMalZehn, dGleit, gleitT, gleitLesen, istNormiert, gleitHinweis,
+  ZEHN_NAME, ZEHN_KURZ, zehnerTabelle, kommaPfeil, stellenText, hoch, ZT, bau, normName, aufg, merk} = UR.powu;
+const R = UR.raza;
+
+const zehnT = k => `10${hoch(k)}`;
+const hochText = k => k<0 ? `${M}${-k}` : String(k);
+const bruchEins = unten => R.br(1, unten);
+// zufällige Mantisse mit g gültigen Ziffern (erste und letzte nicht 0), 1 ≤ m < 10
+function mantisse(g){
+  let s=String(rnd(1,9)); for(let i=1;i<g;i++) s+=String(i===g-1?rnd(1,9):rnd(0,9));
+  return dKurz({n:BigInt(s), k:g-1});
+}
+const MERK_TAB = merk(`Zehnerpotenzen:${zehnerTabelle(ZEHN_KURZ)}`);
+const MERK_GLEIT = merk(`So geht es: ${kommaPfeil(D('34500'), -4, '4 Stellen nach links: 3,45 · 10⁴')}Das Komma wandert, bis genau eine Ziffer (1 bis 9) davor steht. Wandert es nach links, ist die Hochzahl positiv, nach rechts negativ.`);
+const MERK_ZAHL = merk(`So geht es: ${kommaPfeil(D('4.98'), 7, '4,98 · 10⁷: 7 Stellen nach rechts')}Hochzahl positiv: Das Komma wandert nach rechts, fehlende Stellen werden Nullen. Hochzahl negativ: nach links.`);
+const NAMEN = ['Jan','Eva','Tim','Lara','Ben','Nora','Ali','Mila','Finn','Zoe','Emil','Hanna'];
+
+/* V2-A06: Kontexte (Wert in der Einheit u, Hochzahl des Werts in diesem Bereich), Einheiten-Familien */
+const FAMILIE = {laenge:{mm:-3, m:0, km:3}, masse:{g:0, kg:3, t:6}};
+const EWORT = {mm:'in Millimetern', m:'in Metern', km:'in Kilometern', g:'in Gramm', kg:'in Kilogramm', t:'in Tonnen'};
+const KONTEXTE = [
+  {s:'Die Sonne ist X km von der Erde entfernt.', was:'die Entfernung', u:'km', von:1.471e8, bis:1.521e8},
+  {s:'Der Mond ist X km von der Erde entfernt.', was:'die Entfernung', u:'km', von:3.563e5, bis:4.067e5},
+  {s:'Ein Lichtjahr ist die Strecke, die das Licht in einem Jahr zurücklegt: etwa X km.', was:'die Strecke', u:'km', von:9.45e12, bis:9.47e12},
+  {s:'Der Planet Neptun ist X km von der Sonne entfernt.', was:'die Entfernung', u:'km', von:4.45e9, bis:4.55e9},
+  {s:'Der Erdumfang beträgt etwa X m.', was:'den Umfang', u:'m', von:4.0e7, bis:4.008e7},
+  {s:'Ein Haar ist X m dick.', was:'die Dicke', u:'m', von:4e-5, bis:1.8e-4},
+  {s:'Ein Virus misst X m.', was:'die Größe', u:'m', von:2e-8, bis:3e-7},
+  {s:'Ein Bakterium ist X mm lang.', was:'die Länge', u:'mm', von:5e-4, bis:5e-3},
+  {s:'Ein Blatt Papier ist X mm dick.', was:'die Dicke', u:'mm', von:0.05, bis:0.2},
+  {s:'Ein Atom hat einen Durchmesser von etwa X mm.', was:'den Durchmesser', u:'mm', von:1e-7, bis:5e-7},
+  {s:'Ein Sandkorn hat eine Masse von X g.', was:'die Masse', u:'g', von:1e-4, bis:9e-3},
+  {s:'Ein Staubkorn hat eine Masse von X g.', was:'die Masse', u:'g', von:1e-7, bis:9e-6},
+  {s:'Ein Wassertropfen hat eine Masse von X kg.', was:'die Masse', u:'kg', von:2e-5, bis:9e-5},
+  {s:'Ein großes Containerschiff hat mit Ladung eine Masse von etwa X kg.', was:'die Masse', u:'kg', von:5e7, bis:2.2e8},
+  {s:'Ein Blauwal hat eine Masse von etwa X kg.', was:'die Masse', u:'kg', von:1e5, bis:1.9e5}
+];
+// Wert im Bereich des Kontexts mit g gültigen Ziffern, exakt als Dezimalzahl
+function kontextWert(K){
+  return versuche(()=>{ const g=rnd(2,4), x=K.von+Math.random()*(K.bis-K.von), e=Math.floor(Math.log10(x));
+    let Mz=Math.round(x/10**e*10**(g-1)); if(Mz>=10**g) return null;
+    const X=dMalZehn(dKurz({n:BigInt(Mz), k:g-1}), e), v=Number(dText(X).replace(/\s| /g,'').replace(',','.'));
+    return v>=K.von*0.999 && v<=K.bis*1.001 && dGleit(X).m.k>=1 ? X : null; });
+}
+const familieVon = u => FAMILIE.laenge[u]!==undefined ? 'laenge' : 'masse';
+// Umrechnung als Satz: 1 km = 1 000 m = 10³ m
+function umrechnungSatz(u0,u1){
+  const F=FAMILIE[familieVon(u0)], d=F[u0]-F[u1];
+  if(d===0) return '';
+  return d>0 ? `1 ${u0} = ${dText(dZehn(d))} ${u1} = 10${hoch(d)} ${u1}` : `1 ${u1} = ${dText(dZehn(-d))} ${u0} = 10${hoch(-d)} ${u0}`;
+}
+
+const ZAHLWORTE = [[12,9,'zwölf Milliarden'],[25,3,'fünfundzwanzigtausend'],[5,2,'fünfhundert'],[3,-3,'drei Tausendstel'],[7,6,'sieben Millionen'],
+  [4,12,'vier Billionen'],[8,-6,'acht Millionstel'],[2,-9,'zwei Milliardstel'],[6,-2,'sechs Hundertstel'],[9,-1,'neun Zehntel'],[15,6,'fünfzehn Millionen'],
+  [3,9,'drei Milliarden'],[40,3,'vierzigtausend'],[2,12,'zwei Billionen'],[11,-3,'elf Tausendstel'],[7,3,'siebentausend'],[6,9,'sechs Milliarden'],[5,-6,'fünf Millionstel']];
+const FEHLERART = {stellen:'Die Stellen sind falsch gezählt.', normiert:'Vor dem Komma steht nicht genau eine Ziffer von 1 bis 9.', vorzeichen:'Das Vorzeichen der Hochzahl ist falsch.'};
+
+const typen = {
+  // V2-A01 Zehnerpotenz schreiben (Basis 10 fest, nur das Hochzahl-Feld)
+  zehnerpotenz(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const [k,art]=ziehA01(), B=bau(), zahl=dText(dZehn(k));
+    const zeigeH = art==='bruch' ? bruchEins(dText(dZehn(-k))) : zahl, zeigeT = art==='bruch' ? `1 durch ${dText(dZehn(-k))}` : zahl;
+    const zeile=`<span class="zt">${zeigeH}</span> = ${B.potenz('10', {ans:k, ansText:hochText(k), name:'Hochzahl'})}`;
+    const why = k>0 ? `${zahl} ist eine 1 mit ${k} Null${k>1?'en':''}, also 10${hoch(k)}.`
+      : `${art==='bruch'?`${zeigeH} = ${zahl}. `:''}Die 1 steht an der ${-k}. Stelle nach dem Komma: Jede Stelle nach rechts ist ein Zehntel mehr, also 10${hoch(k)}. Zahlen unter 1 haben eine negative Hochzahl.`;
+    return aufg({kind:'pfeld', q:`${zeigeT} = 10 hoch ?`, qh:`<span class="pw-gross">${zeigeH}</span>`, lead:'Schreibe als Zehnerpotenz!', zeile, felder:B.felder, minus:true,
+      hochzahl:k, art, bild:leicht?MERK_TAB:'',
+      hinweisNach:r=>{ const v=Number(normName(r[0])); if(r[0]===''||!Number.isFinite(v)) return '';
+        if(v===-k) return k<0 ? 'Die Zahl ist kleiner als 1: Die Hochzahl ist negativ.' : 'Die Zahl ist größer als 1: Die Hochzahl ist positiv.';
+        if(k>0&&v===k+1) return 'Zähle nur die Nullen, nicht die 1.';
+        if(k<0&&v===k+1) return 'Zähle die Stellen nach dem Komma bis einschließlich der 1.';
+        return ''; },
+      loesungText:`${zeigeT} = 10${hoch(k)}`, loesungH:`${zeigeH} = 10${hoch(k)}`, why});
+  },
+  // V2-A02 Zehnerpotenz als Zahl schreiben
+  zehnerpotenz_zahl(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const [k,art]=ziehA02(), B=bau(), x=dZehn(art==='bruch'?-k:k), p=zehnT(k);
+    const zeigeH = art==='bruch' ? bruchEins(p) : p, zeigeT = art==='bruch' ? `1 durch ${p}` : p;
+    const zeile=`<span class="zt">${zeigeH}</span> = ${B.zahl({dez:true, ans:x, ansText:dText(x), breit:true, name:'Zahl'})}`;
+    const e = art==='bruch' ? -k : k;
+    const why = (art==='bruch' ? `${zeigeH} = ${bruchEins(dText(dZehn(k)))} = ${dText(x)}. ` : '')
+      + (e>0 ? `10${hoch(e)}: eine 1 mit ${e} Null${e>1?'en':''}, also ${dText(x)}.` : `10${hoch(e)}: Die 1 steht an der ${-e}. Stelle nach dem Komma, also ${dText(x)}.`);
+    return aufg({kind:'pfeld', q:`${zeigeT} = ?`, qh:`<span class="pw-gross">${zeigeH}</span>`, lead:'Schreibe als Zahl!', zeile, felder:B.felder,
+      hochzahl:k, art, bild:leicht?MERK_TAB:'',
+      hinweisNach:r=>{ let d; try{ d=D(normName(r[0])); }catch(err){ return ''; }
+        if(dVgl(d,dMalZehn(x,1))===0||dVgl(d,dMalZehn(x,-1))===0) return e>0 ? `Zähle die Nullen noch einmal: 10${hoch(e)} hat ${e} Null${e>1?'en':''}.` : `Zähle die Stellen nach dem Komma noch einmal: Die 1 steht an der ${-e}. Stelle.`;
+        return ''; },
+      loesungText:`${zeigeT} = ${dText(x)}`, loesungH:`${zeigeH} = ${dText(x)}`, why});
+  },
+  // V2-A03 Zahl in Gleitkommadarstellung (Gleitkommafeld: Zahl und Hochzahl von 10)
+  gleitkomma(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const m=mantisse(rnd(2,4)), k=Math.random()<.7?rnd(3,12):rnd(-9,-3), N=dMalZehn(m,k), B=bau();
+    // die Zahl steht groß darüber; in der Zeile nur das Gleitkommafeld (lange Zahlen passen sonst nicht auf 360 px)
+    const zeile=B.gleitkomma({dez:true, ans:m, ansText:dText(m)}, {ans:k, ansText:hochText(k)});
+    return aufg({kind:'pfeld', q:`${dText(N)} als Gleitkommazahl`, qh:`<span class="pw-gross">${dText(N)}</span>`, lead:'Schreibe als Gleitkommazahl!', zeile, felder:B.felder, minus:true,
+      mantisse:m, hochzahl:k, bild:leicht?MERK_GLEIT:'',
+      hinweisNach:r=>gleitHinweis(r[0], r[1], N),
+      fehlerBild:kommaPfeil(N, -k, `${stellenText(-k)}: · 10${hoch(k)}`),
+      loesungText:`${dText(N)} = ${gleitT(m,k)}`,
+      why:`${dText(N)} = ${gleitT(m,k)}. Das Komma wandert ${stellenText(-k)}, bis genau eine Ziffer (1 bis 9) davor steht: ${Math.abs(k)} Stellen, ${k>0?'nach links, also ist die Hochzahl positiv':'nach rechts, also ist die Hochzahl negativ'}.`});
+  },
+  // V2-A04 Gleitkommazahl als Zahl schreiben (auch unnormierte wie 43 · 10⁶)
+  gleitkomma_zahl(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const unnorm=Math.random()<.2;
+    const m = unnorm ? D(versuche(()=>{ const v=rnd(11,99); return v%10?v:null; })) : mantisse(rnd(1,3));
+    const k = unnorm ? rnd(2,9) : versuche(()=>{ const v=rnd(-9,12); return v?v:null; });
+    const N=dMalZehn(m,k), B=bau();
+    const zeile=`<span class="zt">${gleitT(m,k)}</span> = ${B.zahl({dez:true, ans:N, ansText:dText(N), breit:true, name:'Zahl'})}`;
+    return aufg({kind:'pfeld', q:`${gleitT(m,k)} = ?`, qh:`<span class="pw-gross">${gleitT(m,k)}</span>`, lead:'Schreibe als gewöhnliche Zahl!', zeile, felder:B.felder,
+      mantisse:m, hochzahl:k, unnorm, bild:leicht?MERK_ZAHL:'',
+      hinweisNach:r=>{ let d; try{ d=D(normName(r[0])); }catch(err){ return ''; }
+        if(dVgl(d,dMalZehn(N,1))===0||dVgl(d,dMalZehn(N,-1))===0) return `Zähle die Stellen noch einmal: Das Komma wandert ${stellenText(k)}.`;
+        if(dVgl(d,dMalZehn(m,-k))===0) return k>0 ? 'Die Hochzahl ist positiv: Das Komma wandert nach rechts, die Zahl wird größer.' : 'Die Hochzahl ist negativ: Das Komma wandert nach links, die Zahl wird kleiner als 1.';
+        return ''; },
+      fehlerBild:kommaPfeil(m, k, `${gleitT(m,k)}: ${stellenText(k)}`),
+      loesungText:`${gleitT(m,k)} = ${dText(N)}`,
+      why:`${gleitT(m,k)}: Das Komma wandert ${stellenText(k)}${k>0?', fehlende Stellen werden Nullen':''}: ${dText(N)}.`});
+  },
+  // V2-A05 Welche Schreibweise ist normiert?
+  normiert(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const m=mantisse(rnd(2,3)), k=versuche(()=>{ const v=rnd(-9,12); return Math.abs(v)>=3?v:null; });
+    const schiebe=mischen([1,2,-1,-2]).slice(0,leicht?1:2);
+    const opt=[['r',gleitT(m,k)], ...schiebe.map((s,i)=>[String.fromCharCode(97+i), gleitT(dMalZehn(m,s),k-s)])];
+    const l=mischen(opt);
+    return aufg({kind:'fragen', q:`Gleitkommazahl: ${l.map(o=>o[1]).join(' oder ')}?`, lead:'Welche Darstellung ist eine Gleitkommazahl?', mantisse:m, hochzahl:k,
+      bild:leicht?merk('Gleitkommazahl: genau eine Ziffer von 1 bis 9 vor dem Komma, mal einer Zehnerpotenz. Beispiel: 3,45 · 10⁴'):'',
+      gruppen:[{frage:'Welche Schreibweise ist eine Gleitkommazahl?', optionen:l, ans:'r', klasse:'lang'}],
+      why:`Alle haben denselben Wert, aber nur bei ${gleitT(m,k)} steht genau eine Ziffer von 1 bis 9 vor dem Komma. ${opt.slice(1).map(o=>`Bei ${o[1]} nicht.`).join(' ')}`});
+  },
+  // V2-A06 Sachaufgabe: sehr große und sehr kleine Größen (Einheit fest, wenn die Aufgabe sie nennt; sonst Einheiten-Tasten)
+  sach_gleit(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const K=pick(KONTEXTE), fam=familieVon(K.u), F=FAMILIE[fam], einheiten=Object.keys(F);
+    const X=kontextWert(K);
+    const fest=Math.random()<.65, u1 = fest ? (Math.random()<.7 ? pick(einheiten.filter(e=>e!==K.u)) : K.u) : K.u;
+    const Y=dMalZehn(X, F[K.u]-F[u1]), {m,k}=dGleit(Y), B=bau();
+    const angabe=K.s.replace('X', dText(X));
+    const q=`${angabe} Gib ${K.was} ${fest?EWORT[u1]+' ':''}als Gleitkommazahl an.`;
+    let zeile=`${B.gleitkomma({dez:true, ans:m, ansText:dText(m)}, {ans:k, ansText:hochText(k)})}`;
+    if(fest) zeile+=`<span class="zt">${u1}</span>`;
+    const nach = fest ? '' : B.einheit(einheiten, K.u);
+    const um=umrechnungSatz(K.u,u1);
+    // ohne genannte Einheit zählt jede Einheit der Tasten, wenn der Wert dazu passt
+    const gesamt = fest ? undefined : (rohs, erg) => {
+      const e=gleitLesen(rohs[0], rohs[1]), u=rohs[2]; if(!e || F[u]===undefined || !istNormiert(e.m)) return false;
+      const ok = dVgl(e.wert, dMalZehn(X, F[K.u]-F[u]))===0; if(ok) erg.forEach(x=>{ x.ok=true; }); return ok; };
+    return aufg({kind:'pfeld', text:true, q, lead:'Gib die Größe als Gleitkommazahl an!', zeile, felder:B.felder, minus:true, nachFeldern:nach, gesamt,
+      kontext:K.s, wert:X, einheit:K.u, ziel:fest?u1:null,
+      bild:leicht?merk(fam==='laenge'?'1 km = 1 000 m = 10³ m, 1 m = 1 000 mm = 10³ mm. Gleitkommazahl: genau eine Ziffer von 1 bis 9 vor dem Komma.':'1 kg = 1 000 g = 10³ g, 1 t = 1 000 kg = 10³ kg. Gleitkommazahl: genau eine Ziffer von 1 bis 9 vor dem Komma.'):'',
+      hinweisNach:r=>{ if(!fest && !r[2]) return 'Wähle noch die Einheit.';
+        const u=fest?u1:(F[r[2]]!==undefined?r[2]:K.u); return gleitHinweis(r[0], r[1], dMalZehn(X, F[K.u]-F[u])); },
+      fehlerBild:kommaPfeil(Y, -k, `${stellenText(-k)}: · 10${hoch(k)}`),
+      loesungText:`${gleitT(m,k)} ${u1}`,
+      why:`${um?`Umrechnen: ${um}, also ${dText(X)} ${K.u} = ${dText(Y)} ${u1}. `:''}${dText(Y)} ${u1} = ${gleitT(m,k)} ${u1}: Das Komma wandert ${stellenText(-k)}.`});
+  },
+
+  /* ---------- Plus ---------- */
+  // V2-A07 Zahlennamen zuordnen (feste Auswahl)
+  zahlennamen(){
+    const l=mischen(ZAHLWORTE).slice(0,4);
+    const dinge=l.map((p,i)=>({id:'d'+i, html:`${p[0]} · 10${hoch(p[1])}`})), ziele=mischen(l.map((p,i)=>({id:'z'+i, text:`„${p[2]}“`})));
+    const ans={}; l.forEach((p,i)=>ans['d'+i]='z'+i);
+    return aufg({kind:'zuordnen', q:`Zahlwörter: ${l.map(p=>p[2]).join(', ')}`, lead:'Ordne Zahl und Zahlwort zu!', dinge, ziele, ans, paare:l,
+      why:l.map(p=>`${p[0]} · 10${hoch(p[1])} = ${dText(dMalZehn(D(p[0]),p[1]))}: ${p[2]} (10${hoch(p[1])} = ${ZEHN_NAME[p[1]]})`).join('; ')+'.'});
+  },
+  // V2-A08 Welche Zahl ist größer?
+  groesser(){
+    return versuche(()=>{
+      const m1=D((rnd(10,99)/10).toFixed(1)), m2=D((rnd(10,99)/10).toFixed(1)), k1=versuche(()=>{ const v=rnd(-6,12); return v?v:null; });
+      const k2 = Math.random()<.35 ? k1 : versuche(()=>{ const v=rnd(-6,12); return v&&v!==k1?v:null; });
+      const a=dMalZehn(m1,k1), b=dMalZehn(m2,k2), v=dVgl(a,b); if(v===0) return null;
+      const t1=gleitT(m1,k1), t2=gleitT(m2,k2), gr=v>0?t1:t2;
+      return aufg({kind:'fragen', q:`Was ist größer: ${t1} oder ${t2}?`, lead:'Vergleiche die Gleitkommazahlen!', zahlen:[t1,t2],
+        gruppen:[{frage:'Welche Zahl ist größer?', optionen:[['a',t1],['b',t2]], ans:v>0?'a':'b'}],
+        why:`${t1} = ${dText(a)}, ${t2} = ${dText(b)}: ${gr} ist größer. ${k1===k2?'Bei gleicher Hochzahl entscheidet die Zahl vor der Zehnerpotenz.':'Bei Gleitkommazahlen entscheidet zuerst die Hochzahl.'}`});
+    });
+  },
+  // V2-N02 Fehler finden
+  fehler_gleit(){
+    return versuche(()=>{
+      const m=mantisse(rnd(1,3)), k=Math.random()<.6?rnd(3,12):rnd(-9,-3), N=dMalZehn(m,k), art=pick(Object.keys(FEHLERART)), name=pick(NAMEN);
+      let fm=m, fk=k;
+      if(art==='stellen') fk=k+pick([1,-1]);
+      else if(art==='vorzeichen') fk=-k;
+      else { const s=pick([1,-1]); fm=dMalZehn(m,s); fk=k-s; }
+      const falsch=`${dText(N)} = ${gleitT(fm,fk)}`;
+      return aufg({kind:'fragen', q:`${name} schreibt ${falsch}. Was stimmt nicht?`, qh:`${name} schreibt <span class="pw-gross">${falsch}</span>`, lead:'Finde den Fehler!', art,
+        gruppen:[{frage:'Was stimmt nicht?', optionen:mischen(Object.entries(FEHLERART)), ans:art, klasse:'lang'}],
+        fehlerBild:kommaPfeil(N, -k, `${stellenText(-k)}: · 10${hoch(k)}`),
+        why:`Richtig ist ${dText(N)} = ${gleitT(m,k)}: Das Komma wandert ${stellenText(-k)}, bis genau eine Ziffer von 1 bis 9 davor steht.${art==='normiert'?` ${gleitT(fm,fk)} hat zwar denselben Wert, ist aber keine Gleitkommazahl.`:''}`});
+    });
+  }
+};
+const POOL_A01 = [...Array.from({length:22},(_,i)=>i-9).filter(k=>k).map(k=>[k,'zahl']), ...Array.from({length:9},(_,i)=>[-(i+1),'bruch'])];
+const POOL_A02 = [...Array.from({length:22},(_,i)=>i-9).filter(k=>k).map(k=>[k,'zahl']), ...Array.from({length:9},(_,i)=>[i+1,'bruch'])];
+// ohne Zurücklegen: jede der 30 Aufgaben kommt dran, bevor sich eine wiederholt
+const ziehA01 = UR.powu.zieher(POOL_A01), ziehA02 = UR.powu.zieher(POOL_A02);
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Zehnerpotenzen', hint:'1 000 000 = 10⁶, 0,001 = 10⁻³', types:['zehnerpotenz','zehnerpotenz_zahl']},
+  {id:'S2', name:'Gleitkommazahlen', hint:'34 500 = 3,45 · 10⁴', types:['gleitkomma','gleitkomma_zahl','normiert']},
+  {id:'S3', name:'Sehr große und sehr kleine Größen', hint:'149 600 000 km = 1,496 · 10¹¹ m', types:['sach_gleit']}
+];
+const kern = ['zehnerpotenz','zehnerpotenz_zahl','gleitkomma','gleitkomma_zahl','normiert','sach_gleit'];
+const leicht = ['zehnerpotenz','zehnerpotenz_zahl','gleitkomma','gleitkomma_zahl','normiert','sach_gleit'];
+const plus = ['zahlennamen','groesser','fehler_gleit'];
+const plusHint = 'Zahlennamen · Welche Zahl ist größer? · Fehler finden';
+const festeAuswahl = ['zahlennamen'];
+
+/* ---------- Erklärung ---------- */
+const erklaerung = {
+  beispiele: ()=>({m:mantisse(rnd(2,3)), k:rnd(4,9), j:rnd(3,7)}),
+  neu(kind,E){ if(kind==='g'){ E.m=mantisse(rnd(2,3)); E.k=rnd(4,9); } if(kind==='z'){ E.j=rnd(3,7); } },
+  html: E => { const N=dMalZehn(E.m,E.k), kl=dMalZehn(E.m,-E.j);
+    return `<section class="sheet"><h2>Gleitkommadarstellung</h2>
+    <div class="rule"><h3>1. Zehnerpotenzen</h3>
+      ${zehnerTabelle([-12,-9,-6,-3,-2,-1,0,1,2,3,6,9,12,15,18,21])}
+      <p>Positive Hochzahl: eine 1 mit so vielen Nullen. Negative Hochzahl: Die 1 steht an dieser Stelle nach dem Komma.</p></div>
+    <div class="rule"><h3>2. Gleitkommazahl</h3>
+      <p>Eine Gleitkommazahl ist eine Zahl von 1 bis unter 10 mal einer Zehnerpotenz: Vor dem Komma steht genau eine Ziffer von 1 bis 9.</p>
+      <div class="ex">${dText(N)} = ${gleitT(E.m,E.k)}</div>
+      <div class="bild">${kommaPfeil(N, -E.k, `${stellenText(-E.k)}: · 10${hoch(E.k)}`)}</div>
+      <p>Das Komma wandert, bis eine Ziffer davor steht. Die Zahl der Stellen ist die Hochzahl. Wandert es nach links (große Zahl), ist sie positiv.</p>
+      <button class="newex" data-newex="g">Neues Beispiel</button></div>
+    <div class="rule"><h3>3. Sehr kleine Zahlen</h3>
+      <div class="ex">${dText(kl)} = ${gleitT(E.m,-E.j)}</div>
+      <div class="bild">${kommaPfeil(kl, E.j, `${stellenText(E.j)}: · 10${hoch(-E.j)}`)}</div>
+      <p>Wandert das Komma nach rechts (Zahl kleiner als 1), ist die Hochzahl negativ. Zurück zur Zahl geht es umgekehrt.</p>
+      <button class="newex" data-newex="z">Neues Beispiel</button></div>
+    <div class="rule"><h3>4. Einheiten</h3>
+      <p>1 km = 1 000 m = 10³ m, 1 m = 1 000 mm = 10³ mm, 1 kg = 1 000 g = 10³ g. Erst umrechnen, dann als Gleitkommazahl schreiben: 149 600 000 km = 149 600 000 000 m = 1,496 · 10¹¹ m.</p></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 1.2 Potenzen und Wurzeln.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`; }
+};
+
+const lzk = {merkmal:{zehnerpotenz:'powu_v2_zehnerpotenz', zehnerpotenz_zahl:'powu_v2_zehnerpotenz_zahl', gleitkomma:'powu_v2_gleitkomma',
+  gleitkomma_zahl:'powu_v2_gleitkomma_zahl', normiert:'powu_v2_normiert', sach_gleit:'powu_v2_sach'}};
+UR.kompetenzAnmelden({id:'M-PoWu-V2', ohneFallB:true, typen, stationen, kern, leicht, plus, plusHint, festeAuswahl, erklaerung, lzk});
 })(window.UR = window.UR || {});
 </script>
 <script>
