@@ -172,6 +172,26 @@ button.link{font:inherit;background:none;border:0;padding:0;color:var(--ink);tex
 .answer.zeile .zf{display:flex;gap:3px;align-items:stretch;min-width:0}
 .answer.zeile .sign{width:2.5rem;font-size:1.3rem}
 .answer.zeile input.zahl{width:4.6ch;font-size:1.4rem;padding:8px 2px}
+
+/* Wurzel: Zeichen (SVG) und durchgehender Strich über dem ganzen Radikanden (kern/wurzel.js) */
+.wurzel{display:inline-flex;align-items:stretch;vertical-align:middle;white-space:nowrap;line-height:1.2;margin:0 .08em}
+.wurzel .wz{width:.72em;flex:none;height:auto;overflow:visible;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:miter}
+.wurzel .wz path{vector-effect:non-scaling-stroke}
+.wurzel .rad{border-top:1.7px solid currentColor;padding:.12em .14em 0 .06em}
+.wurzel.mit-i .wi{font-size:.58em;line-height:1;align-self:flex-start;margin:.05em -.42em 0 0;position:relative;z-index:1}
+.wurzel .rad input{vertical-align:middle}
+@media print{.wurzel .rad{border-top-width:1.4px}}
+
+/* Memory (Form 'memory', kern/formen.js): verdeckte Karten, große Tipp-Flächen, passt auf 360 px */
+.mem{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0}
+@media(min-width:520px){.mem{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.mem-karte{font:inherit;font-size:1.25rem;font-weight:700;min-height:4.2rem;border-radius:12px;border:2px solid var(--line);background:var(--ink-soft);color:var(--text);cursor:pointer;padding:6px 4px}
+.mem-karte .mem-vorn{display:none}
+.mem-karte .mem-hinten{color:var(--ink);font-size:1.5rem}
+.mem-karte.auf{background:var(--paper);border-color:var(--ink)}
+.mem-karte.auf .mem-vorn{display:inline}
+.mem-karte.auf .mem-hinten{display:none}
+.mem-karte.gefunden{border-color:var(--g);background:var(--g-soft,var(--paper))}
 </style>
 <style>
 /* Mathe/fach.css */
@@ -291,8 +311,6 @@ circle.tipp.sel{fill:var(--v);fill-opacity:.45}
 .dr-ml{stroke:var(--ink);stroke-width:1.8}
 .dr-kreis{fill:none;stroke:var(--cop);stroke-width:2.2}
 .dr-radius{stroke:var(--cop);stroke-width:2.2;stroke-dasharray:5 4}
-.wurzel{white-space:nowrap}
-.wurzel>span{border-top:2px solid currentColor;padding:0 .15em;margin-left:.05em}
 .herleitung{margin:6px 0;padding-left:1.6em;text-align:left;line-height:2.1}
 .herleitung.ohne{list-style:none;padding-left:0}
 .dr-bild-klein svg.dreieck{max-width:240px}
@@ -454,6 +472,22 @@ svg.kreisdia .st-t{fill:var(--text)} svg.kreisdia path+text,svg.kreisdia .st-t{p
 input.term[readonly]{background:var(--ink-soft);color:var(--ink);font-weight:700}
 .zbfeld input.term::placeholder,.mfeld input.term::placeholder{font-size:.8em}
 .mfeld .bfeld{min-width:8ch}
+/* Schritt für Schritt (Form 'mehrschritt', M-RaZa-V1, 21.11.2026): Zeile aus Brüchen mit eigenem Vorzeichen, großer
+   Bruchstrich mit Produkten (oben Zähler · Zähler, unten Nenner · Nenner). Passt auf 360 px. */
+.ms-schritt{border-top:1px dashed var(--line);padding-top:6px;margin-top:4px}
+.ms-schritt:first-child{border-top:0}
+.ms-titel{text-align:left}
+.zlfeld{display:flex;align-items:center;justify-content:center;gap:4px;flex:1 1 auto;min-width:0}
+.zlfeld .bfeld{flex:0 1 7ch;min-width:5.5ch}
+.zlfeld .sign.zlvz{width:2.2rem;font-size:1.2rem;padding:2px 0;align-self:center}
+.zlop{font-size:1.4rem;font-weight:700;padding:0 2px}
+.zlkl{font-size:2.2rem;font-weight:300;line-height:1}
+.pbfeld{display:flex;align-items:center;justify-content:center;gap:8px;flex:1 1 auto;min-width:0}
+.pbbruch{display:flex;flex-direction:column;align-items:stretch;gap:4px;min-width:0}
+.pbzeile{display:flex;align-items:center;gap:4px}
+.pbzeile input.term{width:6ch;flex:1 1 6ch;min-width:0}
+.zlfeld input.term::placeholder,.pbfeld input.term::placeholder{font-size:.75em}
+[data-ms-ok][hidden],.ms-schritt[hidden]{display:none!important}
 /* Vorrangregeln (M-RaZa-V2, 21.11.2026): Reihenfolge-Nummern ①②③ mit Pfeil über dem Rechenzeichen (Platz darüber
    reserviert, damit sich nichts überlappt, auch wenn der Term am Handy umbricht), Zwischenzeilen mit Feldern in der
    Zeile, Rechenzeichen zum Antippen (A03) */
@@ -487,23 +521,39 @@ input.term[readonly]{background:var(--ink-soft);color:var(--ink);font-weight:700
 .vg-znr{display:inline-block;font-size:.7em;font-weight:800;color:var(--ink);background:var(--ink-soft);border-radius:6px;padding:0 .4em;margin-right:.3em;vertical-align:middle}
 .vg-schritte .vg-ez{margin:2px 0}
 .vg-schritte .newex{margin-top:4px}
-/* Schritt für Schritt (Form 'mehrschritt', M-RaZa-V1, 21.11.2026): Zeile aus Brüchen mit eigenem Vorzeichen, großer
-   Bruchstrich mit Produkten (oben Zähler · Zähler, unten Nenner · Nenner). Passt auf 360 px. */
-.ms-schritt{border-top:1px dashed var(--line);padding-top:6px;margin-top:4px}
-.ms-schritt:first-child{border-top:0}
-.ms-titel{text-align:left}
-.zlfeld{display:flex;align-items:center;justify-content:center;gap:4px;flex:1 1 auto;min-width:0}
-.zlfeld .bfeld{flex:0 1 7ch;min-width:5.5ch}
-.zlfeld .sign.zlvz{width:2.2rem;font-size:1.2rem;padding:2px 0;align-self:center}
-.zlop{font-size:1.4rem;font-weight:700;padding:0 2px}
-.zlkl{font-size:2.2rem;font-weight:300;line-height:1}
-.pbfeld{display:flex;align-items:center;justify-content:center;gap:8px;flex:1 1 auto;min-width:0}
-.pbbruch{display:flex;flex-direction:column;align-items:stretch;gap:4px;min-width:0}
-.pbzeile{display:flex;align-items:center;gap:4px}
-.pbzeile input.term{width:6ch;flex:1 1 6ch;min-width:0}
-.zlfeld input.term::placeholder,.pbfeld input.term::placeholder{font-size:.75em}
-[data-ms-ok][hidden],.ms-schritt[hidden]{display:none!important}
 .ms-weg{text-align:left;margin:6px 0 8px;padding-left:1.4em;line-height:1.7} .ms-weg li{margin:4px 0}
+/* Potenzen und Wurzeln (M-PoWu, 26.11.2026): Felder in der Schreibweise wie im Heft (Form 'pfeld'): Basis-Feld mit
+   kleinem Hochzahl-Feld oben rechts, Wurzel mit Feld unter dem Strich, Bruch aus zwei Feldern, Gleitkommazahl. Passt auf 360 px. */
+.pfz{flex-wrap:wrap;justify-content:center;align-items:center;gap:4px;font-size:1.6rem;font-weight:700;line-height:1.2}
+.answer.pfz input.pf{width:4.4ch;font-size:1.35rem;padding:7px 2px;text-align:center}
+.answer.pfz input.pf-b{width:3.8ch}
+.pfz .pf-pot{display:inline-flex;align-items:flex-start;gap:1px}
+.pfz .pf-pot>input,.pfz .pf-pot>.pf-fest{margin-top:.7em}
+.pfz .pf-sup{display:inline-flex}
+.answer.pfz input.pf-h{width:3.2ch;font-size:1rem;padding:3px 1px;border-radius:8px}
+.answer.pfz input.pf-t{width:auto;flex:1 1 9ch;min-width:7ch}
+.pfz .pf-bruch{display:inline-flex;flex-direction:column;align-items:center;gap:3px;vertical-align:middle}
+.pfz .pf-bruch>span:first-child{border-bottom:2.5px solid currentColor;padding-bottom:3px}
+.pfz .wurzel .rad{padding-top:.25em}
+.pfz .zt{font-size:1.5rem;font-weight:800;white-space:nowrap}
+.pz-zeile.pfz-papier{font-size:1.2rem;display:flex;align-items:center;gap:4px;flex-wrap:wrap;height:auto;min-height:10mm}
+.pz-zeile.pfz-papier .pf-strich{display:inline-block;width:3.5em;min-width:0;height:1.5em;flex:none;border-bottom:1.5px solid currentColor}
+.pfz-papier .pf-pot{display:inline-flex;align-items:flex-start}
+.pfz-papier .pf-pot>.pf-strich,.pfz-papier .pf-pot>.pf-fest{margin-top:.8em}
+.pz-zeile.pfz-papier .pf-sup .pf-strich{width:1.7em;height:1em}
+.pz-q .pw-gross,.pz-loesung .pw-gross{font-size:1.15rem}
+.pw-kl{font-size:1.5em;font-weight:300;vertical-align:middle}
+.pw-bp{display:inline-flex;align-items:center;white-space:nowrap}
+.pw-bp .pw-sup{align-self:flex-start;font-size:1.05em}
+.pw-mark{color:var(--x);background:var(--x-soft);border-radius:4px;padding:0 .1em}
+.pw-gross{font-size:1.7rem;font-weight:800}
+svg.quadrat .qp{fill:var(--ink-soft);stroke:var(--ink);stroke-width:1}
+.qtab{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 10px;font-size:.95rem;text-align:left}
+.qtab span.an{font-weight:800;color:var(--ink)}
+.pw-quadrate{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;justify-content:center}
+.choices.raster{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(min-width:520px){.choices.raster{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.zo-ding svg.quadrat{display:block;margin:0 auto 2px}
 </style>
 </head>
 <body>
@@ -601,6 +651,11 @@ UR.TEXTE = {
   zoHinweis: 'Tippe ein Kärtchen an, dann das passende Feld. Antippen und hier ablegen nimmt es zurück.',
   zoAblage: 'Kärtchen',
   zoRichtig: (k,n) => `${k} von ${n} richtig zugeordnet`,
+  memHinweis: 'Tippe zwei Karten an. Gehören sie zusammen, bleiben sie offen.',
+  memFertig: 'Alle Paare gefunden!',
+  memAlle: 'alle Paare gefunden',
+  memNicht: 'noch nicht alle Paare gefunden',
+  memKarte: 'verdeckte Karte',
   leichtEinstieg: 'Einstieg: leichtere Aufgaben',
   abJetztVoll: 'Ab der nächsten Aufgabe kommt die ganze Aufgabe.',
 
@@ -725,6 +780,7 @@ function textKnoten(box, fn){
   while((n=w.nextNode())) { const t=fn(n.nodeValue); if(t!==n.nodeValue) n.nodeValue=t; }
 }
 UR.umbruchSetzen = el => { if(!el.querySelectorAll) return;
+  if(UR.wurzelSetzen) UR.wurzelSetzen(el);   // Wurzeln mit durchgehendem Strich (kern/wurzel.js)
   el.querySelectorAll(RECHNUNG).forEach(box=>textKnoten(box, UR.umbruch));
   el.querySelectorAll(TEXT).forEach(box=>{ if(!box.closest(RECHNUNG)) textKnoten(box, UR.umbruchText); }); };
 /* Einheiten (Lehrkraft 20.11.2026): Eine dazugeschriebene Einheit zählt („43 %“, „7,20 €“, „4,2cm“, „90°“). Eine
@@ -800,6 +856,88 @@ UR.formAnmelden('wahl', {
   papier: t => ({aufgabe:`<div class="pz-q">${UR.esc(t.q)}</div>${UR.papier.ankreuzen(t.optionen)}`,
     loesung:`<div class="pz-q">${UR.esc(t.q)}</div>${UR.papier.ankreuzen(t.optionen, t.ans)}`, statt:true, aufwand:1})
 });
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* kern/wurzel.js */
+/* Übungsraum, Kern: Wurzeln mit Wurzelzeichen UND durchgehendem Strich über dem ganzen Radikanden.
+   Alle Bausteine schreiben die Wurzel einfach als Text („√75“, „√(a² − c²/4)“, „2 · √3“). UR.wurzelSetzen(el) wandelt
+   das nach jedem Zeichnen der Seite (kern/ablauf.js, kern/lzk.js, über UR.umbruchSetzen) in eine echte Wurzel um:
+     <span class="wurzel"><svg class="wz">…</svg><span class="rad">Radikand</span></span>
+   Das Zeichen ist ein SVG, das mit der Höhe des Radikanden mitwächst und genau an der Linie ansetzt, auch bei Brüchen.
+   Erkannt werden: √Zahl (auch mit Komma), √Buchstabe (auch mit ²), √(…) mit beliebig verschachtelten Klammern, auch wenn
+   ein Bruch darin schon als eigenes Element dasteht, und √ direkt vor einem Bruch. Ältere Form „√<span>…</span>“ wird mit umgestellt.
+   n-te Wurzel (M-PoWu, 26.11.2026): hochgestellte Ziffern direkt vor dem √ sind der Index („³√(−340)“, „⁵√(1 234)“); er
+   steht klein links oben am Wurzelzeichen. Eingabefelder unter der Wurzel: UR.wurzelHTML(feldHTML, index). */
+(function(UR){
+const ZEICHEN = '<svg class="wz" viewBox="0 0 10 20" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M0.5 11.6 L2.5 9.9 L5.1 18.6 L9.3 0.9 L10 0.9"/></svg>';
+const IDX = i => i ? `<span class="wi" aria-hidden="true">${i}</span>` : '';
+UR.wurzelHTML = (inhalt, index) => `<span class="wurzel${index?' mit-i':''}" role="math">${IDX(index)}${ZEICHEN}<span class="rad">${inhalt}</span></span>`;
+const HOCH = '⁰¹²³⁴⁵⁶⁷⁸⁹', HOCH_RE = /[⁰¹²³⁴⁵⁶⁷⁸⁹]+$/;
+const ZAHL = /^\d+(?:[.,]\d+)?/, BUCHSTABE = /^[A-Za-zα-ωΑ-Ω](?![A-Za-zα-ωΑ-Ω])[²³]?/;
+const SKIP = 'svg, input, textarea, script, style, select';
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
+const tn = s => document.createTextNode(s);
+function bauen(knoten, index){
+  const w = el('span', 'wurzel' + (index ? ' mit-i' : '')); w.setAttribute('role', 'math'); w.innerHTML = IDX(index) + ZEICHEN;
+  const r = el('span', 'rad'); knoten.forEach(k => r.appendChild(k)); w.appendChild(r); return w;
+}
+// Ältere Schreibweise <span class="wurzel">√<span>…</span></span> umstellen
+function altesUmstellen(root){
+  root.querySelectorAll('.wurzel').forEach(w => {
+    if (w.querySelector(':scope > .rad')) return;
+    const kinder = [...w.childNodes];
+    const inh = kinder.filter(k => !(k.nodeType === 3 && k.nodeValue.trim() === '√'));
+    const r = el('span', 'rad'); inh.forEach(k => { if (k.nodeType === 1 && k.tagName === 'SPAN' && !k.className && inh.length === 1) [...k.childNodes].forEach(c => r.appendChild(c)); else r.appendChild(k); });
+    w.textContent = ''; w.innerHTML = ZEICHEN; w.setAttribute('role', 'math'); w.appendChild(r);
+  });
+}
+// Radikand in Klammern, auch über mehrere Geschwister hinweg; liefert {inhalt:[Knoten], rest:Text, bis:letztesVerbrauchtesGeschwister}
+function klammer(rest, node){
+  let tiefe = 1, inhalt = [], text = rest.slice(1), cur = node;
+  for (;;) {
+    let i = 0, schluss = -1;
+    for (; i < text.length; i++) { if (text[i] === '(') tiefe++; else if (text[i] === ')' && --tiefe === 0) { schluss = i; break; } }
+    if (schluss >= 0) { if (text.slice(0, schluss)) inhalt.push(tn(text.slice(0, schluss))); return {inhalt, rest: text.slice(schluss + 1), bis: cur}; }
+    if (text) inhalt.push(tn(text));
+    const nx = cur.nextSibling; if (!nx) return null;
+    if (nx.nodeType === 3) { text = nx.nodeValue; cur = nx; }
+    else { inhalt.push(nx.cloneNode(true)); text = ''; cur = nx; }
+  }
+}
+function bearbeiten(eltern){
+  let k = eltern.firstChild;
+  while (k) {
+    const naechster = k.nextSibling;
+    if (k.nodeType === 1) {
+      if (!k.matches(SKIP) && !k.classList.contains('wurzel')) bearbeiten(k);
+      else if (k.classList.contains('wurzel')) { const r = k.querySelector('.rad'); if (r) bearbeiten(r); }
+      k = naechster; continue;
+    }
+    if (k.nodeType !== 3 || !k.nodeValue.includes('√')) { k = naechster; continue; }
+    const t = k.nodeValue, p = t.indexOf('√'), rest = t.slice(p + 1);
+    let vor = t.slice(0, p), index = '';
+    const im = vor.match(HOCH_RE); if (im) { index = [...im[0]].map(c => HOCH.indexOf(c)).join(''); vor = vor.slice(0, -im[0].length); }
+    let inhalt = null, nach = '', bis = k;
+    if (rest[0] === '(') { const g = klammer(rest, k); if (g) { inhalt = g.inhalt; nach = g.rest; bis = g.bis; } }
+    else if (ZAHL.test(rest)) { const m = rest.match(ZAHL)[0]; const b = rest.slice(m.length).match(/^[²³]/); const s = m + (b ? b[0] : ''); inhalt = [tn(s)]; nach = rest.slice(s.length); }
+    else if (BUCHSTABE.test(rest)) { const m = rest.match(BUCHSTABE)[0]; inhalt = [tn(m)]; nach = rest.slice(m.length); }
+    else if (rest === '' && k.nextSibling && k.nextSibling.nodeType === 1 && k.nextSibling.classList.contains('bruch')) { inhalt = [k.nextSibling.cloneNode(true)]; bis = k.nextSibling; }
+    if (!inhalt) { // kein Radikand erkennbar: √ bleibt Text, der Rest des Knotens wird weiter geprüft
+      if (rest.includes('√')) { const a = tn(t.slice(0, p + 1)), b = tn(rest); k.parentNode.insertBefore(a, k); k.parentNode.insertBefore(b, k); k.remove(); k = b; } else k = naechster;
+      continue;
+    }
+    const w = bauen(inhalt, index); bearbeiten(w.querySelector('.rad'));   // verschachtelte Wurzeln
+    const eltern2 = k.parentNode, ende = bis.nextSibling;
+    // verbrauchte Geschwister bis „bis“ entfernen
+    let x = k.nextSibling; while (x && x !== ende) { const y = x.nextSibling; x.remove(); if (x === bis) break; x = y; }
+    if (vor) eltern2.insertBefore(tn(vor), k);
+    eltern2.insertBefore(w, k);
+    if (nach) { const rest2 = tn(nach); eltern2.insertBefore(rest2, k); k.remove(); k = rest2; continue; }
+    k.remove(); k = w.nextSibling;
+  }
+}
+UR.wurzelSetzen = root => { if (!root || !root.querySelectorAll) return; altesUmstellen(root); bearbeiten(root); };
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -926,6 +1064,34 @@ UR.bindungen.push(app=>{ if(!app.querySelector) return;   // Testumgebung ohne D
   app.querySelectorAll('.zo-ding').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); waehle(gewaehlt===b?null:b); }));
   app.querySelectorAll('[data-zo-ziel]').forEach(z=>z.addEventListener('click',()=>ablegen(z,z.dataset.zoZiel)));
   const ab=app.querySelector('[data-zo-ablage]'); ab.addEventListener('click',()=>ablegen(ab,''));
+});
+
+/* ---------- 'memory' (fachneutral, 26.11.2026, erstmals M-PoWu-G2-N03) ----------
+   t.karten [{id, html, paar}]: Karten mit gleichem paar gehören zusammen. Verdeckt, zwei antippen: gehören sie zusammen,
+   bleiben sie offen, sonst drehen sie sich wieder um. Fehlversuche zählen nicht als falsch; richtig, wenn alle Paare
+   gefunden sind (das Feld bekommt dann „fertig“). */
+UR.formAnmelden('memory', {
+  ohneLeer: true,
+  html: t => `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off"><input type="hidden" data-feld data-mem-wert value="">
+    <div class="mem" data-mem>${t.karten.map(k=>`<button type="button" class="mem-karte" data-mem-karte="${esc(k.id)}" data-paar="${esc(k.paar)}" aria-label="${T.memKarte}"><span class="mem-vorn">${k.html}</span><span class="mem-hinten" aria-hidden="true">?</span></button>`).join('')}</div>
+    <p class="small muted" data-mem-info>${T.memHinweis}</p>${okKnopf}</form>`,
+  bewerten(t,pre,raw){ const v=Array.isArray(raw)?raw[0]:raw, ok=v==='fertig'; return {ok, shown:ok?T.memAlle:T.memNicht}; },
+  loesung: t => [...new Set(t.karten.map(k=>k.paar))].map(p=>t.karten.filter(k=>k.paar===p).map(k=>ohneTags(k.html)).join(' = ')).join(' · '),
+  loesungHTML: t => [...new Set(t.karten.map(k=>k.paar))].map(p=>t.karten.filter(k=>k.paar===p).map(k=>k.html).join(' = ')).join(' · ')
+});
+UR.bindungen.push(app=>{ if(!app.querySelector) return;   // Testumgebung ohne DOM
+  const feld=app.querySelector('[data-mem-wert]'); if(!feld) return;
+  const karten=[...app.querySelectorAll('[data-mem-karte]')], info=app.querySelector('[data-mem-info]');
+  let offen=[], sperre=false;
+  karten.forEach(b=>b.addEventListener('click',()=>{
+    if(sperre||b.classList.contains('auf')) return;
+    b.classList.add('auf'); b.removeAttribute('aria-label'); offen.push(b);
+    if(offen.length<2) return;
+    const [a,c]=offen; offen=[];
+    if(a.dataset.paar===c.dataset.paar){ a.classList.add('gefunden'); c.classList.add('gefunden');
+      if(karten.every(k=>k.classList.contains('gefunden'))){ feld.value='fertig'; if(info) info.textContent=T.memFertig; } return; }
+    sperre=true; setTimeout(()=>{ [a,c].forEach(k=>{ k.classList.remove('auf'); k.setAttribute('aria-label',T.memKarte); }); sperre=false; }, 1100);
+  }));
 });
 
 /* ---------- 'zahlen' ---------- */
@@ -1730,7 +1896,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-21.34","datum":"21.11.2026","pruefsumme":"e0c46b5f05f8856a"};
+UR.version = {"nummer":"2026-11-26.10","datum":"26.11.2026","pruefsumme":"592ea232eec43470"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -2773,7 +2939,8 @@ const FAKTOR = {mm:1, cm:10, dm:100, m:1000, km:1000000};       // in mm
 const umrechnen = (x,von,nach) => rund(x*FAKTOR[von]/FAKTOR[nach]);
 // Umrechnung für die Bewertung (auch im Kern, Form 'zahlen'): Wert von einer Einheit in eine andere derselben Art, sonst null.
 // Richtig umgerechnete Ergebnisse zählen (4,18 cm statt 41,8 mm, Lehrkraft 19.11.2026).
-const inEinheit = (v,von,nach) => { const zer=e=>String(e).endsWith('²')?[e.slice(0,-1),2]:[e,1], [x,p]=zer(von), [y,q]=zer(nach);
+// auch Rauminhalte (cm³ … , M-PoWu 26.11.2026)
+const inEinheit = (v,von,nach) => { const zer=e=>{ e=String(e); return e.endsWith('²')?[e.slice(0,-1),2]:e.endsWith('³')?[e.slice(0,-1),3]:[e,1]; }, [x,p]=zer(von), [y,q]=zer(nach);
   return v===null||Number.isNaN(v)||p!==q||!FAKTOR[x]||!FAKTOR[y] ? null : v*Math.pow(FAKTOR[x]/FAKTOR[y],p); };
 UR.umrechner = inEinheit;
 function einheitHinweis(e, soll){
@@ -4148,6 +4315,199 @@ const VZ_TABELLE = () => `<div class="tablewrap"><table class="mini kstab"><thea
   [['I','+','+'],['II',M,'+'],['III',M,M],['IV','+',M]].map(([q,a,b])=>`<tr><th>${q}</th><td><span class="sgn">${a}</span></td><td><span class="sgn">${b}</span></td></tr>`).join('')}</tbody></table></div>`;
 
 Object.assign(UR.mathe, {ksSVG, ksSetzen, ksGeo:geo, ksKey, ksText, ksAusPixel, ksOptionen, ksQuadrant:quadrant, ksVzTabelle:VZ_TABELLE, ksU:U});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/bausteine/potenzen.js */
+/* Mathe-Baustein Potenzen und Wurzeln (M-PoWu-G1 bis X2, Entscheidungen der Lehrkraft 26.11.2026,
+   Mathe/1.2 Potenzen-und-Wurzeln/AUSWAHL.md):
+   - exakte Dezimalrechnung (BigInt), kaufmännisch gerundet; Wurzeln exakt gerundet (Vergleich der Potenzen, kein Gleitkomma)
+   - Runden: Die Stelle steht immer in der Aufgabe (Zehntel/Hundertstel/Tausendstel bzw. 1, 2, 3 Nachkommastellen),
+     Fall A des Leitfadens, kein Fall B in diesem Thema
+   - Antwortform 'pfeld': Felder mitten in der Schreibweise wie im Heft: Potenzfeld (Basis-Feld und kleines Hochzahl-Feld,
+     normale Ziffern, auch über 9), Wurzelfeld a·√b (Wurzelzeichen mit vollem Strich, auch mit Index), Bruch aus zwei Feldern,
+     Gleitkommafeld (Zahl · 10 hoch Hochzahl). Eine gemeinsame Minus-Taste rechts daneben (wie P( … | … ) bei RaZa-G3).
+   - Quadrat-Bilder (n × n Plättchen), Tabelle der Quadratzahlen
+   Taschenrechner-Tasten werden nirgends genannt (Tastenfolgen TI-30eco RS ungeprüft), nur die Rechnung. */
+(function(UR){
+const M = UR.M, NB = String.fromCharCode(160), esc = UR.esc;
+const R = UR.raza;
+
+/* ---------- Zufall ---------- */
+const rnd = UR.rnd, pick = UR.pick;
+const mischen = a => { a=[...a]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const versuche = (f, n=400) => { for(let i=0;i<n;i++){ const r=f(); if(r) return r; } throw new Error('keine passende Aufgabe gefunden'); };
+// Ziehen ohne Zurücklegen: jeder Wert kommt einmal dran, dann wird neu gemischt (G2-A01, G2-A02: alle 15 Quadratzahlen)
+const zieher = liste => { let rest=[]; return () => { if(!rest.length) rest=mischen(liste); return rest.pop(); }; };
+
+/* ---------- exakte Dezimalzahlen {n: BigInt, k: Nachkommastellen} = n / 10^k ---------- */
+const P10 = k => 10n ** BigInt(k);
+function D(x){
+  if(x && typeof x==='object') return x;
+  const s=String(x).replace(/[−–]/g,'-').replace(/[\s ]/g,'').replace(',','.');
+  const m=s.match(/^(-?)(\d*)(?:\.(\d*))?$/); if(!m) throw new Error(`keine Dezimalzahl: ${x}`);
+  const fr=m[3]||''; return dKurz({n:BigInt((m[1]||'')+((m[2]||'0')+fr)), k:fr.length});
+}
+function dKurz(a){ let {n,k}=a; while(k>0 && n%10n===0n){ n/=10n; k--; } return {n,k}; }
+const dAuf = (a,k) => ({n:a.n*P10(k-a.k), k});
+const dMul = (a,b) => dKurz({n:a.n*b.n, k:a.k+b.k});
+const dPot = (a,e) => { let r={n:1n,k:0}; for(let i=0;i<e;i++) r=dMul(r,a); return r; };
+const dAdd = (a,b) => { const k=Math.max(a.k,b.k); return dKurz({n:dAuf(a,k).n+dAuf(b,k).n, k}); };
+const dNeg = a => ({n:-a.n, k:a.k});
+const dSub = (a,b) => dAdd(a,dNeg(b));
+const dVgl = (a,b) => { const k=Math.max(a.k,b.k), x=dAuf(a,k).n, y=dAuf(b,k).n; return x<y?-1:x>y?1:0; };
+const dAbs = a => a.n<0n?dNeg(a):a;
+// kaufmännisch auf k Stellen (ab 5 auf, negative vom Betrag aus)
+function dRund(a,k){
+  if(a.k<=k) return dKurz(a);
+  const neg=a.n<0n, b=neg?-a.n:a.n, t=P10(a.k-k), r=(b*2n+t)/(2n*t);
+  return dKurz({n:neg?-r:r, k});
+}
+const dStellen = a => dKurz(a).k;
+const dZahl = a => Number(dPlain(a));
+// ohne Tausender-Abstand, mit Punkt (für Number und Eingabe)
+function dPlain(a){ a=dKurz(a); const neg=a.n<0n, s=String(neg?-a.n:a.n).padStart(a.k+1,'0');
+  return (neg?'-':'')+(a.k?`${s.slice(0,-a.k)}.${s.slice(-a.k)}`:s); }
+// wie im Heft: Komma, echtes Minus, Tausender-Abstand (ab 4 Ziffern vor dem Komma); mit k: genau k Nachkommastellen
+function dText(a, k){
+  a = k===undefined ? dKurz(a) : dAuf(dRund(a,k),k);
+  const neg=a.n<0n, s=String(neg?-a.n:a.n).padStart(a.k+1,'0');
+  let g=a.k?s.slice(0,-a.k):s; const d=a.k?s.slice(-a.k):'';
+  if(g.length>=4) g=g.replace(/\B(?=(\d{3})+(?!\d))/g, NB);
+  return (neg?M:'')+g+(d?','+d:'');
+}
+const dEingabe = a => dPlain(a).replace('.',',');
+/* n-te Wurzel exakt auf k Stellen runden: r so, dass (r − ½)ⁿ ≤ x·10^(kn) < (r + ½)ⁿ (x ≥ 0; ungerade n: Vorzeichen
+   bleibt, gerundet vom Betrag aus). Liefert {r (Dezimalzahl), nahe (exakter Wert liegt sehr nah an einer Rundungsgrenze)} */
+function wurzelRund(x, n, k){
+  const neg=x.n<0n; if(neg&&n%2===0) throw new Error('gerade Wurzel aus negativer Zahl');
+  const X=neg?-x.n:x.n, j=x.k, links=2n**BigInt(n)*X*P10(k*n), rechts=P10(j);
+  const ok = r => (2n*r-1n)**BigInt(n)*rechts <= links && links < (2n*r+1n)**BigInt(n)*rechts;
+  const w=Math.pow(Number(X)/Number(rechts),1/n)*10**k;
+  let r=BigInt(Math.max(0,Math.round(w))), s=0;
+  while(!ok(r)&&s++<50){ if((2n*r+1n)**BigInt(n)*rechts<=links) r++; else r--; }
+  if(!ok(r)) throw new Error('Wurzel nicht gefunden');
+  const nahe=Math.abs(Math.abs(w-Math.round(w))-0.5)<1e-5;
+  const d=dKurz({n:neg?-r:r, k}); return {r:d, nahe, wert:(neg?-1:1)*w/10**k};
+}
+// ist x eine n-te Potenz einer Dezimalzahl mit höchstens 3 Stellen? (für „keine Quadratzahl“)
+const istPotenz = (x,n) => { const w=wurzelRund(dAbs(x),n,4).r; return dVgl(dPot(w,n),dAbs(x))===0; };
+
+/* ---------- Schreibweisen ---------- */
+const HOCH='⁰¹²³⁴⁵⁶⁷⁸⁹';
+const hoch = e => (e<0?'⁻':'')+[...String(Math.abs(e))].map(c=>HOCH[c]).join('');
+const ZT = x => typeof x==='object' ? dText(x) : R.Z(x);
+// Basis einer Potenz: negative Zahl in Klammern, Buchstaben so
+const basisText = b => typeof b==='string' ? b : (typeof b==='object' ? dVgl(b,D(0))<0 : b<0) ? `(${ZT(b)})` : ZT(b);
+const pot = (b,e) => `${basisText(b)}${hoch(e)}`;
+// Bruch: HTML waagrecht, Text „−2 durch 3“ (nie „/“)
+const brH = (z,n) => `${z<0?M:''}${R.br(Math.abs(z),n)}`;
+const brT = (z,n) => `${z<0?M:''}${Math.abs(z)} durch ${n}`;
+const klH = inhalt => `<span class="pw-kl">(</span>${inhalt}<span class="pw-kl">)</span>`;
+// Potenz eines Bruchs: (z/n)^e, HTML und Text
+const bruchPotH = (z,n,e) => `<span class="pw-bp">${klH(brH(z,n))}<span class="pw-sup">${hoch(e)}</span></span>`;
+const bruchPotT = (z,n,e) => `(${brT(z,n)})${hoch(e)}`;
+// Wurzel als Text: ⁿ√(…); UR.wurzelSetzen macht daraus das Wurzelzeichen mit vollem Strich
+const wz = (inhalt, n) => `${n&&n!==2?hoch(n):''}√(${inhalt})`;
+const malT = (b,e) => Array(e).fill(basisText(b)).join(' · ');
+
+/* ---------- Runden: Stelle in der Aufgabe, im Wechsel als Wort oder als Anzahl Nachkommastellen ---------- */
+const STELLE = {1:'Zehntel', 2:'Hundertstel', 3:'Tausendstel'};
+const rundWort = (k, stil) => (stil ?? Math.random()<.5) ? `auf ${STELLE[k]}` : `auf ${k} Nachkommastelle${k>1?'n':''}`;
+const rundLead = (k, vorn='Berechne') => `${vorn} und runde ${rundWort(k)}!`;
+
+/* ---------- Felder für die Form 'zahlen' ---------- */
+// gerundet (Fall A): ans = Wert (exakt oder sehr genau), Kern rundet ihn auf k Stellen; ansText = exakt gerundet
+const rundFeld = (label, wert, gerundet, k, o={}) => ({label, ans:wert, stellen:k, ansText:dText(gerundet,k),
+  feldHTML:o.vz?R.vzFeldHTML:undefined, einheiten:o.einheiten, einheitAns:o.einheitAns, einheit:o.einheit});
+// exakt (reine Rechnung bzw. Wert bricht ab)
+const exaktFeld = (label, x, o={}) => { const d=D(x); return {label, ans:dZahl(d), exakt:true, ansText:dText(d), feldHTML:o.vz?R.vzFeldHTML:undefined,
+  einheiten:o.einheiten, einheitAns:o.einheitAns, einheit:o.einheit}; };
+// Bruch aus zwei Feldern, Zähler mit Vorzeichen-Taste; gekürzt verlangt: ungekürzt ist falsch („noch kürzen“)
+function bruchFeld(label, z, n, o={}){
+  const f=R.bruchFeld(label, [z,n], {vz:true});
+  if(o.gekuerzt!==false) f.formOk = roh => { const t=R.mischTeile(roh); return !t||t.leer||t.z===null||R.ggT(t.z,t.n)===1; };
+  return f;
+}
+const kuerzenHinweis = erg => erg.some(x=>x.wertOk&&!x.formOk) ? 'Der Wert stimmt. Kürze den Bruch noch vollständig.' : '';
+
+/* ---------- Antwortform 'pfeld': Felder in der Schreibweise ----------
+   Ein Generator baut die Zeile mit bau(): Felder werden in der Reihenfolge des HTML gesammelt (der Kern liest sie so).
+   Felddefinition: {art:'zahl'|'name'|'basis'|'term', ans, ansText, ansHTML, name (vorgelesen), stellen (sonst exakt),
+   auch:[weitere richtige Eingaben], modus (Term: 'genau'|'gleich')}.
+   art 'basis': Zahl oder Buchstabe (Klammern um negative Zahlen dürfen getippt werden). */
+function bau(){
+  const felder=[];
+  const feld = (def, cls) => { const id='pf'+felder.length; felder.push(Object.assign({art:'zahl'}, def, {id}));
+    return `<input id="${id}" class="zahl pf ${cls}" data-feld inputmode="${def.art==='zahl'?'decimal':'text'}" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="?" aria-label="${esc(def.name||'')}">`; };
+  return {felder,
+    zahl: d => feld(d,'pf-z'),
+    basis: d => feld(Object.assign({art:'basis'},d),'pf-b'),
+    hoch: d => `<span class="pf-sup">${feld(d,'pf-h')}</span>`,
+    term: d => feld(Object.assign({art:'term'},d),'pf-t'),
+    // Potenz: Basis-Feld (oder fester Text) und Hochzahl-Feld
+    potenz(basis, hochzahl){ return `<span class="pf-pot">${typeof basis==='string'?`<span class="pf-fest">${basis}</span>`:this.basis(basis)}${this.hoch(hochzahl)}</span>`; },
+    wurzel(inhaltHTML, index){ return UR.wurzelHTML(inhaltHTML, index&&index!==2?index:''); },
+    bruch(oben, unten){ return `<span class="pf-bruch"><span>${oben}</span><span>${unten}</span></span>`; }
+  };
+}
+const normName = s => String(s??'').trim().replace(/[−–]/g,'-').replace(/\s/g,'').replace(/^\((.*)\)$/,'$1').toLowerCase();
+function feldOk(f, roh, t){
+  if(roh==='') return false;
+  const passt = a => {
+    if(f.art==='term') return UR.terme.bewerte(f.modus||'genau', roh, a, t).ok;
+    if(f.art==='name' || (f.art==='basis' && typeof a==='string')) return normName(roh)===normName(a);
+    const r=normName(roh).replace(/^\+/,''), v=UR.leseZahl(r);
+    return UR.zahlPasst(r, v, f.stellen!=null?f:Object.assign({exakt:true},f), t);
+  };
+  return [f.ans, ...(f.auch||[])].some(passt);
+}
+const pfPapier = zeile => zeile.replace(/<input[^>]*>/g,'<span class="pz-strich pf-strich"></span>');
+UR.formAnmelden('pfeld', {
+  html: t => `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off">${t.vorFeldern||''}
+    <div class="answer zeile pfz">${t.zeile}${t.minus?R.minusTaste():''}</div>${t.nachFeldern||''}
+    <div class="answer"><button class="big" type="submit">${UR.TEXTE.ok}</button></div></form>`,
+  bewerten(t,pre,raw){
+    const l=Array.isArray(raw)?raw:[raw];
+    const erg=t.felder.map((f,i)=>{ const roh=String(l[i]??'').trim(); return {roh, ok:feldOk(f,roh,t)}; });
+    t.ergebnis=erg;
+    t.hinweis = t.hinweisNach ? (t.hinweisNach(erg.map(e=>e.roh), erg)||'') : '';
+    const ok = t.gesamt ? t.gesamt(erg.map(e=>e.roh), erg) : erg.every(e=>e.ok);
+    const stuecke = t.felder.length>1 ? erg.map((e,i)=>({text:e.roh||'?', ok:e.ok, soll:t.felder[i].ansText??String(t.felder[i].ans)})) : null;
+    return {ok, stuecke, shown:erg.map(e=>e.roh||'?').join(' | ')};
+  },
+  loesung: t => t.loesungText,
+  loesungHTML: t => t.loesungH || esc(t.loesungText),
+  papier: t => ({aufgabe:UR.papier.mitBild(`${UR.papier.angabe(t)}<div class="pz-feld pz-zeile pfz-papier">${pfPapier(t.zeile)}</div>`, t.papierBild),
+    loesung:t.loesungH||esc(t.loesungText), lead:t.lead, aufwand:t.aufwand||1})
+});
+
+/* ---------- Rückmeldung: Hinweis, Bild bei Fehlern, Lösungsbild ---------- */
+function aufg(t){
+  t.zusatzRueckmeldung = f => {
+    let h='';
+    if(!f.ok&&t.hinweis) h+=`<div class="fb no pop"><span>${t.hinweis}</span></div>`;
+    if(!f.ok&&t.fehlerBild) h+=`<div class="bild">${t.fehlerBild}</div>`;
+    if(t.loesungBild) h+=`<div class="bild">${t.loesungBild}</div>`;
+    return h;
+  };
+  return t;
+}
+const merk = html => `<div class="merk">${html}</div>`;
+
+/* ---------- Bilder ---------- */
+// Quadrat aus n × n Plättchen (G2), Größe in px; beschriftung unter dem Bild
+function quadratSVG(n, o={}){
+  const g=o.groesse||(n<=5?90:n<=10?120:150), s=g/n, l=o.text?22:0;
+  let z=''; for(let i=0;i<n;i++) for(let j=0;j<n;j++) z+=`<rect x="${(j*s+1).toFixed(2)}" y="${(i*s+1).toFixed(2)}" width="${(s-2).toFixed(2)}" height="${(s-2).toFixed(2)}" rx="${Math.min(3,s/5).toFixed(2)}" class="qp"/>`;
+  return `<svg class="quadrat" viewBox="0 0 ${g} ${g+l}" width="${g}" height="${g+l}" role="img" aria-label="Quadrat aus ${n} mal ${n} Plättchen">${z}${o.text?`<text x="${g/2}" y="${g+17}" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text)">${o.text}</text>`:''}</svg>`;
+}
+// Tabelle der Quadratzahlen 1² bis bis² (Merkkarte, Rückmeldung, Erklärung)
+const quadratTabelle = (bis=15, markiert) => `<div class="qtab">${Array.from({length:bis},(_,i)=>i+1).map(n=>`<span class="${n===markiert?'an':''}">${n}² = ${R.Z(n*n)}</span>`).join('')}</div>`;
+
+UR.powu = {M, NB, rnd, pick, mischen, versuche, zieher, D, dKurz, dMul, dPot, dAdd, dSub, dNeg, dVgl, dAbs, dRund, dStellen, dZahl, dPlain, dText, dEingabe,
+  wurzelRund, istPotenz, hoch, ZT, basisText, pot, brH, brT, klH, bruchPotH, bruchPotT, wz, malT, STELLE, rundWort, rundLead,
+  rundFeld, exaktFeld, bruchFeld, kuerzenHinweis, bau, normName, aufg, merk, quadratSVG, quadratTabelle};
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -6359,6 +6719,591 @@ const lzk = {merkmal:{schulden:'sachschulden', temperatur:'sachtemperatur', aufz
     abfuellen:'textabfuellen', unterwegs:'textzeit', aufAb:'textaufab', gewicht:'textgewicht', geld:'textgeld', tempo:'texttempo'},
   aufwand:{schulden:2, temperatur:2, aufzug:2, pegel:3, abstand:1, abfuellen:3, unterwegs:3, aufAb:3, gewicht:3, geld:3, tempo:3}};
 UR.kompetenzAnmelden({id:'M-RaZa-V3', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk, spielarten:SPIELARTEN, textAufgabe});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.2 Potenzen-und-Wurzeln/M-PoWu-G1.js */
+/* Baustein M-PoWu-G1: „Ich kenne wichtige Begriffe und Eigenschaften betreffend Potenzen und Wurzeln und kann sie erklären.“
+   Steckbrief: M-PoWu-G1.md, Auswahl der Lehrkraft: AUSWAHL.md (26.11.2026). */
+(function(UR){
+const {M, rnd, pick, mischen, versuche, D, dMul, dPot, dText, hoch, ZT, basisText, pot, malT, exaktFeld, bau, normName, aufg, merk, quadratSVG, quadratTabelle} = UR.powu;
+const R = UR.raza;
+const MAL = {2:'zweimal',3:'dreimal',4:'viermal',5:'fünfmal',6:'sechsmal',7:'siebenmal',8:'achtmal',9:'neunmal'};
+const NAMEN = ['Tim','Lena','Ali','Mia','Jonas','Sara','Emil','Lea'];
+const BUCHST = ['a','b','c','m','x','y','z'];
+const FLAECHEN = ['mm²','cm²','dm²','m²','km²'], RAEUME = ['mm³','cm³','dm³','m³','km³'], LAENGEN = ['mm','cm','dm','m','km'];
+const MERK_HOCH = merk('<b>Hochzahl</b> = wie oft die <b>Basis</b> als Faktor steht: 2³ = 2 · 2 · 2');
+const WOERTER = 'Die Zahl, die malgenommen wird, heißt <b>Basis</b> (Grundzahl). Die kleine Zahl oben sagt, wie oft: <b>Hochzahl</b> (Exponent). Das Ergebnis heißt <b>Potenzwert</b>.';
+const nzB = () => { let b=0; while([0,1,-1].includes(b)) b=rnd(-9,12); return b; };
+
+// Skizzen: Quadrat mit Seite a, Würfel mit Kante a (Rückmeldung bei falscher Rechnung)
+const skizze = (art, a) => art==='q'
+  ? `<svg viewBox="0 0 150 130" width="150" height="130" role="img" aria-label="Quadrat"><rect x="30" y="10" width="90" height="90" fill="var(--ink-soft)" stroke="var(--ink)" stroke-width="2"/><text x="75" y="120" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text)">a = ${a}</text><text x="18" y="60" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text)">a</text><text x="75" y="60" text-anchor="middle" font-size="15" fill="var(--text)">A = a · a</text></svg>`
+  : `<svg viewBox="0 0 170 140" width="170" height="140" role="img" aria-label="Würfel"><path d="M20 45 L95 45 L95 120 L20 120 Z" fill="var(--ink-soft)" stroke="var(--ink)" stroke-width="2"/><path d="M20 45 L50 18 L125 18 L95 45 Z M95 45 L125 18 L125 93 L95 120 Z" fill="var(--paper)" stroke="var(--ink)" stroke-width="2"/><text x="57" y="137" text-anchor="middle" font-size="14" font-weight="700" fill="var(--text)">a = ${a}</text><text x="142" y="62" font-size="14" font-weight="700" fill="var(--text)">a</text><text x="62" y="12" font-size="14" font-weight="700" fill="var(--text)">a</text><text x="57" y="88" text-anchor="middle" font-size="13" fill="var(--text)">V = a · a · a</text></svg>`;
+
+/* G1-A05: Lückensätze (feste Auswahl, Lehrkraft 26.11.2026): [Satz mit …, richtiges Wort, andere Wörter] */
+const BEGRIFFE = [
+  ['In der Potenz 3⁵ heißt die 3 …', 'Basis (Grundzahl)', ['Hochzahl (Exponent)','Potenzwert','Faktor']],
+  ['In der Potenz 3⁵ heißt die 5 …', 'Hochzahl (Exponent)', ['Basis (Grundzahl)','Potenzwert','Quadrat']],
+  ['In 3⁵ = 243 heißt 243 der …', 'Potenzwert', ['Basis (Grundzahl)','Hochzahl (Exponent)','Faktor']],
+  ['Die Hochzahl sagt, wie oft die Basis als … steht.', 'Faktor', ['Potenzwert','Wurzel','Summand']],
+  ['3² spricht man „3 zum …“.', 'Quadrat', ['Würfel','Kubik','Faktor']],
+  ['3³ spricht man „3 hoch 3“ oder „3 …“.', 'Kubik', ['Quadrat','Wurzel','Faktor']],
+  ['Das Wurzelziehen ist die … des Potenzierens.', 'Umkehrung', ['Basis (Grundzahl)','Hochzahl (Exponent)','Potenz']],
+  ['a² ist der Flächeninhalt eines … mit der Seite a.', 'Quadrats', ['Würfels','Rechtecks','Kreises']],
+  ['a³ ist das Volumen eines … mit der Kante a.', 'Würfels', ['Quadrats','Rechtecks','Kreises']],
+  ['√(49) = 7, weil 7² = 49 ist. 7 ist die … aus 49.', 'Wurzel', ['Potenz','Hochzahl (Exponent)','Basis (Grundzahl)']],
+  ['Ein Produkt aus gleichen Faktoren kann man kurz als … schreiben.', 'Potenz', ['Wurzel','Summe','Quadratzahl']],
+  ['7² = 49, also ist 49 eine …', 'Quadratzahl', ['Wurzel','Basis (Grundzahl)','Hochzahl (Exponent)']],
+  ['Bei (−2)⁴ ist die … negativ, der Potenzwert positiv.', 'Basis (Grundzahl)', ['Hochzahl (Exponent)','Wurzel','Faktor']]
+];
+const KREIS = ['①','②','③'];
+const satzHTML = s => s.replace('…','<span class="luecke">…</span>');
+
+/* G1-A08: Aussagen (feste Auswahl): [Aussage, wahr?, Begründung] */
+const AUSSAGEN = [
+  ['Das Ergebnis beim Quadrieren ist immer größer als die Zahl, die quadriert wird.', false, '0,5² = 0,25 ist kleiner als 0,5; auch 1² = 1.'],
+  ['Quadrieren heißt, die Zahl mit sich selbst zu multiplizieren.', true, '6² = 6 · 6 = 36.'],
+  ['Beim Quadrieren einer Dezimalzahl hat das Ergebnis doppelt so viele Nachkommastellen.', true, '1,5² = 2,25 und 0,12² = 0,0144.'],
+  ['Die Quadratwurzel aus 25 ist 12,5.', false, '√(25) = 5, denn 5² = 25. Wurzelziehen ist nicht halbieren.'],
+  ['4³ ist dasselbe wie 4 · 3.', false, '4³ = 4 · 4 · 4 = 64, aber 4 · 3 = 12.'],
+  ['2⁵ und 5² haben denselben Wert.', false, '2⁵ = 32, aber 5² = 25.'],
+  ['Die Wurzel ist die Umkehrung des Quadrierens.', true, '8² = 64 und √(64) = 8.'],
+  ['Eine Quadratzahl entsteht, wenn man eine ganze Zahl mit sich selbst multipliziert.', true, '9 · 9 = 81, also ist 81 eine Quadratzahl.'],
+  ['Kubieren heißt, eine Zahl hoch 3 zu nehmen.', true, '2³ = 2 · 2 · 2 = 8.'],
+  ['1 hoch eine beliebige Hochzahl ist immer 1.', true, '1⁵ = 1 · 1 · 1 · 1 · 1 = 1.'],
+  ['Das Quadrat einer negativen Zahl ist negativ.', false, '(−3)² = (−3) · (−3) = 9 ist positiv.'],
+  ['Die Kubikzahl einer negativen Zahl ist negativ.', true, '(−2)³ = (−2) · (−2) · (−2) = −8.'],
+  ['Der Flächeninhalt eines Quadrats mit der Seite 3 cm ist 9 cm².', true, 'A = 3 · 3 = 9 cm².'],
+  ['Das Volumen eines Würfels mit der Kante 2 cm ist 6 cm³.', false, 'V = 2 · 2 · 2 = 8 cm³.'],
+  ['Die Wurzel aus 0 ist 0.', true, '0² = 0, also √(0) = 0.'],
+  ['√(9) = 3, denn 3 · 3 = 9.', true, 'Wurzel und Quadrat gehören zusammen: 3² = 9.'],
+  ['Die Hochzahl gibt an, wie oft man die Basis addiert.', false, 'Die Basis wird malgenommen: 3⁴ = 3 · 3 · 3 · 3.'],
+  ['Wird die Seite eines Quadrats doppelt so lang, wird der Flächeninhalt doppelt so groß.', false, 'Er wird viermal so groß: (2a)² = 4a².'],
+  ['Zwischen 7² und 8² liegt keine Quadratzahl.', true, '49 und 64 sind benachbarte Quadratzahlen.'],
+  ['10³ ist eine Eins mit drei Nullen.', true, '10³ = 10 · 10 · 10 = 1 000.']
+];
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // G1-A01 Potenz als Produkt schreiben
+  als_produkt(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    return versuche(()=>{
+      const b=(Math.random()<.25?-1:1)*rnd(2,9), n=rnd(2,6), richtig=malT(b,n);
+      const falsch={mal:`${ZT(b)} · ${n}`, hoch:Array(Math.abs(b)).fill(n).join(' · '), viel:malT(b,n+1), wenig:n>2?malT(b,n-1):null};
+      const keys=Object.keys(falsch).filter(k=>falsch[k]&&falsch[k]!==richtig);
+      const wahl=['mal',...mischen(keys.filter(k=>k!=='mal'))].slice(0,leicht?1:2);
+      if(new Set([richtig,...wahl.map(k=>falsch[k])]).size<wahl.length+1) return null;
+      const p=pot(b,n);
+      return aufg({kind:'fragen', q:p, qh:`<span class="pw-gross">${p}</span>`, lead:'Welche Multiplikation gehört zur Potenz?',
+        gruppen:[{optionen:mischen([['r',richtig],...wahl.map(k=>[k,falsch[k]])]), ans:'r', klasse:'lang'}], basis:b, hochzahl:n,
+        bild:leicht?MERK_HOCH:'',
+        why:`Die Hochzahl sagt, wie oft die Basis als Faktor steht: ${p} = ${richtig}. ${ZT(b)} · ${n} ist etwas anderes: Dort steht ${basisText(b)} nur einmal.`});
+    });
+  },
+  // G1-A02 Produkt als Potenz schreiben (Potenzfeld: Basis und Hochzahl)
+  als_potenz(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const b=Math.random()<.3?pick(BUCHST):nzB(), n=rnd(2,7), B=bau(), q=malT(b,n);
+    const zeile=`${B.potenz({ans:b, ansText:typeof b==='string'?b:ZT(b), name:'Basis'}, {ans:n, ansText:String(n), name:'Hochzahl'})}`;
+    return aufg({kind:'pfeld', q, qh:`<span class="pw-gross">${q}</span>`, lead:'Schreibe als Potenz!', zeile, felder:B.felder, minus:true,
+      basis:b, hochzahl:n, bild:leicht?MERK_HOCH:'',
+      hinweisNach:r=>normName(r[0])===String(n)&&normName(r[1])===normName(String(b)) ? 'Die Basis ist die Zahl, die malgenommen wird; die Hochzahl sagt, wie oft.'
+        : typeof b==='number'&&b<0&&normName(r[0])===String(-b) ? 'Die Basis ist negativ: Schreibe sie mit dem Minus.' : '',
+      loesungText:pot(b,n), why:`Zähle die gleichen Faktoren: ${MAL[n]} ${basisText(b)}, also ${pot(b,n)}. Die Basis ist die Zahl, die malgenommen wird; die Hochzahl sagt, wie oft.`});
+  },
+  // G1-A03 Teile einer Potenz benennen (3 Fragen je Bildschirm)
+  teile_benennen(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    const OPT={basis:'Basis', hoch:'Hochzahl', wert:'Potenzwert'};
+    const rollen=mischen(['basis','hoch','wert']);
+    const gruppen=rollen.map(r=>{
+      const [b,n]=versuche(()=>{ const b=rnd(2,9), n=rnd(2,6); return b!==n&&b**n<100000?[b,n]:null; }), v=R.Z(b**n);
+      const mk=x=>`<span class="pw-mark">${x}</span>`;
+      const frage = r==='basis' ? `In <b>${mk(b)}${hoch(n)}</b>: Wie heißt die ${b}?` : r==='hoch' ? `In <b>${b}${mk(hoch(n))}</b>: Wie heißt die ${n}?`
+        : `<b>${b}${hoch(n)} = ${mk(v)}</b>: Wie heißt die ${v}?`;
+      const andere=mischen(Object.keys(OPT).filter(k=>k!==r)).slice(0,leicht?1:2);
+      return {frage, optionen:['basis','hoch','wert'].filter(k=>k===r||andere.includes(k)).map(k=>[k,OPT[k]]), ans:r, klasse:leicht?'':'drei', teil:{r,b,n,v}};
+    });
+    return aufg({kind:'fragen', q:`Teile benennen: ${gruppen.map(g=>g.teil.r==='wert'?`${g.teil.b}${hoch(g.teil.n)} = ${g.teil.v}`:`${g.teil.b}${hoch(g.teil.n)}`).join(', ')}`,
+      qh:'Basis, Hochzahl oder Potenzwert?', lead:'Wie heißt die markierte Zahl?', gruppen, bild:leicht?merk(WOERTER):'', why:WOERTER});
+  },
+  // G1-A05 Begriffe in Lücken (feste Auswahl)
+  begriffe(ctx){
+    const leicht=!!(ctx&&ctx.leicht), saetze=mischen(BEGRIFFE).slice(0,leicht?1:2);
+    return aufg({kind:'fragen', text:true, q:saetze.map(s=>s[0]).join(' '), saetze,
+      qh:saetze.map((s,i)=>`${saetze.length>1?KREIS[i]+' ':''}${satzHTML(s[0])}`).join('<br>'), lead:'Ergänze die Lücken mit den passenden Wörtern!',
+      gruppen:saetze.map((s,i)=>({frage:saetze.length>1?`Lücke ${KREIS[i]}`:'', optionen:mischen([s[1],...mischen(s[2]).slice(0,leicht?2:3)]).map(x=>[x,x]), ans:s[1], klasse:'lang'})),
+      bild:leicht?merk(`${WOERTER} Das Wurzelziehen ist die Umkehrung des Potenzierens.`):'',
+      why:`${saetze.map(s=>s[0].replace('…',`<b>${s[1]}</b>`)).join(' ')} Beispiel: 3⁵ = 243 hat die Basis 3, die Hochzahl 5 und den Potenzwert 243.`});
+  },
+  // G1-A06 Fläche und Volumen berechnen (zwei Schritte: Rechnung wählen, Ergebnis mit Einheit)
+  flaeche_volumen(){
+    const art=Math.random()<.55?'q':'w';
+    const a = art==='q' ? (Math.random()<.5?D(rnd(1,20)):D(`${rnd(0,19)}.${rnd(1,9)}`)) : (Math.random()<.5?D(rnd(1,12)):D(`${rnd(0,4)}.${rnd(1,9)}`));
+    if(a.n===0n) return typen.flaeche_volumen();
+    const e = art==='q' ? pick(['mm','cm','dm','m']) : pick(['cm','dm','m']);
+    const w = art==='q' ? dMul(a,a) : dPot(a,3), aT=`${dText(a)}${UR.powu.NB}${e}`, eA=e+(art==='q'?'²':'³');
+    const rech = art==='q' ? `${dText(a)} · ${dText(a)}` : `${dText(a)} · ${dText(a)} · ${dText(a)}`;
+    const t = {kind:'zweischritt', text:true, schritt:'Rechnung', q:art==='q'?`Ein Quadrat hat die Seite a = ${aT}. Berechne den Flächeninhalt A!`:`Ein Würfel hat die Kante a = ${aT}. Berechne das Volumen V!`,
+      lead:'Wähle zuerst die Rechnung, dann rechne!', art, a, einheit:e,
+      s1:{label:'Schritt 1: Welche Rechnung passt?', kurz:'Rechnung', wahl:[['aa','a · a'],['aaa','a · a · a'],['4a','4 · a']], ans:art==='q'?'aa':'aaa', ansText:art==='q'?'a · a':'a · a · a'},
+      s2:{label:'Schritt 2: Ergebnis mit Einheit', felder:[exaktFeld(art==='q'?'A =':'V =', w, {einheiten:[...FLAECHEN,...RAEUME], einheitAns:eA})], ansText:`${dText(w)} ${eA}`},
+      hinweisNach:(e1,e2)=>e2[0].zahlOk&&!e2[0].einheitOk&&!e2[0].fehltEinheit ? 'Flächen messen wir in Quadrateinheiten (cm²), Rauminhalte in Kubikeinheiten (cm³).' : '',
+      fehlerBild:skizze(art, aT),
+      why:art==='q'?'Flächeninhalt des Quadrats: A = a · a = a². Flächen messen wir in Quadrateinheiten (cm²).':'Volumen des Würfels: V = a · a · a = a³. Rauminhalte messen wir in Kubikeinheiten (cm³).',
+      steps:`${art==='q'?'A':'V'} = ${rech} = ${dText(w)} ${eA}`};
+    return aufg(UR.prozent.wahlSchritt1(t));
+  },
+  // G1-A07 Seitenlänge aus Fläche oder Volumen ablesen (volle Quadrat- und Kubikzahlen, ohne Taschenrechner)
+  seite_ablesen(ctx){
+    const leicht=!!(ctx&&ctx.leicht), art=Math.random()<.6?'q':'w';
+    const n = art==='q' ? rnd(2,15) : rnd(2,10), e = art==='q' ? pick(['mm','cm','dm','m']) : pick(['cm','dm','m']);
+    const v = art==='q' ? n*n : n**3, eV = e+(art==='q'?'²':'³');
+    const f = exaktFeld('a =', n, {einheiten:LAENGEN, einheitAns:e});
+    const beleg = art==='q' ? `${n} · ${n} = ${R.Z(v)}` : `${n} · ${n} · ${n} = ${R.Z(v)}`;
+    return aufg({kind:'zahlen', text:true, q:art==='q'?`Ein Quadrat hat den Flächeninhalt A = ${R.Z(v)} ${eV}. Wie lang ist die Seite a?`:`Ein Würfel hat das Volumen V = ${R.Z(v)} ${eV}. Wie lang ist die Kante a?`,
+      lead:'Rechne ohne Taschenrechner!', felder:[f], art, n, einheit:e,
+      bild:leicht?merk(art==='q'?`Welche Zahl mal sich selbst ergibt ${R.Z(v)}?${quadratTabelle(15)}`:`Welche Zahl dreimal mit sich selbst malgenommen ergibt ${R.Z(v)}?<br>${[2,3,4,5,6,7,8,9,10].map(k=>`${k}³ = ${R.Z(k**3)}`).join(' · ')}`):'',
+      hinweisNach:erg=>/[²³]/.test(erg[0].e||'') ? `Die Seite ist eine Länge: ${e}, nicht ${erg[0].e}.` : erg[0].zahlOk&&!erg[0].einheitOk&&!erg[0].fehltEinheit ? UR.TEXTE.einheitFalsch : '',
+      why:`${beleg}, also ist ${art==='q'?'die Seite':'die Kante'} ${n} ${e}. Die Seite ist eine Länge: ${e}, nicht ${eV}.`, steps:`a = ${n} ${e}, denn ${beleg}`});
+  },
+
+  /* ---------- Plus ---------- */
+  // G1-A04 Sprech- und Schreibweise verbinden (4 Paare)
+  sprechweise(){
+    const paare=versuche(()=>{ const l=[]; for(let i=0;i<4;i++){ const b=rnd(2,9), n=rnd(2,5); if(l.some(p=>p.b===b&&p.n===n)) return null; l.push({b,n}); } return l; });
+    const sprech = ({b,n}) => { const v=R.Z(b**n);
+      if(n===2) return pick([`„${b} zum Quadrat ist gleich ${v}“`,`„${b} hoch 2 ist gleich ${v}“`]);
+      if(n===3) return pick([`„${b} zur dritten (${b} Kubik) ist gleich ${v}“`,`„${b} hoch 3 ist gleich ${v}“`]);
+      return `„${b} hoch ${n} ist gleich ${v}“`; };
+    const dinge=paare.map((p,i)=>({id:'d'+i, html:`${p.b}${hoch(p.n)} = ${R.Z(p.b**p.n)}`})), ziele=mischen(paare.map((p,i)=>({id:'z'+i, text:sprech(p)})));
+    const ans={}; paare.forEach((p,i)=>ans['d'+i]='z'+i);
+    return aufg({kind:'zuordnen', q:'Schreibweise und Sprechweise verbinden', lead:'Verbinde die Schreibweise mit der Sprechweise!', dinge, ziele, ans, paare,
+      why:`Man spricht „Basis hoch Hochzahl“, bei der Hochzahl 2 auch „zum Quadrat“, bei 3 auch „zur dritten“ oder „Kubik“: ${dinge.map((d,i)=>`${d.html} → ${ziele.find(z=>z.id==='z'+i).text}`).join('; ')}.`});
+  },
+  // G1-A08 Stimmt die Aussage? (4 Aussagen, feste Auswahl)
+  aussagen(){
+    const l=mischen(AUSSAGEN).slice(0,4);
+    return aufg({kind:'fragen', text:true, q:l.map(a=>a[0]).join(' '), aussagen:l, lead:'Welche Aussage ist richtig, welche falsch?',
+      gruppen:l.map(a=>({frage:a[0], optionen:[['w','richtig'],['f','falsch']], ans:a[1]?'w':'f'})),
+      why:l.map(a=>`${a[1]?'Richtig':'Falsch'}: ${a[2]}`).join(' ')});
+  },
+  // G1-N01 Hochzahl bei Flächen- und Raummaßen (umrechnen)
+  umrechnen(){
+    const [von,nach,f]=pick([['m²','dm²',100],['cm²','mm²',100],['dm²','cm²',100],['m³','dm³',1000],['dm³','cm³',1000],['cm³','mm³',1000]]);
+    const x = Math.random()<.2 ? D(pick(['0.5','2.5','1.5'])) : D(rnd(1,50)), w=dMul(x,D(f)), k=f===100?2:3;
+    return aufg({kind:'zahlen', text:true, q:`Rechne ${dText(x)} ${von} in ${nach} um!`, lead:'Rechne um!', felder:[exaktFeld(`${dText(x)} ${von} =`, w, {einheiten:[...FLAECHEN,...RAEUME], einheitAns:nach})],
+      von, nach, x, faktor:f,
+      why:`1 ${von.slice(0,-1)} = 10 ${nach.slice(0,-1)}, also 1 ${von} = 10${hoch(k)} ${nach} = ${R.Z(f)} ${nach}. Bei Flächen kommt 10² = 100 heraus, bei Rauminhalten 10³ = 1 000.`,
+      steps:`${dText(x)} · ${R.Z(f)} = ${dText(w)} ${nach}`});
+  },
+  // G1-N02 Fehler finden
+  fehler_finden(){
+    const name=pick(NAMEN), FEHLER={mal:'Basis mal Hochzahl gerechnet', tausch:'Basis und Hochzahl vertauscht', halb:'halbiert statt die Wurzel gezogen', quadrat:'hoch 2 statt hoch 3 gerechnet'};
+    return versuche(()=>{
+      const art=pick(Object.keys(FEHLER));
+      let q, steps, b, n;
+      if(art==='halb'){ const w=2*rnd(2,7), z=w*w; q=`${name} sagt: √(${R.Z(z)}) = ${R.Z(z/2)}, weil ${R.Z(z)} : 2 = ${R.Z(z/2)}.`; steps=`Wurzelziehen kehrt das Quadrieren um: ${w}² = ${R.Z(z)}, also √(${R.Z(z)}) = ${w}.`; b=z; n=0; }
+      else {
+        b=rnd(2,6); n=art==='quadrat'?3:rnd(2,4); if(b===n) return null;
+        const wert={mal:b*n, tausch:n**b, quadrat:b*b}[art];
+        const andere={mal:b*n, tausch:n**b}; if(n===3) andere.quadrat=b*b;
+        if(wert===b**n||Object.entries(andere).some(([k,v])=>k!==art&&v===wert)) return null;
+        q=`${name} sagt: ${b}${hoch(n)} = ${R.Z(wert)}.`; steps=`Richtig: ${b}${hoch(n)} = ${malT(b,n)} = ${R.Z(b**n)}.`;
+      }
+      const opt=[art,...mischen(Object.keys(FEHLER).filter(k=>k!==art)).slice(0,2)];
+      return aufg({kind:'fragen', text:true, q, lead:'Was wurde falsch gemacht?', fehler:art, b, n,
+        gruppen:[{optionen:mischen(opt).map(k=>[k,`Es wurde ${FEHLER[k]}.`]), ans:art, klasse:'lang'}], why:steps});
+    });
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Potenz und Produkt', hint:'5⁴ = 5 · 5 · 5 · 5', types:['als_produkt','als_potenz']},
+  {id:'S2', name:'Begriffe', hint:'Basis, Hochzahl, Potenzwert', types:['teile_benennen','begriffe']},
+  {id:'S3', name:'Quadrat und Würfel', hint:'a = 7 cm: A = 49 cm²', types:['flaeche_volumen','seite_ablesen']}
+];
+const kern = ['als_produkt','als_potenz','teile_benennen','begriffe','flaeche_volumen','seite_ablesen'];
+const leicht = ['als_produkt','als_potenz','teile_benennen','begriffe','seite_ablesen'];
+const plus = ['sprechweise','aussagen','umrechnen','fehler_finden'];
+const plusHint = 'Sprechweise · Stimmt die Aussage? · Flächen- und Raummaße · Fehler finden';
+const festeAuswahl = ['begriffe','aussagen'];
+
+/* ---------- Erklärung ---------- */
+const beispiel = () => { const b=rnd(2,6), n=rnd(2,4); return {b, n}; };
+const erklaerung = {
+  beispiele: ()=>({p:beispiel(), q:rnd(2,9)}),
+  neu(kind,E){ if(kind==='pot') E.p=beispiel(); if(kind==='q') E.q=rnd(2,9); },
+  html: E => { const {b,n}=E.p, q=E.q;
+    return `<section class="sheet"><h2>Potenzen: Begriffe</h2>
+    <div class="rule"><h3>1. Potenz</h3>
+      <p>Eine Potenz ist die Kurzschreibweise für ein Produkt aus gleichen Faktoren.</p>
+      <div class="ex"><span class="pg">${b}</span><span class="pp">${hoch(n)}</span> = ${malT(b,n)} = <span class="pw">${R.Z(b**n)}</span></div>
+      <p><span class="pg">${b}</span> ist die <b>Basis</b> (Grundzahl), <span class="pp">${n}</span> ist die <b>Hochzahl</b> (Exponent), <span class="pw">${R.Z(b**n)}</span> ist der <b>Potenzwert</b>. Die Hochzahl sagt, wie oft die Basis als Faktor steht.</p>
+      <button class="newex" data-newex="pot">Neues Beispiel</button></div>
+    <div class="rule"><h3>2. Quadrat und Würfel</h3>
+      <p>Ein Quadrat mit der Seite a hat den Flächeninhalt A = a · a = a². Ein Würfel mit der Kante a hat das Volumen V = a · a · a = a³.</p>
+      <div class="pw-quadrate">${quadratSVG(q,{text:`${q}² = ${q*q}`})}</div>
+      <p>Darum spricht man bei a² „a zum Quadrat“ und bei a³ „a zur dritten“ oder „a Kubik“.</p>
+      <button class="newex" data-newex="q">Neues Beispiel</button></div>
+    <div class="rule"><h3>3. Wurzel</h3>
+      <p>Das Wurzelziehen ist die <b>Umkehrung</b> des Quadrierens: ${q}² = ${q*q}, also √(${q*q}) = ${q}. Die Wurzel sagt, wie lang die Seite eines Quadrats mit dem Flächeninhalt ${q*q} ist.</p></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 1.2 Potenzen und Wurzeln.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`; }
+};
+
+const lzk = {merkmal:{als_produkt:'powu_produkt', als_potenz:'powu_potenz_schreiben', teile_benennen:'powu_teile', begriffe:'powu_luecken', flaeche_volumen:'powu_flaeche_volumen', seite_ablesen:'powu_seite'}};
+UR.kompetenzAnmelden({id:'M-PoWu-G1', ohneFallB:true, typen, stationen, kern, leicht, plus, plusHint, festeAuswahl, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.2 Potenzen-und-Wurzeln/M-PoWu-G2.js */
+/* Baustein M-PoWu-G2: „Ich kann die Quadratzahlen der Zahlen von 1 bis 15 auswendig.“
+   Steckbrief: M-PoWu-G2.md, Auswahl der Lehrkraft: AUSWAHL.md (26.11.2026). G2-A01 und G2-A02 fragen alle 15 Quadratzahlen
+   ab (feste Auswahl, bestätigt): jede kommt einmal dran, bevor sich eine wiederholt. */
+(function(UR){
+const {rnd, pick, mischen, versuche, zieher, exaktFeld, aufg, merk, quadratSVG, quadratTabelle} = UR.powu;
+const R = UR.raza, Z = R.Z;
+const BIS15 = Array.from({length:15},(_,i)=>i+1);
+const naechsteA01 = zieher(BIS15), naechsteA02 = zieher(BIS15);
+const TABELLE = quadratTabelle(15);
+const istQ = z => Number.isInteger(Math.sqrt(z));
+// liegt zwischen n² und (n+1)²
+const zwischen = z => { const n=Math.floor(Math.sqrt(z)); return `${Z(z)} liegt zwischen ${n}² = ${Z(n*n)} und ${n+1}² = ${Z((n+1)**2)}`; };
+
+const typen = {
+  // G2-A01 Quadratzahl nennen
+  quadratzahl(ctx){
+    const leicht=!!(ctx&&ctx.leicht), n=naechsteA01();
+    return aufg({kind:'zahlen', q:`${n}² = ?`, qh:`<span class="pw-gross">${n}²</span>`, lead:'Wie viel ist die Quadratzahl?', felder:[exaktFeld(`${n}² =`, n*n)], n,
+      bild:leicht?merk(TABELLE):'', fehlerBild:quadratTabelle(15,n), why:`${n} · ${n} = ${Z(n*n)}.`, steps:`${n}² = ${n} · ${n} = ${Z(n*n)}`});
+  },
+  // G2-A02 Wurzel aus Quadratzahl
+  wurzel_quadrat(ctx){
+    const leicht=!!(ctx&&ctx.leicht), n=naechsteA02();
+    return aufg({kind:'zahlen', q:`√(${Z(n*n)}) = ?`, qh:`<span class="pw-gross">√(${Z(n*n)})</span>`, lead:'Welche Zahl wurde quadriert?', felder:[exaktFeld(`√(${Z(n*n)}) =`, n)], n,
+      bild:leicht?merk(TABELLE):'', fehlerBild:quadratTabelle(15,n), why:`${n}² = ${Z(n*n)}, also √(${Z(n*n)}) = ${n}.`, steps:`√(${Z(n*n)}) = ${n}, denn ${n}² = ${Z(n*n)}`});
+  },
+  // G2-A03 Quadratzahlen im Raster finden (mehrere antippen)
+  raster(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    return versuche(()=>{
+      const anz = leicht ? 9 : rnd(9,12), q = leicht ? 3 : rnd(3,6);
+      const quadrate = mischen(BIS15.slice(1)).slice(0,q).map(n=>n*n);
+      const andere = new Set();
+      for(let i=0; andere.size<anz-q && i<200; i++){ const n=rnd(2,15), d=rnd(1,n)*(Math.random()<.5?-1:1), z=n*n+d;
+        if(z>=2&&z<=250&&!istQ(z)&&!quadrate.includes(z)) andere.add(z); }
+      if(andere.size<anz-q) return null;
+      const zahlen = mischen([...quadrate, ...andere]);
+      return aufg({kind:'fragen', q:`Raster: ${zahlen.map(z=>Z(z)).join(', ')}`, qh:'Welche Zahlen sind Quadratzahlen?', lead:'Tippe alle Quadratzahlen an!', zahlen,
+        gruppen:[{optionen:zahlen.map(z=>[String(z),Z(z)]), ans:quadrate.map(String).sort().join(','), mehrfach:true, klasse:'raster'}],
+        bild:leicht?merk(TABELLE):'',
+        why:`Quadratzahlen: ${[...quadrate].sort((a,b)=>a-b).map(z=>`${Z(z)} = ${Math.sqrt(z)}²`).join(', ')}. Keine Quadratzahl: ${[...andere].sort((a,b)=>a-b).map(zwischen).join('; ')}.`});
+    });
+  },
+  // G2-A04 Quadrate und Flächeninhalte verbinden (Zuordnen, 3 bis 4 Paare)
+  zuordnen_flaeche(ctx){
+    const leicht=!!(ctx&&ctx.leicht), anz=leicht?3:rnd(3,4), ns=mischen(BIS15.slice(2)).slice(0,anz), fassung=Math.random()<.5?1:2;
+    const dinge = ns.map((n,i)=>({id:'d'+i, html:fassung===1?`${n}²`:`${quadratSVG(n,{groesse:n<=6?48:64})}Seite ${n} cm`, kurz:fassung===1?`${n}²`:`Seite ${n} cm`}));
+    const ziele = mischen(ns.map((n,i)=>({id:'z'+i, text:fassung===1?Z(n*n):`${Z(n*n)} cm²`})));
+    const ans={}; ns.forEach((n,i)=>ans['d'+i]='z'+i);
+    return aufg({kind:'zuordnen', q:fassung===1?`Verbinde ${ns.map(n=>n+'²').join(', ')} mit den Quadratzahlen`:`Seiten ${ns.map(n=>n+' cm').join(', ')}: Flächeninhalte`,
+      qh:fassung===1?'Potenz → Quadratzahl':'Seitenlänge → Flächeninhalt',
+      lead:fassung===1?'Verbinde die Potenz mit ihrem Wert!':'Ordne die Seitenlänge dem passenden Flächeninhalt zu!', dinge, ziele, ans, ns, fassung,
+      bild:leicht?merk(TABELLE):'',
+      why:ns.map(n=>fassung===1?`${n}² = ${Z(n*n)}`:`${n} cm · ${n} cm = ${Z(n*n)} cm²`).join(', ')+'.'});
+  },
+
+  /* ---------- Plus ---------- */
+  // G2-A05 Tabelle: Zahl, Quadrat, Wurzel
+  tabelle(){
+    const n=rnd(1,15), gegeben=pick(['n','q']);
+    const felder = gegeben==='n' ? [exaktFeld(`n² =`, n*n), exaktFeld(`√(n²) =`, n)] : [exaktFeld('n =', n), exaktFeld(`√(${Z(n*n)}) =`, n)];
+    return aufg({kind:'zahlen', q:gegeben==='n'?`n = ${n}: n² und √(n²)`:`n² = ${Z(n*n)}: n und √(n²)`, lead:'Fülle die Zeile aus!', felder, n, gegeben,
+      why:`${n} · ${n} = ${Z(n*n)}, √(${Z(n*n)}) = ${n}.`});
+  },
+  // G2-N01 Zwischen welchen Quadratzahlen liegt …?
+  zwischen_quadraten(){
+    return versuche(()=>{
+      const z=rnd(2,224); if(istQ(z)) return null;
+      const n=Math.floor(Math.sqrt(z)), opt=[n-1,n,n+1].filter(k=>k>=1&&k<=15);
+      if(opt.length<3) return null;
+      return aufg({kind:'fragen', q:`Zwischen welchen Quadratzahlen liegt ${Z(z)}?`, lead:'Zwischen welchen Quadratzahlen liegt die Zahl?', z,
+        gruppen:[{optionen:mischen(opt).map(k=>[String(k),`${k}² = ${Z(k*k)} und ${k+1}² = ${Z((k+1)**2)}`]), ans:String(n), klasse:'lang'}],
+        why:`${n}² = ${Z(n*n)} < ${Z(z)} < ${n+1}² = ${Z((n+1)**2)}, also liegt √(${Z(z)}) zwischen ${n} und ${n+1}.`});
+    });
+  },
+  // G2-N02 Quadratzahlen 16² bis 25² (feste Auswahl)
+  bis25(){
+    const n=rnd(16,25);
+    return aufg({kind:'zahlen', q:`${n}² = ?`, qh:`<span class="pw-gross">${n}²</span>`, lead:'Wie viel ist die Quadratzahl?', felder:[exaktFeld(`${n}² =`, n*n)], n,
+      why:`${n} · ${n} = ${Z(n*n)}.`, steps:`${n}² = ${n} · ${n} = ${Z(n*n)}`});
+  },
+  // G2-N03 Memory: Quadrat, Quadratzahl, Wurzel (6 Paare, feste Auswahl)
+  memory(){
+    return versuche(()=>{
+      const ns=mischen(BIS15.slice(1)).slice(0,6), karten=[];
+      ns.forEach((n,i)=>{ const art=pick(['hoch','mal','wurzel']);
+        const a = art==='hoch' ? `${n}²` : art==='mal' ? `${n} · ${n}` : `√(${Z(n*n)})`, b = art==='wurzel' ? String(n) : Z(n*n);
+        karten.push({id:`k${i}a`, html:a, paar:'p'+i}, {id:`k${i}b`, html:b, paar:'p'+i}); });
+      const texte=karten.map(k=>k.html); if(new Set(texte).size<texte.length) return null;
+      return aufg({kind:'memory', q:'Memory: Quadrat, Quadratzahl, Wurzel', qh:'Quadrat, Quadratzahl, Wurzel', lead:'Finde die zusammengehörigen Karten!', karten:mischen(karten), ns,
+        why:'Zusammen gehören zum Beispiel 12², 12 · 12 und 144 sowie √(144) und 12.'});
+    });
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Quadratzahlen nennen', hint:'13² = 169', types:['quadratzahl']},
+  {id:'S2', name:'Rückwärts: die Wurzel', hint:'√196 = 14', types:['wurzel_quadrat']},
+  {id:'S3', name:'Quadratzahlen erkennen', hint:'Raster, Seitenlänge ↔ Fläche', types:['raster','zuordnen_flaeche']}
+];
+const kern = ['quadratzahl','wurzel_quadrat','raster','zuordnen_flaeche'];
+const jeTyp = {quadratzahl:2, wurzel_quadrat:2};
+const leicht = ['quadratzahl','wurzel_quadrat','raster','zuordnen_flaeche'];
+const plus = ['tabelle','zwischen_quadraten','bis25','memory'];
+const plusHint = 'Tabelle · Zwischen welchen Quadratzahlen? · Quadratzahlen bis 25² · Memory';
+const festeAuswahl = ['quadratzahl','wurzel_quadrat','bis25','memory'];
+
+/* ---------- Erklärung ---------- */
+const erklaerung = {
+  beispiele: ()=>({n:rnd(2,9)}),
+  neu(kind,E){ if(kind==='q') E.n=rnd(2,9); },
+  html: E => `<section class="sheet"><h2>Quadratzahlen</h2>
+    <div class="rule"><h3>1. Was ist eine Quadratzahl?</h3>
+      <p>Legt man ${E.n} mal ${E.n} Plättchen zu einem Quadrat, braucht man ${E.n} · ${E.n} = ${E.n*E.n} Plättchen. ${E.n*E.n} ist eine <b>Quadratzahl</b>: ${E.n}² = ${E.n*E.n}.</p>
+      <div class="pw-quadrate">${quadratSVG(E.n,{text:`${E.n}² = ${E.n*E.n}`})}</div>
+      <button class="newex" data-newex="q">Neues Beispiel</button></div>
+    <div class="rule"><h3>2. Die Quadratzahlen von 1 bis 15</h3>${TABELLE}
+      <p>Merkhilfen: Endet die Zahl auf 5, endet das Quadrat auf 25 (5² = 25, 15² = 225). 10² = 100, 11² = 121, 12² = 144.</p></div>
+    <div class="rule"><h3>3. Rückwärts: die Wurzel</h3>
+      <p>Die Wurzel fragt: Welche Zahl wurde quadriert? 14² = 196, also √(196) = 14.</p></div>
+    <p class="small muted">Zum Ausdrucken: die Tabelle der Quadratzahlen bis 25² aus dem Unterricht und die Learning-App im Mathe Know How.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`
+};
+
+const lzk = {merkmal:{quadratzahl:'powu_quadratzahl', wurzel_quadrat:'powu_wurzel_quadrat', raster:'powu_raster', zuordnen_flaeche:'powu_zuordnen_flaeche'}};
+UR.kompetenzAnmelden({id:'M-PoWu-G2', ohneFallB:true, typen, stationen, kern, jeTyp, leicht, plus, plusHint, festeAuswahl, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.2 Potenzen-und-Wurzeln/M-PoWu-G3.js */
+/* Baustein M-PoWu-G3: „Ich kann Quadrieren, Kubieren, Quadratwurzelziehen und Kubikwurzelziehen.“
+   Steckbrief: M-PoWu-G3.md, Auswahl der Lehrkraft: AUSWAHL.md (26.11.2026). Die Rundungsstelle steht immer in der Aufgabe
+   (Fall A), Hilfen nennen die Rechnung, keine Taschenrechner-Tasten. */
+(function(UR){
+const {rnd, pick, mischen, versuche, D, dMul, dPot, dAdd, dSub, dNeg, dVgl, dAbs, dRund, dStellen, dZahl, dText, wurzelRund, istPotenz,
+  hoch, ZT, basisText, STELLE, pot, brH, brT, bruchPotH, bruchPotT, wz, rundWort, rundFeld, exaktFeld, bruchFeld, kuerzenHinweis, aufg, merk} = UR.powu;
+const R = UR.raza;
+const LAENGEN = ['mm','cm','dm','m','km'];
+
+// Dezimalzahl mit 1 oder 2 Nachkommastellen bzw. ganz zwischen von und bis (als Text erzeugt, also exakt)
+function zufallsZahl(von, bis, stellen){
+  const k = stellen ?? pick([0,1,2,2]), P=10**k;
+  const n = rnd(Math.ceil(von*P), Math.floor(bis*P));
+  return D((n/P).toFixed(k));
+}
+// gerundetes Ergebnis einer Potenz: exakt rechnen, dann auf k Stellen
+function potenzAufgabe(b, e, k){ const w=dPot(b,e); return {w, g:dRund(w,k), muss:dStellen(w)>k}; }
+// Kern rundet f.ans selbst (UR.runde): muss mit der exakten Rundung übereinstimmen
+const kernGleich = (wert, g, k) => Math.abs(UR.runde(wert,k)-dZahl(g)) < 1e-9*Math.max(1,Math.abs(dZahl(g)));
+const k13 = () => pick([1,2,2,3]);
+const zuLang = (roh,k) => UR.nachkommaGeschrieben(roh)>k ? `Auf ${STELLE[k]} runden heißt ${k} Nachkommastelle${k>1?'n':''}, nicht mehr.` : '';
+const beispielZeile = html => merk(`So geht es: ${html}`);
+
+const typen = {
+  // G3-A01 Quadrieren mit dem Taschenrechner
+  quadrieren(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    return versuche(()=>{
+      const b=zufallsZahl(0.2,99), k=k13(), {w,g,muss}=potenzAufgabe(b,2,k);
+      if(!muss && Math.random()<.85) return null;   // mindestens 70 % wirklich runden
+      if(dZahl(b)===0) return null;
+      const aufgabe=`${pot(b,2)}`, wort=rundWort(k);
+      return aufg({kind:'zahlen', q:`${aufgabe} ${wort}`, qh:`<span class="pw-gross">${aufgabe}</span>`, lead:`Berechne und runde ${wort}!`,
+        felder:[rundFeld(`${aufgabe} ≈`, dZahl(w), g, k)], basis:b, hochzahl:2, stellen:k,
+        bild:leicht?beispielZeile(`${pot(D('8.36'),2)} = 8,36 · 8,36 = 69,8896 ≈ 69,89 (auf Hundertstel)`):'',
+        hinweisNach:erg=>zuLang(erg[0].roh,k),
+        why:`${aufgabe} = ${dText(b)} · ${dText(b)} = ${dText(w)}${muss?` ≈ ${dText(g,k)}`:''}. Runden: Ist die nächste Ziffer 5 oder mehr, wird aufgerundet.`,
+        steps:`${aufgabe} = ${dText(w)}${muss?` ≈ ${dText(g,k)}`:''}`});
+    });
+  },
+  // G3-A02 Kubieren mit dem Taschenrechner (etwa jede fünfte Basis negativ)
+  kubieren(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    return versuche(()=>{
+      let b=zufallsZahl(0.2,30,pick([1,2,2])); if(Math.random()<.2) b=dNeg(b);
+      const k=k13(), {w,g,muss}=potenzAufgabe(b,3,k);
+      if(!muss || dRund(w,k).n===0n) return null;
+      const aufgabe=pot(b,3), wort=rundWort(k), neg=b.n<0n;
+      return aufg({kind:'zahlen', q:`${aufgabe} ${wort}`, qh:`<span class="pw-gross">${aufgabe}</span>`, lead:`Berechne und runde ${wort}!`,
+        felder:[rundFeld(`${aufgabe} ≈`, dZahl(w), g, k, {vz:true})], basis:b, hochzahl:3, stellen:k,
+        bild:leicht?beispielZeile(`${pot(D('-2.4'),3)} = (−2,4) · (−2,4) · (−2,4) = −13,824 ≈ −13,82 (auf Hundertstel)`):'',
+        hinweisNach:erg=>neg&&erg[0].v!==null&&erg[0].v>0 ? 'Minus mal Minus mal Minus ist Minus: Das Ergebnis ist negativ.' : zuLang(erg[0].roh,k),
+        why:`${aufgabe} = ${basisText(b)} · ${basisText(b)} · ${basisText(b)} = ${dText(w)} ≈ ${dText(g,k)}.${neg?' Minus mal Minus mal Minus ist Minus.':''}`,
+        steps:`${aufgabe} = ${dText(w)} ≈ ${dText(g,k)}`});
+    });
+  },
+  // G3-A03 Quadratwurzel mit dem Taschenrechner
+  quadratwurzel(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    return versuche(()=>{
+      const x = Math.random()<.5 ? D(rnd(2,9999)) : zufallsZahl(0.02, 999, pick([1,2]));
+      if(dZahl(x)<0.02) return null;
+      const quad=istPotenz(x,2); if(quad && Math.random()<.85) return null;   // höchstens 20 % Quadratzahlen
+      const k=k13(), {r:g, nahe, wert}=wurzelRund(x,2,k);
+      if(nahe || !kernGleich(wert,g,k)) return null;
+      const aufgabe=wz(dText(x)), wort=rundWort(k);
+      return aufg({kind:'zahlen', q:`${aufgabe} ${wort}`, qh:`<span class="pw-gross">${aufgabe}</span>`, lead:`Berechne mit dem Taschenrechner und runde ${wort}!`,
+        felder:[rundFeld(`${aufgabe} ≈`, wert, g, k)], radikand:x, wurzel:2, stellen:k,
+        bild:leicht?beispielZeile(`${wz('47,3')} ≈ 6,8775 ≈ 6,88 (auf Hundertstel), Probe: 6,88² ≈ 47,3`):'',
+        why:`${aufgabe} ≈ ${dText(g,k)}, denn ${dText(g,k)}² ≈ ${dText(dRund(dMul(g,g),2))} ≈ ${dText(x)} (Probe durch Quadrieren).`,
+        steps:`${aufgabe} ≈ ${dText(g,k)}`});
+    });
+  },
+  // G3-A05 Kubikwurzel mit dem Taschenrechner (etwa jeder vierte Radikand negativ)
+  kubikwurzel(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    return versuche(()=>{
+      let x = Math.random()<.8 ? D(rnd(2,999)) : zufallsZahl(0.1, 99, 1);
+      if(Math.random()<.25) x=dNeg(x);
+      if(istPotenz(x,3) && Math.random()<.85) return null;
+      const k=k13(), {r:g, nahe, wert}=wurzelRund(x,3,k);
+      if(nahe || g.n===0n || !kernGleich(wert,g,k)) return null;
+      const aufgabe=wz(dText(x),3), wort=rundWort(k), neg=x.n<0n;
+      return aufg({kind:'zahlen', q:`${aufgabe} ${wort}`, qh:`<span class="pw-gross">${aufgabe}</span>`, lead:`Berechne und runde ${wort}!`,
+        felder:[rundFeld(`${aufgabe} ≈`, wert, g, k, {vz:true})], radikand:x, wurzel:3, stellen:k,
+        bild:leicht?beispielZeile(`${wz('−340',3)} ≈ −6,979 ≈ −6,98 (auf Hundertstel), denn (−6,98)³ ≈ −340`):'',
+        hinweisNach:erg=>neg&&erg[0].v!==null&&erg[0].v>0 ? 'Eine Kubikwurzel aus einer negativen Zahl ist negativ, denn (−7)³ = −343. Anders als bei der Quadratwurzel.' : '',
+        why:`${aufgabe} ≈ ${dText(g,k)}, denn (${dText(g,k)})³ ≈ ${dText(x)}.${neg?' Eine Kubikwurzel aus einer negativen Zahl ist negativ, denn (−7)³ = −343.':''}`,
+        steps:`${aufgabe} ≈ ${dText(g,k)}`});
+    });
+  },
+  // G3-A06 Quadrieren und Kubieren von Brüchen (als gekürzter Bruch oder als Dezimalzahl, positiv und negativ)
+  bruch_potenz(ctx){
+    const leicht=!!(ctx&&ctx.leicht);
+    return versuche(()=>{
+      const z=(Math.random()<.4?-1:1)*rnd(1,9), n=rnd(2,9), e=pick([2,3]);
+      if(R.ggT(z,n)!==1) return null;
+      const zz=z**e, nn=n**e, alsBruch=Math.random()<.5;
+      const aufgabeH=bruchPotH(z,n,e), aufgabeT=bruchPotT(z,n,e), ergH=brH(zz,nn), ergT=brT(zz,nn);
+      const hilfe = leicht ? merk(`Zähler und Nenner werden beide hoch ${e} genommen. Zähler: ${basisText(z)}${hoch(e)} = ${R.Z(zz)}`) : '';
+      const why=`Zähler und Nenner werden beide hoch ${e} genommen: ${aufgabeH} = ${ergH}.${z<0&&e===3?' Bei ungerader Hochzahl bleibt das Ergebnis negativ.':''}${z<0&&e===2?' Minus mal Minus ist Plus.':''}`;
+      if(alsBruch) return aufg({kind:'zahlen', q:`${aufgabeT} als gekürzter Bruch`, qh:`<span class="pw-gross">${aufgabeH}</span>`, lead:'Berechne und schreibe als gekürzten Bruch!',
+        felder:[bruchFeld(`${aufgabeH} =`, zz, nn)], z, n, e, art:'bruch', bild:hilfe, hinweisNach:kuerzenHinweis, why, stepsh:`${aufgabeH} = ${ergH}`});
+      const k=pick([2,3]), wort=rundWort(k);
+      // exakter Wert zz/nn: auf k Stellen runden mit ganzen Zahlen
+      const P=10n**BigInt(k), a=BigInt(Math.abs(zz)), b=BigInt(nn), r=(2n*a*P+b)/(2n*b), g={n:zz<0?-r:r, k};
+      if(r===0n) return null;
+      const wert=zz/nn; if(Math.abs(UR.runde(wert,k)-dZahl(g))>1e-12) return null;
+      const exakt=(P*a)%b===0n;
+      return aufg({kind:'zahlen', q:`${aufgabeT} ${wort}`, qh:`<span class="pw-gross">${aufgabeH}</span>`, lead:`Berechne und runde ${wort}!`,
+        felder:[rundFeld(`${aufgabeH} ${exakt?'=':'≈'}`, wert, g, k, {vz:true})], z, n, e, art:'dezimal', stellen:k, bild:hilfe,
+        why:`${why} ${ergH} ${exakt?'=':'≈'} ${dText(g,k)}.`, stepsh:`${aufgabeH} = ${ergH} ${exakt?'=':'≈'} ${dText(g,k)}`});
+    });
+  },
+
+  /* ---------- Plus ---------- */
+  // G3-A04 Im Kopf: Nullen und Kommastellen
+  kopf(){
+    const n=rnd(1,15), k=pick([-2,-1,1,2]), art=pick(['quadrat','wurzel']);
+    const x=D(k>0?String(n*10**k):(n/10**(-k)).toFixed(-k));
+    if(art==='quadrat'){ const w=dMul(x,x);
+      return aufg({kind:'zahlen', q:`${pot(x,2)} = ?`, qh:`<span class="pw-gross">${pot(x,2)}</span>`, lead:'Rechne im Kopf!', felder:[exaktFeld(`${pot(x,2)} =`, w)], x, art,
+        why:`${n}² = ${n*n}. ${k>0?`Jede Null der Zahl gibt zwei Nullen im Quadrat.`:`Die Nachkommastellen werden verdoppelt: ${-k} wird ${-2*k}.`}`, steps:`${pot(x,2)} = ${dText(w)}`}); }
+    const q=dMul(x,x);
+    return aufg({kind:'zahlen', q:`${wz(dText(q))} = ?`, qh:`<span class="pw-gross">${wz(dText(q))}</span>`, lead:'Rechne im Kopf!', felder:[exaktFeld(`${wz(dText(q))} =`, x)], x, art,
+      why:`${n}² = ${n*n}. ${k>0?'Beim Wurzelziehen wird die Zahl der Nullen halbiert.':'Beim Wurzelziehen werden die Nachkommastellen halbiert.'} Probe: ${pot(x,2)} = ${dText(q)}.`, steps:`${wz(dText(q))} = ${dText(x)}`});
+  },
+  // G3-A08 Seitenlänge aus Fläche bzw. Volumen (Taschenrechner, Sachaufgabe)
+  seite_tr(){
+    return versuche(()=>{
+      const art=Math.random()<.55?'q':'w', k=pick([1,2,2,3]), wort=rundWort(k);
+      const x = art==='q' ? zufallsZahl(1,400,pick([0,1])) : zufallsZahl(1,500,pick([0,1]));
+      const e = art==='q' ? 'm' : pick(['dm','cm']), {r:g, nahe, wert}=wurzelRund(x, art==='q'?2:3, k);
+      if(nahe || istPotenz(x, art==='q'?2:3) || !kernGleich(wert,g,k)) return null;
+      const ding = art==='q' ? pick(['Ein quadratisches Beet','Ein quadratischer Spielplatz','Eine quadratische Terrasse']) : pick(['Ein würfelförmiger Behälter','Ein Würfel','Eine würfelförmige Kiste']);
+      return aufg({kind:'zahlen', text:true, q:art==='q'?`${ding} hat ${dText(x)} m². Wie lang ist eine Seite? Runde ${wort}!`:`${ding} hat ${dText(x)} ${e}³ Rauminhalt. Wie lang ist die Kante? Runde ${wort}!`,
+        lead:'Berechne mit dem Taschenrechner!', felder:[rundFeld('a ≈', wert, g, k, {einheiten:LAENGEN, einheitAns:e})], art, x, stellen:k, einheit:e,
+        why:`${art==='q'?`a = ${wz(dText(x))}`:`a = ${wz(dText(x),3)}`} ≈ ${dText(g,k)} ${e}. Die Seite ist eine Länge: ${e}.`, steps:`a = ${art==='q'?wz(dText(x)):wz(dText(x),3)} ≈ ${dText(g,k)} ${e}`});
+    });
+  },
+  // G3-N02 Erst schätzen, dann rechnen (Schritt 1 Auswahl, Schritt 2 gerundet)
+  schaetzen(){
+    return versuche(()=>{
+      const n=pick([2,2,3]), x=D(rnd(2,200));
+      if(istPotenz(x,n)) return null;
+      const g0=Math.floor(Math.pow(dZahl(x),1/n)+1e-9), k=pick([1,2,3]), wort=rundWort(k), {r:g, nahe, wert}=wurzelRund(x,n,k);
+      if(nahe || !kernGleich(wert,g,k) || g0<1) return null;
+      const aufgabe=wz(dText(x),n), opt=[g0-1,g0,g0+1].filter(a=>a>=1);
+      if(opt.length<3) return null;
+      const t={kind:'zweischritt', schritt:'Schätzung', q:`${aufgabe}: schätzen, dann ${wort} runden`, qh:`<span class="pw-gross">${aufgabe}</span>`, lead:`Schätze zuerst, rechne dann mit dem Taschenrechner und runde ${wort}!`,
+        x, wurzel:n, stellen:k,
+        s1:{label:'Schritt 1: Zwischen welchen ganzen Zahlen liegt das Ergebnis?', kurz:'Schätzung', wahl:mischen(opt).map(a=>[String(a),`${a} und ${a+1}`]), ans:String(g0), ansText:`${g0} und ${g0+1}`},
+        s2:{label:`Schritt 2: ${aufgabe} ≈ (${wort.replace('auf ','')})`, felder:[rundFeld(`${aufgabe} ≈`, wert, g, k)], ansText:dText(g,k)},
+        why:`${g0}${hoch(n)} = ${g0**n} < ${dText(x)} < ${g0+1}${hoch(n)} = ${(g0+1)**n}, also liegt ${aufgabe} zwischen ${g0} und ${g0+1}: ${aufgabe} ≈ ${dText(g,k)}.`};
+      return aufg(UR.prozent.wahlSchritt1(t));
+    });
+  },
+  // G3-N03 Flächengleiches Quadrat (zwei Schritte, exakte ganze Zahlen)
+  flaechengleich(){
+    return versuche(()=>{
+      const s=rnd(4,30), d=pick([2,3,4,5,6]); const teiler=[]; for(let t=2;t<s;t++) if((s*s)%t===0&&s*s/t<=60&&t!==s) teiler.push(t);
+      const b=pick(teiler.length?teiler:[0]); if(!b) return null;
+      const a=s*s/b; if(a===b||a<4) return null;
+      const uR=2*(a+b), uQ=4*s, diff=uR-uQ; if(diff<=0) return null;
+      const vor=[...new Set([s, (a+b)/2, s+1, s-1].filter(v=>Number.isInteger(v)&&v>0))].slice(0,3);
+      if(vor.length<3) return null;
+      return aufg({kind:'zweischritt', text:true, schritt:'Seitenlänge', q:`Ein Feld ist ${a} m lang und ${b} m breit. Es wird gegen ein quadratisches Feld mit gleichem Flächeninhalt getauscht. Wie lang ist eine Seite des Quadrats, und um wie viel m ist sein Umfang kürzer?`,
+        lead:'Rechteck gegen Quadrat tauschen', a, b, pre:{ans:String(s), optionen:mischen(vor).map(v=>[String(v),`s = ${v} m`])},
+        s1:{label:'Schritt 1: Seitenlänge des Quadrats', kurz:'Seitenlänge', felder:[exaktFeld('s =', s, {einheit:'m'})], ansText:`${s} m`},
+        s2:{label:'Schritt 2: Um wie viel m ist der Umfang des Quadrats kürzer?', felder:[exaktFeld('Unterschied =', diff, {einheit:'m'})], ansText:`${diff} m`},
+        why:`A = ${a} · ${b} = ${a*b} m², s = ${wz(String(a*b))} = ${s} m. Umfang Rechteck 2 · (${a} + ${b}) = ${uR} m, Quadrat 4 · ${s} = ${uQ} m: um ${diff} m kürzer.`});
+    });
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Quadrieren und Kubieren', hint:'8,36² ≈ 69,89', types:['quadrieren','kubieren']},
+  {id:'S2', name:'Wurzeln mit dem Taschenrechner', hint:'√47,3 ≈ 6,88, ³√(−340) ≈ −6,98', types:['quadratwurzel','kubikwurzel']},
+  {id:'S3', name:'Brüche quadrieren und kubieren', hint:`${bruchPotH(-2,3,3)} = ${brH(-8,27)}`, types:['bruch_potenz']}
+];
+const kern = ['quadrieren','kubieren','quadratwurzel','kubikwurzel','bruch_potenz'];
+const leicht = ['quadrieren','kubieren','quadratwurzel','kubikwurzel','bruch_potenz'];
+const plus = ['kopf','seite_tr','schaetzen','flaechengleich'];
+const plusHint = 'Im Kopf · Seitenlänge mit dem Taschenrechner · Erst schätzen · Flächengleiches Quadrat';
+
+/* ---------- Erklärung ---------- */
+const erklaerung = {
+  beispiele: ()=>({b:zufallsZahl(1,20,2), x:rnd(20,500)}),
+  neu(kind,E){ if(kind==='q') E.b=zufallsZahl(1,20,2); if(kind==='w') E.x=rnd(20,500); },
+  html: E => { const w2=dPot(E.b,2), w3=dPot(E.b,3), x=D(E.x), r2=wurzelRund(x,2,2).r, r3=wurzelRund(x,3,2).r;
+    return `<section class="sheet"><h2>Quadrieren, Kubieren, Wurzeln</h2>
+    <div class="rule"><h3>1. Quadrieren und Kubieren</h3>
+      <div class="ex">${pot(E.b,2)} = ${dText(E.b)} · ${dText(E.b)} = ${dText(w2)}</div>
+      <div class="ex">${pot(E.b,3)} = ${dText(E.b)} · ${dText(E.b)} · ${dText(E.b)} = ${dText(w3)}</div>
+      <p>Mit dem Taschenrechner: die Zahl hoch 2 bzw. hoch 3 nehmen.</p>
+      <button class="newex" data-newex="q">Neues Beispiel</button></div>
+    <div class="rule"><h3>2. Runden</h3>
+      <p>Die Aufgabe sagt, auf welche Stelle du rundest: Zehntel = 1, Hundertstel = 2, Tausendstel = 3 Nachkommastellen. Ist die nächste Ziffer 5 oder mehr, wird aufgerundet: ${dText(w3)} ≈ ${dText(w3,2)} (auf Hundertstel). Schreib nicht mehr Stellen als verlangt.</p></div>
+    <div class="rule"><h3>3. Quadratwurzel und Kubikwurzel</h3>
+      <div class="ex">${wz(String(E.x))} ≈ ${dText(r2,2)}, denn ${dText(r2,2)}² ≈ ${E.x}</div>
+      <div class="ex">${wz(String(E.x),3)} ≈ ${dText(r3,2)}, denn ${dText(r3,2)}³ ≈ ${E.x}</div>
+      <p>Der Wurzelstrich geht immer über die ganze Zahl. Aus einer negativen Zahl gibt es keine Quadratwurzel. Die Kubikwurzel aus einer negativen Zahl ist negativ: ${wz('−343',3)} = −7, denn (−7)³ = −343.</p>
+      <button class="newex" data-newex="w">Neues Beispiel</button></div>
+    <div class="rule"><h3>4. Brüche</h3>
+      <p>Zähler und Nenner werden beide hoch genommen: ${bruchPotH(-2,3,3)} = ${brH(-8,27)}. Bei ungerader Hochzahl bleibt ein negativer Bruch negativ.</p></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 1.2 Potenzen und Wurzeln.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`; }
+};
+
+const lzk = {merkmal:{quadrieren:'powu_quadrieren', kubieren:'powu_kubieren', quadratwurzel:'powu_quadratwurzel', kubikwurzel:'powu_kubikwurzel', bruch_potenz:'powu_bruch_hoch'}};
+UR.kompetenzAnmelden({id:'M-PoWu-G3', ohneFallB:true, typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk});
 })(window.UR = window.UR || {});
 </script>
 <script>
