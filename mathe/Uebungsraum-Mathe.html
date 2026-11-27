@@ -589,6 +589,41 @@ svg.quadrat .qp{fill:var(--ink-soft);stroke:var(--ink);stroke-width:1}
 .sz-dr{fill:none;stroke:var(--text);stroke-width:2.5;stroke-linejoin:round} .sz-was{fill:var(--ink-soft);stroke:none}
 .sz-t{fill:var(--text);font-size:15px;font-weight:700;text-anchor:middle;font-family:var(--f-body);paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round} .sz-t.klein{font-size:12px;font-weight:600;fill:var(--muted)}
 svg.szene{display:block;width:100%;max-width:340px;margin:0 auto;height:auto}
+/* Satz des Pythagoras, Begründung und Beweis (Mathe/bausteine/pythbilder.js): Kathetenquadrate rot und blau, Hypotenusenquadrat grün */
+svg.pyb{display:block;width:100%;max-width:340px;margin:0 auto;height:auto} svg.pyb.klein{max-width:170px}
+.py-q{fill:var(--paper);stroke:var(--text);stroke-width:1.6} .py-q.leer{fill:none}
+.py-q.qa,.py-frei.qa,.py-k.qa,.py-teil.t0,.py-teil.t2{fill:var(--x-soft)} .py-q.qb,.py-frei.qb,.py-k.qb,.py-teil.t1,.py-teil.t3{fill:var(--ink-soft)} .py-q.qc,.py-frei.qc{fill:var(--g-soft)}
+.py-k{stroke:none} .py-teil{stroke:var(--text);stroke-width:1.2}
+.py-teil.t2,.py-teil.t3{fill-opacity:.6}
+.py-raster{stroke:var(--muted);stroke-width:.8;stroke-opacity:.7}
+.py-dr{fill:var(--paper);stroke:none}
+.py-gross{fill:var(--paper);stroke:var(--text);stroke-width:2}
+.py-frei{fill:var(--paper);stroke:var(--text);stroke-width:1.4}
+.py-dreieck{fill:var(--v-soft);stroke:var(--v);stroke-width:1.6;stroke-linejoin:round}
+.py-hoehe{stroke:var(--c1);stroke-width:1.8;stroke-dasharray:5 3}
+.py-t{fill:var(--text);font-size:14px;font-weight:700;text-anchor:middle;font-family:var(--f-body);paint-order:stroke;stroke:var(--paper);stroke-width:3px;stroke-linejoin:round}
+.py-t.gross{font-size:16px} .py-t.klein{font-size:12px;font-weight:600} .py-t.name{font-style:italic} .py-t.hyp{fill:var(--g)}
+svg.pyb.klein .py-t{font-size:17px} svg.pyb.klein .py-t.klein{font-size:15px}
+.py-tipp{stroke-width:0}
+polygon.tipp.sel{fill:var(--v);fill-opacity:.45}
+.py-schieb{animation:py-schieben 6s ease-in-out infinite}
+.py-anim-hin{animation:py-hin 6s ease-in-out infinite} .py-anim-weg{animation:py-weg 6s ease-in-out infinite}
+@keyframes py-schieben{0%,20%{transform:translate(0,0)} 50%,80%{transform:translate(var(--dx),var(--dy))} 100%{transform:translate(0,0)}}
+@keyframes py-hin{0%,40%{opacity:0} 50%,80%{opacity:1} 90%,100%{opacity:0}}
+@keyframes py-weg{0%,20%{opacity:1} 30%,90%{opacity:0} 100%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.py-schieb,.py-anim-hin,.py-anim-weg{animation:none}}
+.py-folge{list-style:none;padding:0;margin:.4em 0;display:grid;gap:8px;counter-reset:pyf}
+.py-folge li{display:flex;align-items:center;gap:10px;counter-increment:pyf} .py-folge li::before{content:counter(pyf);font-weight:800;color:var(--ink);min-width:1.2em}
+.py-folge .py-fb{flex:0 0 150px} .py-folge .py-fb svg{max-width:150px}
+.rf-karte:has(svg.pyb){display:flex;align-items:center;gap:10px;text-align:left} .rf-karte svg.pyb.klein{flex:0 0 96px;max-width:96px;margin:0}
+.zo-ding svg.pyb{max-width:130px}
+.py-beweis{border:2px solid var(--line);border-radius:12px;padding:10px;margin:10px 0} .py-beweis.gewaehlt{border-color:var(--g)}
+.py-beweis h4{margin:0 0 4px}
+
+/* Lücken direkt in der Formel (Form 'felder' mit t.inline, binomische Formeln M-Term-X1, 27.11.2026) */
+.pfz.inlz{font-size:1.35rem;gap:3px}
+.answer.pfz input.pf.inl{flex:none;width:5.2ch;min-width:0;font-size:1.15rem;padding:6px 2px}
+.pfz.inlz .umbruch{flex-basis:100%;height:0}
 </style>
 </head>
 <body>
@@ -1931,7 +1966,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-27.5","datum":"27.11.2026","pruefsumme":"2f36f836fa7e0d79"};
+UR.version = {"nummer":"2026-11-27.18","datum":"27.11.2026","pruefsumme":"19a293474c2b38f3"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -2570,8 +2605,16 @@ UR.formAnmelden('twahl', {
   bewerten(t,pre,raw){ const o=t.optionen.find(x=>x[0]===raw); return {ok:raw===t.ans, shown:o?o[1]:T.leer}; },
   loesung: t => t.optionen.find(x=>x[0]===t.ans)[1]
 });
+// t.inline: die Felder stehen direkt an den Lücken ☐ in t.q (Wunsch der Lehrkraft, 27.11.2026, binomische Formeln),
+// sonst untereinander mit Beschriftung.
+const inlineZeile = t => String(t.q).split('☐').map((s,i)=>(i===0?'':feld('f'+(i-1),`data-feld="${i-1}" aria-label="Lücke ${i}"`).replace('class="term"','class="term pf inl"'))
+  +(s.trim()?`<span class="zt">${esc(s.trim())}</span>`:'')).join('')
+  .replace(/<span class="zt">([^<]*?) =(?: |(?=<))/,(x,v)=>`${v?`<span class="zt">${v}</span>`:''}<i class="umbruch"></i><span class="zt">= `);
 UR.formAnmelden('felder', {
-  html: t => `${aufgabe(t)}<form class="selfform" id="multiForm" autocomplete="off">${t.felder.map((f,i)=>`<label class="lbl" for="f${i}">${f.label}</label><div class="answer">${feld('f'+i,`data-feld="${i}"`)}</div>`).join('')}
+  html: t => t.inline
+    ? `${lead(t)}<form class="selfform" id="multiForm" autocomplete="off"><div class="answer pfz inlz">${inlineZeile(t)}</div>
+    <div class="answer">${okKnopf}</div></form>${tasten(t)}${eingabeHinweis(t)}`
+    : `${aufgabe(t)}<form class="selfform" id="multiForm" autocomplete="off">${t.felder.map((f,i)=>`<label class="lbl" for="f${i}">${f.label}</label><div class="answer">${feld('f'+i,`data-feld="${i}"`)}</div>`).join('')}
     <div class="answer">${okKnopf}</div></form>${tasten(t)}${eingabeHinweis(t)}`,
   bewerten(t,pre,raw){
     const l=Array.isArray(raw)?raw:[], teile=t.felder.map((f,i)=>bewerte(f.modus,l[i],f.ans,t).ok), ok=teile.every(Boolean);
@@ -4867,6 +4910,240 @@ const istTripel = (a,b,c) => { const s=[a,b,c].map(D).sort(dVgl); return dVgl(dA
 
 UR.pyth = {GRUPPEN, LAENGEN, merk, K, H, zahl1, T, quad, wurzel, fallBTauglich, rwDreieck, verhaeltnis, zufallsDreieck, dreieckMit, tripel, istTripel, benennen, rolle,
   richtigeGleichung, falscheGleichungen, gleichungsWahl, rechne, ergebnisFeld, rechenweg, typischeFehler, bild, szene, rundWort};
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/bausteine/pythbilder.js */
+/* Mathe-Baustein Satz des Pythagoras, Bilder für Begründung und Beweis (M-Pyth-V1, X1), 27.11.2026.
+   Ergänzt UR.pyth (pythagoras.js). Alle Bilder in Weltkoordinaten (y nach oben), auf die Breite eingepasst.
+   - quadrateBild: rechtwinkeliges Dreieck mit den Quadraten über den Seiten, auf Wunsch mit Raster (Kästchen je Quadrat,
+     parallel zu seinen Seiten) und eingefärbtem Hypotenusenquadrat (Kästchen in den Farben der Kathetenquadrate, MKH V1).
+   - ergaenzungBild: Quadrat mit der Seite a + b, vier Dreiecke in den Ecken, innen das Quadrat c²; umgelegt: a² und b² frei;
+     anim: die zwei Dreiecke verschieben sich (Umlegen).
+   - umlegeBild: beide Quadrate nebeneinander (links c² frei, rechts a² und b² frei).
+   - kathetensatzBild: Dreieck mit der Höhe auf die Hypotenuse, p und q, Quadrate a², b² und c² (geteilt in c · p und c · q).
+   - zerlegungBild: Zerlegungsbeweis nach Perigal (nur zum Anschauen in der Übersicht).
+   - bildfolge(beweis, a, b): kleine Bilder der Schritte eines Beweises mit Text.
+   Antippbare Flächen: o.tipp = 'q0' → data-wg="q0" data-wert = a2 | b2 | c2 | d (jedes Dreieck) | cp | cq.
+   Farben (Themenregeln): Katheten rot, Hypotenuse grün; Kathetenquadrate rot und blau, Hypotenusenquadrat grün. */
+(function(UR){
+const Dr = UR.dreiecke, Py = UR.pyth;
+const r1 = x => Dr.rund(x,1);
+const plus = (p,q) => [p[0]+q[0], p[1]+q[1]], minus = (p,q) => [p[0]-q[0], p[1]-q[1]], mal = (p,k) => [p[0]*k, p[1]*k];
+const mitte = l => [l.reduce((s,p)=>s+p[0],0)/l.length, l.reduce((s,p)=>s+p[1],0)/l.length];
+const drehe = (p,w) => [p[0]*Math.cos(w)-p[1]*Math.sin(w), p[0]*Math.sin(w)+p[1]*Math.cos(w)];
+
+/* ---------- Zeichnen: Teile in Weltkoordinaten → SVG ----------
+   teile: {art:'poly', pkte, cls, wg, wert, raster:n} | {art:'l', pkte:[p,q], cls} | {art:'text', p, text, cls}
+          | {art:'rb', R, X, Y} (rechter Winkel als Bogen) | {art:'g', teile, cls, stil} (Gruppe, z. B. für die Bewegung) */
+function alleP(teile){ const l=[]; for(const t of teile){ if(t.art==='g') l.push(...alleP(t.teile)); else if(t.pkte) l.push(...t.pkte); else if(t.p&&!t.ohneRand) l.push(t.p); if(t.weg) l.push(...t.weg); } return l; }
+function svgAus(teile, o={}){
+  const lang=Math.max(0,...teile.filter(t=>t.art==='text'&&t.n&&t.abst>0).map(t=>String(t.text).replace(/<[^>]+>/g,'').length));
+  const W=o.breite||320, PAD=(o.pad??22)+Math.max(0,lang-2)*8, l=alleP(teile), xs=l.map(p=>p[0]), ys=l.map(p=>p[1]);
+  const x0=Math.min(...xs), y1=Math.max(...ys), bw=Math.max(...xs)-x0||1, bh=y1-Math.min(...ys)||1;
+  const k=Math.min((W-2*PAD)/bw, (o.hoeheMax||300)/bh), H=bh*k+2*PAD, dx=(W-2*PAD-bw*k)/2;
+  const S = p => [r1(PAD+dx+(p[0]-x0)*k), r1(PAD+(y1-p[1])*k)], pt = p => S(p).join(',');
+  const rasterLinien = (q,n) => { let s=''; for(let i=1;i<n;i++){ const f=i/n;
+      const a=plus(q[0],mal(minus(q[1],q[0]),f)), b=plus(q[3],mal(minus(q[2],q[3]),f)), c=plus(q[0],mal(minus(q[3],q[0]),f)), d=plus(q[1],mal(minus(q[2],q[1]),f));
+      s+=`<line class="py-raster" x1="${S(a)[0]}" y1="${S(a)[1]}" x2="${S(b)[0]}" y2="${S(b)[1]}"/><line class="py-raster" x1="${S(c)[0]}" y1="${S(c)[1]}" x2="${S(d)[0]}" y2="${S(d)[1]}"/>`; }
+    return s; };
+  const eins = t => {
+    if(t.art==='g') return `<g class="${t.cls||''}"${t.schiebe?` style="--dx:${r1(t.schiebe[0]*k)}px;--dy:${r1(-t.schiebe[1]*k)}px"`:''}>${t.teile.map(eins).join('')}</g>`;
+    if(t.art==='poly') return `<polygon class="${t.cls||'py-f'}" points="${t.pkte.map(pt).join(' ')}"/>${t.raster?rasterLinien(t.pkte,t.raster):''}`;
+    if(t.art==='l') return `<line class="${t.cls||'py-l'}" x1="${S(t.pkte[0])[0]}" y1="${S(t.pkte[0])[1]}" x2="${S(t.pkte[1])[0]}" y2="${S(t.pkte[1])[1]}"/>`;
+    if(t.art==='text'){ const p=S(t.p); let anker='';
+      if(t.n){ p[0]=r1(p[0]+t.n[0]*t.abst); p[1]=r1(p[1]-t.n[1]*t.abst); if(t.abst>0&&Math.abs(t.n[0])>.7) anker=` style="text-anchor:${t.n[0]>0?'start':'end'}"`; }
+      return `<text class="${t.cls||'py-t'}"${anker} x="${p[0]}" y="${r1(p[1]+5)}">${t.text}</text>`; }
+    if(t.art==='rb'){ const R=S(t.R), X=S(t.X), Y=S(t.Y);
+      const e = v => { const l=Math.hypot(v[0],v[1])||1; return [v[0]/l, v[1]/l]; }, uu=e(minus(X,R)), ww=e(minus(Y,R)), r=Math.min(14, .3*Math.min(Math.hypot(...minus(X,R)), Math.hypot(...minus(Y,R))));
+      const a=plus(R,mal(uu,r)), b=plus(R,mal(ww,r)), kr=uu[0]*ww[1]-uu[1]*ww[0], m=plus(R,mal(e(plus(uu,ww)),r*.5));
+      return `<g class="dr-rb"><path d="M${r1(a[0])},${r1(a[1])} A${r1(r)},${r1(r)} 0 0 ${kr>0?1:0} ${r1(b[0])},${r1(b[1])}"/><circle cx="${r1(m[0])}" cy="${r1(m[1])}" r="2.2"/></g>`; }
+    return '';
+  };
+  // antippbare Flächen zuletzt (oben), damit sie die Beschriftung nicht verdecken: transparent
+  const tipp = (o.tipp ? teile.flatMap(function f(t){ return t.art==='g' ? (t.schiebe?[]:t.teile.flatMap(f)) : t.wert&&t.art==='poly' ? [t] : []; }) : [])
+    .map(t=>`<polygon class="tipp py-tipp" data-wg="${o.tipp}" data-wert="${t.wert}" points="${t.pkte.map(pt).join(' ')}"/>`).join('');
+  return `<svg class="pyb${o.klein?' klein':''}" viewBox="0 0 ${W} ${r1(H)}" role="img" aria-label="${o.titel||'Bild'}">${teile.map(eins).join('')}${tipp}</svg>`;
+}
+// Text neben einer Strecke, auf der Seite weg vom Punkt weg (z. B. Mitte der Figur)
+function nebenText(p, q, text, weg, abst, cls){
+  const m=mal(plus(p,q),.5), v=minus(q,p), l=Math.hypot(...v)||1; let n=[-v[1]/l, v[0]/l];
+  if((m[0]-weg[0])*n[0]+(m[1]-weg[1])*n[1]<0) n=mal(n,-1);
+  return {art:'text', p:m, n, abst, text, cls:cls||'py-t', ohneRand:true};   // abst in Bildpunkten
+}
+// Quadrat über der Strecke p → q, auf der Seite weg vom Punkt r
+function quadratUeber(p, q, r){
+  const v=minus(q,p); let n=[-v[1], v[0]]; if(n[0]*(r[0]-p[0])+n[1]*(r[1]-p[1])>0) n=mal(n,-1);
+  return [p, q, plus(q,n), plus(p,n)];
+}
+// Kästchen eines Quadrats (n × n) einzeln, zeilenweise; farbe(i) → Klasse
+function kaestchen(q, n, farbe){
+  const l=[], P=(i,j)=>plus(plus(q[0],mal(minus(q[1],q[0]),i/n)), mal(minus(q[3],q[0]),j/n));
+  for(let j=0;j<n;j++) for(let i=0;i<n;i++){ const c=farbe(j*n+i); if(c) l.push({art:'poly', pkte:[P(i,j),P(i+1,j),P(i+1,j+1),P(i,j+1)], cls:c}); }
+  return l;
+}
+
+/* ---------- Quadrate über den Seiten ----------
+   k1, k2: Kathetenlängen (Zahlen). o: namen {k1, k2, h} (Seitennamen im Dreieck), inhalt {k1, k2, h} (Text im Quadrat),
+   raster (Kästchen, nur bei ganzen Zahlen), farbe (Quadrate gefärbt), einfaerben (Hypotenusenquadrat: Kästchen in den
+   Farben der Kathetenquadrate), lage 'kath' (Katheten waagrecht und senkrecht) | 'hyp' (Hypotenuse waagrecht),
+   drehung (Grad, statt lage), spiegeln, tipp. */
+function quadrateBild(k1, k2, o={}){
+  let R=[0,0], X=[k1,0], Y=[0,k2];
+  let w = o.drehung!==undefined ? o.drehung*Math.PI/180 : o.lage==='hyp' ? -Math.atan2(Y[1]-X[1], Y[0]-X[0]) + Math.PI : 0;
+  [R,X,Y] = [R,X,Y].map(p=>drehe(p,w));
+  if(o.spiegeln) [R,X,Y] = [R,X,Y].map(p=>[-p[0],p[1]]);
+  // Hypotenuse unten, wenn sie waagrecht liegt
+  if(o.lage==='hyp' && R[1]<X[1]) [R,X,Y] = [R,X,Y].map(p=>[p[0],-p[1]]);
+  const h=Math.hypot(k1,k2), qa=quadratUeber(R,X,Y), qb=quadratUeber(R,Y,X), qc=quadratUeber(X,Y,R);
+  const ganz = n => Math.abs(n-Math.round(n))<1e-9 && n<=20;
+  const teile=[], F=o.farbe||o.einfaerben;
+  const q = (pk, cls, n, wert) => teile.push({art:'poly', pkte:pk, cls:`py-q ${F?cls:''}`, raster:o.raster&&ganz(n)?Math.round(n):0, wert});
+  q(qa,'qa',k1,'a2'); q(qb,'qb',k2,'b2');
+  if(o.einfaerben && ganz(h)){ const n=Math.round(h), na=Math.round(k1*k1);
+    teile.push({art:'poly', pkte:qc, cls:'py-q'}); teile.push(...kaestchen(qc, n, i=>i<na?'py-k qa':'py-k qb'));
+    teile.push({art:'poly', pkte:qc, cls:'py-q leer', raster:o.raster?n:0, wert:'c2'}); }
+  else q(qc,'qc',h,'c2');
+  teile.push({art:'poly', pkte:[R,X,Y], cls:'py-dr'});
+  teile.push({art:'l', pkte:[R,X], cls:'dr-kath'}, {art:'l', pkte:[R,Y], cls:'dr-kath'}, {art:'l', pkte:[X,Y], cls:'dr-hyp'});
+  teile.push({art:'rb', R, X, Y});
+  const sp=mitte([R,X,Y]), N=o.namen||{};
+  [[R,X,N.k1],[R,Y,N.k2],[X,Y,N.h]].forEach(([p,s,t])=>{ if(t) teile.push(nebenText(p,s,t,sp,12,'py-t name')); });
+  const I=o.inhalt||{};
+  [[qa,I.k1],[qb,I.k2],[qc,I.h]].forEach(([pk,t])=>{ if(t) teile.push({art:'text', p:mitte(pk), text:t, cls:'py-t gross'}); });
+  return svgAus(teile, {breite:o.breite||320, hoeheMax:o.hoeheMax||300, tipp:o.tipp, titel:'Dreieck mit den Quadraten über den Seiten'});
+}
+
+/* ---------- Ergänzungsfigur und Umlegen ----------
+   a, b: Kathetenlängen; s = a + b. Teile in Weltkoordinaten ab (dx | 0). */
+function ergaenzungTeile(a, b, o={}){
+  const s=a+b, d=o.dx||0, V=p=>[p[0]+d, p[1]], E=[[0,0],[s,0],[s,s],[0,s]].map(V);
+  const P1=V([a,0]), P2=V([s,a]), P3=V([b,s]), P4=V([0,b]);
+  const T1=[E[0],P1,P4], T2=[E[1],P2,P1], T3=[E[2],P3,P2], T4=[E[3],P4,P3];
+  const L=o.namen||{a:'a', b:'b', c:'c'}, teile=[], fl=o.flaechen||{}, mz=mitte(E), F=o.farbe;
+  const um=!!o.umgelegt, an=!!o.anim;
+  teile.push({art:'poly', pkte:E, cls:'py-gross'});
+  if(!um||an){ teile.push({art:'poly', pkte:[P1,P2,P3,P4], cls:`py-frei ${F?'qc':''}`, wert:an?undefined:'c2'}); }
+  if(um||an){ const qa=[V([0,0]),V([a,0]),V([a,a]),V([0,a])], qb=[V([0,a]),V([b,a]),V([b,s]),V([0,s])];
+    teile.push({art:'poly', pkte:qa, cls:`py-frei ${F?'qa':''}${an?' py-anim-hin':''}`, wert:an?undefined:'a2'},
+      {art:'poly', pkte:qb, cls:`py-frei ${F?'qb':''}${an?' py-anim-hin':''}`, wert:an?undefined:'b2'}); }
+  const dr = pk => ({art:'poly', pkte:pk, cls:'py-dreieck', wert:an?undefined:'d'});
+  const fest=[dr(T2), dr(T3)];
+  let beweglich;
+  if(um&&!an) beweglich=[dr(T1.map(p=>plus(p,[b,a]))), dr(T4.map(p=>plus(p,[a,-b])))];
+  teile.push(...fest);
+  if(an) teile.push({art:'g', cls:'py-schieb', schiebe:[b,a], teile:[dr(T1)]}, {art:'g', cls:'py-schieb', schiebe:[a,-b], teile:[dr(T4)]});
+  else if(um) teile.push(...beweglich); else teile.push(dr(T1), dr(T4));
+  // Seiten des großen Quadrats: Abschnitte a und b
+  const W=o.werte||{}, A=W.a||L.a, B=W.b||L.b, ab=o.abst||10;
+  const seg = (p,q,t,k='') => teile.push(nebenText(V(p),V(q),t,mz,ab,'py-t name'+k));
+  seg([0,0],[a,0],A); seg([a,0],[s,0],B); seg([s,0],[s,a],A); seg([s,a],[s,s],B);
+  if(!um||an){ const k=an?' py-anim-weg':''; seg([s,s],[b,s],A); seg([b,s],[0,s],B); seg([0,s],[0,b],A,k); seg([0,b],[0,0],B,k);
+    if(an){ seg([0,s],[0,a],B,' py-anim-hin'); seg([0,a],[0,0],A,' py-anim-hin'); } }
+  else { seg([s,s],[b,s],A); seg([b,s],[0,s],B); if(!o.ohneLinks){ seg([0,s],[0,a],B); seg([0,a],[0,0],A); } }
+  if((!um||an) && o.cName!==false) teile.push(nebenText(P1,P2,W.c||L.c,mz,-11,'py-t name hyp'+(an?' py-anim-weg':'')));
+  // Flächen beschriften
+  const txt = (p,t,cls) => t && teile.push({art:'text', p, text:t, cls:'py-t gross '+(cls||'')});
+  if(!um||an) txt(mz, fl.c, an?'py-anim-weg':'');
+  if(um||an){ txt([d+a/2,a/2], fl.a, an?'py-anim-hin':''); txt([d+b/2,a+b/2], fl.b, an?'py-anim-hin':''); }
+  if(fl.d && !an){ for(const T of (um?[T2,T3,T1.map(p=>plus(p,[b,a])),T4.map(p=>plus(p,[a,-b]))]:[T1,T2,T3,T4])) txt(mitte(T), fl.d, 'klein'); }
+  if(o.rechte) for(const T of (um?[T2,T3]:[T1,T2,T3,T4])) teile.push({art:'rb', R:T[0], X:T[1], Y:T[2]});
+  return teile;
+}
+const ergaenzungBild = (a, b, o={}) => svgAus(ergaenzungTeile(a,b,o), {breite:o.breite||260, hoeheMax:o.hoeheMax||260, tipp:o.tipp, klein:o.klein, pad:o.pad, titel:'Quadrat mit der Seite a + b und vier Dreiecken'});
+function umlegeBild(a, b, o={}){
+  const s=a+b, l=ergaenzungTeile(a,b,Object.assign({},o,{umgelegt:false, flaechen:o.flaechen&&{c:o.flaechen.c, d:o.flaechen.d}})),
+    r=ergaenzungTeile(a,b,Object.assign({},o,{umgelegt:true, ohneLinks:true, dx:s*1.3, flaechen:o.flaechen&&{a:o.flaechen.a, b:o.flaechen.b, d:o.flaechen.d}}));
+  return svgAus([...l,...r], {breite:o.breite||340, hoeheMax:o.hoeheMax||170, tipp:o.tipp, klein:o.klein, pad:o.pad, titel:'Zwei gleich große Quadrate mit der Seite a + b'});
+}
+
+/* ---------- Kathetensatz ----------
+   a, b Katheten; A (0|0), B (c|0), C oben; Höhe h auf c mit Fußpunkt H; p = HB (bei a), q = AH (bei b) wie in der LZK.
+   o: quadrate (a², b², c² mit c · p und c · q), flaechen (Text), farbe (a² wie c · p, b² wie c · q), tipp, namen. */
+function kathetensatzTeile(a, b, o={}){
+  const c=Math.hypot(a,b), q=b*b/c, h=a*b/c, A=[0,0], B=[c,0], C=[q,h], Hf=[q,0], N=o.namen||{};
+  const teile=[], F=o.farbe, fl=o.flaechen||{}, sp=mitte([A,B,C]);
+  if(o.quadrate!==false){
+    const qa=quadratUeber(B,C,A), qb=quadratUeber(A,C,B), cq=[A,Hf,[q,-c],[0,-c]], cp=[Hf,B,[c,-c],[q,-c]];
+    teile.push({art:'poly', pkte:qa, cls:`py-q ${F?'qa':''}`, wert:'a2'}, {art:'poly', pkte:qb, cls:`py-q ${F?'qb':''}`, wert:'b2'},
+      {art:'poly', pkte:cp, cls:`py-q ${F?'qa':''}`, wert:'cp'}, {art:'poly', pkte:cq, cls:`py-q ${F?'qb':''}`, wert:'cq'},
+      {art:'l', pkte:[Hf,[q,-c]], cls:'py-hoehe'});
+    const txt=(pk,t)=>t&&teile.push({art:'text', p:mitte(pk), text:t, cls:'py-t gross'});
+    txt(qa,fl.a); txt(qb,fl.b); txt(cp,fl.cp); txt(cq,fl.cq);
+  }
+  teile.push({art:'poly', pkte:[A,B,C], cls:'py-dr'}, {art:'l', pkte:[C,B], cls:'dr-kath'}, {art:'l', pkte:[A,C], cls:'dr-kath'}, {art:'l', pkte:[A,B], cls:'dr-hyp'},
+    {art:'l', pkte:[C,Hf], cls:'py-hoehe'}, {art:'rb', R:C, X:A, Y:B}, {art:'rb', R:Hf, X:B, Y:C});
+  teile.push(nebenText(C,B,N.a||'a',sp,-11,'py-t name'), nebenText(A,C,N.b||'b',sp,-11,'py-t name'));
+  if(o.quadrate===false) teile.push(nebenText(A,B,N.c||'c',sp,13,'py-t name hyp'));
+  teile.push({art:'text', p:[(q+c)/2, h*.12], text:N.p||'p', cls:'py-t name'}, {art:'text', p:[q/2, h*.12], text:N.q||'q', cls:'py-t name'},
+    {art:'text', p:[q-.05*c, h*.4], text:N.h||'h', cls:'py-t klein'});
+  if(o.punkte!==false) teile.push({art:'text', p:[A[0]-.06*c, A[1]+.02*c], text:'A', cls:'py-t klein'}, {art:'text', p:[B[0]+.06*c, B[1]+.02*c], text:'B', cls:'py-t klein'},
+    {art:'text', p:[C[0], C[1]+.07*c], text:'C', cls:'py-t klein'});
+  return teile;
+}
+const kathetensatzBild = (a, b, o={}) => svgAus(kathetensatzTeile(a,b,o), {breite:o.breite||300, hoeheMax:o.hoeheMax||300, tipp:o.tipp, klein:o.klein, pad:o.pad, titel:'Dreieck mit der Höhe auf die Hypotenuse'});
+
+/* ---------- Zerlegungsbeweis nach Perigal (nur zum Anschauen) ----------
+   Das größere Kathetenquadrat wird durch zwei Linien durch seine Mitte (parallel und senkrecht zur Hypotenuse) in vier
+   gleiche Teile zerlegt; verschoben füllen sie mit dem kleinen Quadrat das Hypotenusenquadrat. */
+function schneide(poly, n, c){   // Teil des Vielecks mit n·p ≤ c
+  const out=[], f=p=>n[0]*p[0]+n[1]*p[1]-c;
+  poly.forEach((p,i)=>{ const q=poly[(i+1)%poly.length], fp=f(p), fq=f(q);
+    if(fp<=1e-12) out.push(p); if((fp<-1e-12&&fq>1e-12)||(fp>1e-12&&fq<-1e-12)){ const t=fp/(fp-fq); out.push(plus(p,mal(minus(q,p),t))); } });
+  return out;
+}
+function zerlegungBild(a, b, o={}){
+  if(a>b) [a,b]=[b,a];
+  const R=[0,0], X=[b,0], Y=[0,a];     // längere Kathete waagrecht
+  const qb=quadratUeber(R,X,Y), qa=quadratUeber(R,Y,X), qc=quadratUeber(X,Y,R), M=mitte(qb);
+  const c=Math.hypot(a,b), u=[(Y[0]-X[0])/c,(Y[1]-X[1])/c], v=[-u[1],u[0]], pr=(p,e)=>p[0]*e[0]+p[1]*e[1];
+  const teile=[], mc=mitte(qc);
+  const ecke = (su,sv) => qc.reduce((best,p)=>{ const w=su*pr(p,u)+sv*pr(p,v); return w<best[0]?[w,p]:best; },[Infinity,null])[1];
+  [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([su,sv],i)=>{
+    let st=schneide(qb, mal(u,-su), -su*pr(M,u)); st=schneide(st, mal(v,-sv), -sv*pr(M,v));
+    teile.push({art:'poly', pkte:st, cls:`py-teil t${i}`});
+    const z=minus(ecke(su,sv),M); teile.push({art:'poly', pkte:st.map(p=>plus(p,z)), cls:`py-teil t${i}`});
+  });
+  teile.push({art:'poly', pkte:qa, cls:'py-q qa'}, {art:'poly', pkte:qa.map(p=>plus(p,minus(mc,mitte(qa)))), cls:'py-q qa'});
+  teile.push({art:'poly', pkte:qc, cls:'py-q leer'}, {art:'poly', pkte:qb, cls:'py-q leer'});
+  teile.push({art:'poly', pkte:[R,X,Y], cls:'py-dr'}, {art:'l', pkte:[R,X], cls:'dr-kath'}, {art:'l', pkte:[R,Y], cls:'dr-kath'}, {art:'l', pkte:[X,Y], cls:'dr-hyp'}, {art:'rb', R, X, Y});
+  return svgAus(teile, {breite:o.breite||240, hoeheMax:o.hoeheMax||240, klein:o.klein, titel:'Zerlegungsbeweis'});
+}
+
+/* ---------- Bildfolgen der Beweise ----------
+   beweis 'umlege' | 'ergaenzung' | 'kathete'; liefert [{bild, text}] (kleine Bilder). */
+const KL = {klein:true, breite:150, hoeheMax:110, pad:24};
+function bildfolge(beweis, a, b){
+  if(beweis==='umlege') return [
+    {bild:svgAus([...rahmen(a,b,0), ...rahmen(a,b,(a+b)*1.3)], Object.assign({},KL,{breite:170})), text:'Zwei gleich große Quadrate mit der Seite a + b'},
+    {bild:umlegeBild(a,b,Object.assign({},KL,{breite:170, cName:false})), text:'In beide je vier gleiche rechtwinkelige Dreiecke legen'},
+    {bild:umlegeBild(a,b,Object.assign({},KL,{breite:170, farbe:true, flaechen:{a:'a²', b:'b²', c:'c²'}})), text:'Links bleibt c² frei, rechts a² und b²'},
+    {bild:umlegeBild(a,b,Object.assign({},KL,{breite:170, farbe:true, flaechen:{a:'a²', b:'b²', c:'c²'}})), text:'Gleich viel bedeckt, also gleich viel frei'},
+    {bild:'', text:'Also a² + b² = c²'}];
+  if(beweis==='ergaenzung') return [
+    {bild:svgAus(rahmen(a,b,0), KL), text:'Quadrat mit der Seite a + b'},
+    {bild:ergaenzungBild(a,b,Object.assign({},KL,{cName:false})), text:'Vier gleiche Dreiecke in die Ecken legen'},
+    {bild:ergaenzungBild(a,b,Object.assign({},KL,{farbe:true, flaechen:{c:'c²'}})), text:'Innen bleibt ein Quadrat mit der Seite c'},
+    {bild:ergaenzungBild(a,b,Object.assign({},KL,{farbe:true, flaechen:{c:'c²'}, rechte:false})), text:'Großes Quadrat minus vier Dreiecke = c²'},
+    {bild:'', text:'(a + b)² − 2ab = a² + b², also a² + b² = c²'}];
+  return [
+    {bild:kathetensatzBild(a,b,Object.assign({},KL,{quadrate:false, punkte:false})), text:'Höhe auf die Hypotenuse: c = p + q'},
+    {bild:kathetensatzBild(a,b,Object.assign({},KL,{farbe:true, punkte:false, flaechen:{a:'a²', cp:'c·p'}})), text:'Kathetensatz: a² = c · p'},
+    {bild:kathetensatzBild(a,b,Object.assign({},KL,{farbe:true, punkte:false, flaechen:{b:'b²', cq:'c·q'}})), text:'Kathetensatz: b² = c · q'},
+    {bild:'', text:'a² + b² = c · p + c · q = c · (p + q) = c · c = c²'}];
+}
+// nur der Rand eines Quadrats a + b mit den Abschnitten a und b
+function rahmen(a, b, dx){
+  const s=a+b, V=p=>[p[0]+dx,p[1]], mz=V([s/2,s/2]);
+  return [{art:'poly', pkte:[[0,0],[s,0],[s,s],[0,s]].map(V), cls:'py-gross'},
+    nebenText(V([0,0]),V([a,0]),'a',mz,10,'py-t name'), nebenText(V([a,0]),V([s,0]),'b',mz,10,'py-t name'),
+    nebenText(V([s,0]),V([s,a]),'a',mz,10,'py-t name'), nebenText(V([s,a]),V([s,s]),'b',mz,10,'py-t name')];
+}
+const folgeHTML = l => `<ol class="py-folge">${l.map(x=>`<li>${x.bild?`<div class="py-fb">${x.bild}</div>`:''}<span>${x.text}</span></li>`).join('')}</ol>`;
+// Verhältnis a : b zwischen 1 : 3 und 3 : 1, nie gleich (für Beweisbilder)
+function beweisSeiten(){ for(;;){ const a=UR.rnd(2,9), b=UR.rnd(2,9); if(a!==b && Math.max(a,b)<=3*Math.min(a,b)) return [a,b]; } }
+
+Object.assign(Py, {svgAus, quadratUeber, quadrateBild, ergaenzungTeile, ergaenzungBild, umlegeBild, kathetensatzBild, zerlegungBild, bildfolge, folgeHTML, beweisSeiten});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -9314,6 +9591,478 @@ UR.kompetenzAnmelden({id:'M-Pyth-G2', typen, stationen, kern, plus, plusHint, je
 })(window.UR = window.UR || {});
 </script>
 <script>
+/* Mathe/1.3 Satz-des-Pythagoras/M-Pyth-V1.js */
+/* Baustein M-Pyth-V1: „Ich kenne eine Begründung für den Satz des Pythagoras und kann sie darstellen.“
+   Steckbrief: M-Pyth-V1.md, Auswahl und Themenregeln: AUSWAHL.md (27.11.2026). V1 begründet an Beispielen (Raster, Zahlen);
+   der Beweis mit Variablen ist X1. Bilder: UR.pyth.quadrateBild und ergaenzungBild (Mathe/bausteine/pythbilder.js). */
+(function(UR){
+const {rnd, pick} = UR;
+const Dr = UR.dreiecke, Py = UR.pyth;
+const {mischen, versuche} = Dr;
+const {D, dMul, dAdd, dSub, dText, dVgl, dZahl} = UR.powu;
+const {merk, K, H, T, quad, bild, benennen, zufallsDreieck, gleichungsWahl, quadrateBild, ergaenzungBild} = Py;
+
+const RASTER = [[3,4],[6,8],[5,12],[8,6],[4,3],[12,5]];
+const FL = ['cm','dm','m'];
+const AUF = 'Die zwei Kathetenquadrate zusammen sind so groß wie das Hypotenusenquadrat.';
+// Auswahlfeld als Zahlfeld (für die Form 'zahlen'): Knöpfe setzen ein verstecktes Feld; ans = Nummer der richtigen Wahl
+function wahlFeld(label, optionen, richtig, schluessel){
+  const nr = {}; optionen.forEach(([v],i)=>nr[v]=i+1);
+  const text = v => { const o=optionen.find(x=>x[0]===v); return o ? o[1] : v; };
+  return {label, ans:nr[richtig], eingabe:richtig, ansText:text(richtig).replace(/<[^>]+>/g,''), ansHTML:text(richtig),
+    feldHTML:()=>`${UR.wahlFeld(schluessel)}${UR.wahlGruppe(schluessel, optionen, {klasse:'lang'})}`,
+    lesen:roh=>{ const s=String(roh??'').trim(); return s==='' ? null : (nr[s]||NaN); }, rohHTML:roh=>text(roh)};
+}
+
+/* ---------- Pools ---------- */
+// Begründung mit Quadraten; Herleitung der Formel (Buchstaben wechseln); Ergänzungsfigur mit Zahlen
+const BEGRUENDUNG = [
+  ['Über jede Seite des rechtwinkeligen Dreiecks ein Quadrat zeichnen.', 'Die Kästchen in jedem Quadrat zählen.',
+   'Die Kästchen der zwei Kathetenquadrate addieren.', 'Die Summe ist gleich groß wie die Zahl der Kästchen im Hypotenusenquadrat.', 'Also gilt Kathete² + Kathete² = Hypotenuse².'],
+  ['Ein rechtwinkeliges Dreieck mit den Seiten 3, 4 und 5 Kästchen zeichnen.', 'Über jede Seite ein Quadrat zeichnen.',
+   'Zählen: 9, 16 und 25 Kästchen.', '9 + 16 = 25: Die zwei kleinen Quadrate haben zusammen gleich viele Kästchen wie das große.'],
+  ['Die Kästchen des Quadrats über der ersten Kathete in das Hypotenusenquadrat legen.', 'Die Kästchen des Quadrats über der zweiten Kathete dazulegen.',
+   'Das Hypotenusenquadrat ist genau gefüllt.', 'Also sind die zwei Kathetenquadrate zusammen so groß wie das Hypotenusenquadrat.']
+];
+function herleitung(){
+  const d=benennen(zufallsDreieck()), [k1,k2]=d.kNamen, h=d.hName, ges=pick([h,k1,k2]);
+  if(ges===h) return {d, ges, karten:[`${k1}² + ${k2}² = ${h}²`, `${h}² = ${k1}² + ${k2}²`, `${h} = √(${k1}² + ${k2}²)`], was:`die Formel für die Hypotenuse ${h}`};
+  const a = ges===k1 ? k2 : k1;
+  return {d, ges, karten:[`${k1}² + ${k2}² = ${h}²`, `${ges}² = ${h}² − ${a}²`, `${ges} = √(${h}² − ${a}²)`], was:`die Formel für die Kathete ${ges}`};
+}
+function zahlenFolge(){
+  const a=rnd(2,9), b=versuche(()=>{ const x=rnd(2,9); return x!==a?x:null; }), s=a+b;
+  return {a, b, karten:[`Ein Quadrat mit der Seite ${a} + ${b} = ${s} zeichnen.`, 'Vier gleiche rechtwinkelige Dreiecke in die Ecken legen.',
+    `Das große Quadrat ausrechnen: ${s}² = ${s*s}.`, `Die vier Dreiecke abziehen: ${s*s} − ${4*a*b/2} = ${s*s-2*a*b}.`, `Das innere Quadrat ist ${s*s-2*a*b} = ${a}² + ${b}² groß.`]};
+}
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // V1-A01 Quadrate über den Seiten am Raster
+  raster(ctx){
+    const leicht=ctx&&ctx.leicht, [k1,k2]=pick(RASTER), h=Math.round(Math.hypot(k1,k2)), g=pick(Py.GRUPPEN);
+    const hN = Math.random()<.5 ? g[2] : pick(g.slice(0,2)), [n1,n2]=mischen(g.filter(x=>x!==hN));
+    const lage=pick(['kath','hyp']), dreh = lage==='kath' ? pick([0,90,180,270]) : undefined, sp=Math.random()<.5;
+    const o={namen:{k1:n1, k2:n2, h:hN}, raster:true, farbe:leicht, lage, drehung:dreh, spiegeln:sp};
+    const opt = mischen([['gleich', `Die Quadrate über ${n1} und ${n2} haben zusammen gleich viele Kästchen wie das Quadrat über ${hN}.`],
+      ['doppelt', `Das Quadrat über ${hN} hat doppelt so viele Kästchen wie das Quadrat über ${n2}.`],
+      ['seiten', `Die Quadrate über ${n1} und ${n2} haben zusammen weniger Kästchen als das Quadrat über ${hN}.`]]);
+    return Dr.aufg({kind:'zahlen', q:`Über den Seiten ${n1}, ${n2} und ${hN} des rechtwinkeligen Dreiecks sind Quadrate gezeichnet. Zähle die Kästchen in jedem Quadrat! Was fällt dir auf?`, text:true,
+      lead:leicht?merk(`Ein Quadrat mit der Seite 3 Kästchen hat 3 · 3 = 9 Kästchen. Zähle eine Reihe und rechne mal.`):'', pruef:'raster', daten:{k1, k2, n1, n2, hN},
+      bild:quadrateBild(k1,k2,o),
+      felder:[{label:`Quadrat über ${n1}: Kästchen`, ans:k1*k1, exakt:true, ansText:String(k1*k1)}, {label:`Quadrat über ${n2}: Kästchen`, ans:k2*k2, exakt:true, ansText:String(k2*k2)},
+        {label:`Quadrat über ${hN}: Kästchen`, ans:h*h, exakt:true, ansText:String(h*h)}, wahlFeld('Was fällt dir auf?', opt, 'gleich', 'v1a')],
+      why:`${n1}² + ${n2}² = ${hN}²: ${k1*k1} + ${k2*k2} = ${h*h} Kästchen. ${AUF}`,
+      loesungBild:quadrateBild(k1,k2,Object.assign({},o,{einfaerben:true, inhalt:{k1:String(k1*k1), k2:String(k2*k2), h:String(h*h)}}))});
+  },
+  // V1-A02 Formeln für die fehlenden Seiten herleiten
+  herleiten(ctx){
+    const leicht=ctx&&ctx.leicht, d=benennen(zufallsDreieck()), [k1,k2]=d.kNamen, h=d.hName, ges=pick([h,k1,k2,k1,k2]);
+    const gq=gleichungsWahl(h,k1,k2,ges,3,'quadrat'), gw=gleichungsWahl(h,k1,k2,ges,3,'wurzel');
+    const andere = ges===k1 ? k2 : k1;
+    const gruppen = leicht ? [{frage:`Wie berechnest du ${ges}?`, optionen:gw.wahl, ans:gw.ans, klasse:'lang'}]
+      : [{frage:`1. Forme um: ${ges}² = …`, optionen:gq.wahl, ans:gq.ans, klasse:'lang'}, {frage:`2. Die Formel für ${ges}:`, optionen:gw.wahl, ans:gw.ans, klasse:'lang'}];
+    return Dr.aufg({kind:'fragen', q:`Aus ${k1}² + ${k2}² = ${h}² (${h} ist die Hypotenuse): Leite die Formel für ${ges} her!`, text:true,
+      lead:leicht?merk(`Erste Zeile: ${k1}² + ${k2}² = ${h}². ${ges===h?`Dann die Wurzel ziehen.`:`Ziehe ${andere}² auf beiden Seiten ab, dann die Wurzel.`}`):'Leite aus dem Satz des Pythagoras die Formel für die gesuchte Seite her!',
+      pruef:'herleiten', daten:{d, ges}, bild:bild(d,{recht:true, farbe:true}), gruppen,
+      why: ges===h ? `${k1}² + ${k2}² = ${h}², also ${gq.richtig}. Dann die Wurzel ziehen: ${gw.richtig}.`
+        : `Um ${ges}² allein zu haben, ziehst du ${andere}² auf beiden Seiten ab: ${gq.richtig}. Dann die Wurzel: ${gw.richtig}.`});
+  },
+  // V1-N01 Das fehlende Quadrat
+  fehlend(ctx){
+    const leicht=ctx&&ctx.leicht;
+    return versuche(()=>{
+      const u=pick(FL), flaeche = () => Math.random()<.5 ? quad(Py.zahl1(1,14,.3)) : Py.zahl1(1,200,.5);
+      const kath = Math.random()<1/3;   // gesucht ein Kathetenquadrat
+      let A1=flaeche(), A2=flaeche(), Ac, Ab;
+      if(dZahl(A1)<1||dZahl(A2)<1) return null;
+      if(kath){ Ac=dAdd(A1,A2); Ab=A2; if(dZahl(Ac)>400) return null; }
+      else { Ac=dAdd(A1,A2); if(dZahl(Ac)>400) return null; }
+      const soll = kath ? Ab : Ac, w=Py.wurzel(soll); if(w.nahe||dZahl(soll)<2) return null;   // ab 2: Seite und Fläche verschieden
+      const seite = kath ? 'die zweite Kathete' : 'die Hypotenuse';
+      const q = kath ? `Das Hypotenusenquadrat hat ${T(Ac)} ${u}², ein Kathetenquadrat ${T(A1)} ${u}². Wie groß ist das zweite Kathetenquadrat? Wie lang ist ${seite}?`
+        : `Die Kathetenquadrate haben ${T(A1)} ${u}² und ${T(A2)} ${u}². Wie groß ist das Hypotenusenquadrat? Wie lang ist die Hypotenuse?`;
+      const s2 = Py.ergebnisFeld(w, 2, kath?'Kathete':'Hypotenuse', u, {label:`Länge ${kath?'der Kathete':'der Hypotenuse'} (auf Hundertstel)`});
+      const k1=Math.sqrt(dZahl(A1)), k2=Math.sqrt(dZahl(kath?Ab:A2));
+      const inhalt = kath ? {k1:`${T(A1)} ${u}²`, k2:'?', h:`${T(Ac)} ${u}²`} : {k1:`${T(A1)} ${u}²`, k2:`${T(A2)} ${u}²`, h:'?'};
+      return Dr.aufg({kind:'zahlen', q, text:true, lead:leicht?merk(AUF):'Zwei Quadrate sind gegeben. Wie groß ist das dritte? Wie lang ist seine Seite?',
+        pruef:'fehlend', daten:{kath},
+        bild:leicht?quadrateBild(k1,k2,{farbe:true, inhalt:{k1:inhalt.k1.replace(/ \S+$/,''), k2:inhalt.k2.replace(/ \S+$/,''), h:inhalt.h.replace(/ \S+$/,'')}, lage:'hyp'}):'',
+        felder:[{label:`Fläche ${kath?'des zweiten Kathetenquadrats':'des Hypotenusenquadrats'}`, ans:dZahl(soll), exakt:true, einheiten:Dr.EINHEITEN, einheitAns:u+'²', ansText:`${T(soll)} ${u}²`}, s2],
+        hinweisNach: erg => erg[0].zahlOk && !erg[1].zahlOk && Math.abs((erg[1].v||0)-dZahl(soll))<1e-9 ? 'Das ist die Fläche. Die Seite ist die Wurzel daraus.' : '',
+        why:`${kath?`${T(Ac)} − ${T(A1)} = ${T(Ab)}`:`${T(A1)} + ${T(A2)} = ${T(Ac)}`} ${u}². ${AUF} Die Seite ist die Wurzel: √${T(soll)} ${w.glatt?'=':'≈'} ${w.glatt?T(w.exakt):dText(w.rund(2),2)} ${u}.`,
+        loesungBild:quadrateBild(k1,k2,{farbe:true, inhalt:kath?{k1:T(A1), k2:T(Ab), h:T(Ac)}:{k1:T(A1), k2:T(A2), h:T(Ac)}, lage:'hyp'})});
+    });
+  },
+  // V1-N02 Die Begründung ordnen
+  ordnen(ctx){
+    const leicht=ctx&&ctx.leicht, art=pick(['quadrate','quadrate','herleitung','zahlen']);
+    let karten, was, extra={}, bildH='';
+    if(art==='quadrate'){ karten=pick(BEGRUENDUNG); was='die Sätze der Begründung'; }
+    else if(art==='herleitung'){ const x=herleitung(); karten=x.karten; was=`die Zeilen der Herleitung (${x.was})`; extra={d:x.d, ges:x.ges}; bildH=bild(x.d,{recht:true, farbe:true}); }
+    else { const x=zahlenFolge(); karten=x.karten; was='die Schritte mit der Ergänzungsfigur'; bildH=ergaenzungBild(x.a,x.b,{werte:{a:String(x.a), b:String(x.b)}, cName:false, breite:200}); }
+    const ids=karten.map((_,i)=>'k'+i), k=mischen(karten.map((t,i)=>({id:ids[i], text:t})));
+    return Dr.aufg({kind:'reihenfolge', q:`Bringe ${was} in die richtige Reihenfolge!`, text:true, lead:leicht?'Das erste Kärtchen liegt schon richtig.':'',
+      pruef:'ordnen', daten:Object.assign({art, karten}, extra), bild:bildH, karten:k, loesungen:[ids], fest:leicht?1:0,
+      why:`Richtig: ${karten.join(' → ')}`});
+  },
+  // V1-N04 Die Ergänzungsfigur mit Zahlen nachrechnen
+  ergaenzung(ctx){
+    const leicht=ctx&&ctx.leicht;
+    return versuche(()=>{
+      const u=pick(['cm','cm','mm','m']), a=Py.zahl1(1,15,.6), b=Py.zahl1(1,15,.6); if(dVgl(a,b)===0) return null;
+      const s=dAdd(a,b), G=quad(s), Dd=dMul(D(2),dMul(a,b)), I=dSub(G,Dd), ab=dAdd(quad(a),quad(b));
+      const fl = (label, v) => ({label, ans:dZahl(v), exakt:true, einheiten:Dr.EINHEITEN, einheitAns:u+'²', ansText:`${T(v)} ${u}²`});
+      return Dr.aufg({kind:'zahlen', q:`Ergänzungsfigur mit a = ${T(a)} ${u} und b = ${T(b)} ${u}: Berechne das große Quadrat, die vier Dreiecke zusammen und das innere Quadrat!`, text:true,
+        lead:leicht?merk(`Großes Quadrat: (a + b)². Ein Dreieck: a · b : 2. Inneres Quadrat: großes Quadrat minus vier Dreiecke.`):'Rechne nach: Ist das innere Quadrat so groß wie a² + b²?',
+        pruef:'ergaenzung', bild:ergaenzungBild(dZahl(a),dZahl(b),{werte:{a:`${T(a)} ${u}`, b:`${T(b)} ${u}`}, breite:240}),
+        felder:[fl('Großes Quadrat', G), fl('Vier Dreiecke zusammen', Dd), fl('Inneres Quadrat', I)],
+        hinweisNach: erg => !erg[1].zahlOk && Math.abs((erg[1].v||0)-2*dZahl(Dd))<1e-9 ? 'Ein Dreieck ist ein halbes Rechteck: a · b : 2.'
+          : !erg[0].zahlOk && Math.abs((erg[0].v||0)-dZahl(ab))<1e-9 ? 'Das große Quadrat hat die Seite a + b: Rechne (a + b)², nicht a² + b².' : '',
+        why:`(${T(a)} + ${T(b)})² = ${T(G)} ${u}², 4 · ${T(a)} · ${T(b)} : 2 = ${T(Dd)} ${u}², ${T(G)} − ${T(Dd)} = ${T(I)} ${u}² = ${T(a)}² + ${T(b)}². Für diese Zahlen stimmt es. Dass es für jedes rechtwinkelige Dreieck stimmt, zeigt ein Beweis (X1).`,
+        loesungBild:ergaenzungBild(dZahl(a),dZahl(b),{werte:{a:`${T(a)}`, b:`${T(b)}`}, farbe:true, flaechen:{c:`${T(I)} ${u}²`}, breite:240})});
+    });
+  },
+  // V1-A03 (Plus) Selbst zeichnen (Karopapier)
+  zeichnen(){
+    const [a,b,c]=pick([[3,4,5],[6,8,10],[5,12,13]]), f=Math.random()<.5;
+    return Dr.aufg({kind:'zeichnen', text:true, zeug:'Du brauchst Karopapier, Lineal und Farbstifte (rot, blau, grün).', papierPlatz:4, pruef:'zeichnen', daten:{a,b,c},
+      q:`Zeichne ein rechtwinkeliges Dreieck mit den Katheten ${a} cm und ${b} cm und über jeder Seite das Quadrat! Färbe die Quadrate und vergleiche!`,
+      lead:'Ein Kästchen am Karopapier ist 5 mm lang: 1 cm sind 2 Kästchen, 1 cm² sind 4 Kästchen.',
+      loesungBild:quadrateBild(a,b,{raster:true, farbe:true, inhalt:{k1:`${a*a} cm²`, k2:`${b*b} cm²`, h:`${c*c} cm²`}, lage:f?'hyp':'kath'}),
+      pruefliste:[`Der rechte Winkel liegt zwischen den Katheten ${a} cm und ${b} cm.`, `Die Hypotenuse ist ${c} cm lang.`,
+        `Die Quadrate haben ${a*a} cm², ${b*b} cm² und ${c*c} cm² (je 1 cm² = 4 Kästchen).`, `${a*a} + ${b*b} = ${c*c}: Die Kathetenquadrate sind zusammen so groß wie das Hypotenusenquadrat.`],
+      why:`${a}² + ${b}² = ${a*a} + ${b*b} = ${c*c} = ${c}².`});
+  },
+  // V1-N03 (Plus) Gilt das auch ohne rechten Winkel?
+  ohne_recht(){
+    const art=pick(['spitz','recht','stumpf']);   // je ein Drittel (außerhalb der Versuche)
+    return versuche(()=>{
+      let a,b,c;
+      if(art==='recht') [a,b,c]=mischen([[3,4,5],[6,8,10],[5,12,13],[9,12,15],[8,6,10],[4,3,5],[12,5,13],[12,9,15]])[0];
+      else { a=rnd(2,14); b=rnd(2,14); c=rnd(Math.max(a,b)+1,15); if(a+b<=c) return null; }
+      const l=a*a+b*b, r=c*c, ist = l>r?'spitz':l<r?'stumpf':'recht'; if(ist!==art) return null;
+      const Pz=Dr.ausSeiten(a,b,c);   // c = AB unten, γ bei C
+      const vgl = l>r?'gr':l<r?'kl':'gl', w=Dr.winkel(Pz).C;
+      return Dr.aufg({kind:'zahlen', q:`Im Dreieck ABC ist a = ${a} cm, b = ${b} cm und c = ${c} cm. Vergleiche a² + b² mit c²!`, text:true,
+        lead:'Rechne a² + b² und c² und vergleiche!', pruef:'ohne_recht', daten:{a,b,c},
+        bild:Dr.zeichne(Pz,{ecken:true, seitenText:{a:`${a} cm`, b:`${b} cm`, c:`${c} cm`}, breite:280}),
+        felder:[{label:'a² + b² =', ans:l, exakt:true, einheit:'cm²', ansText:`${l} cm²`}, {label:'c² =', ans:r, exakt:true, einheit:'cm²', ansText:`${r} cm²`},
+          wahlFeld('a² + b² ist …', [['kl','kleiner als c²'],['gl','gleich c²'],['gr','größer als c²']], vgl, 'v1n3')],
+        why:`${a}² + ${b}² = ${l}, ${c}² = ${r}: ${vgl==='gr'?'größer, also ist der Winkel bei C spitz':vgl==='kl'?'kleiner, also ist der Winkel bei C stumpf':'gleich, also ist der Winkel bei C ein rechter'} (γ ≈ ${Math.round(w)}°). Nur bei gleich ist er ein rechter.`});
+    });
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Quadrate über den Seiten', hint:'9 + 16 = 25 Kästchen', types:['raster','fehlend']},
+  {id:'S2', name:'Ergänzungsfigur mit Zahlen', hint:'(3 + 4)² − 4 · 6 = 25 = 3² + 4²', types:['ergaenzung']},
+  {id:'S3', name:'Die Begründung darstellen', hint:'Quadrate zeichnen → zählen → vergleichen', types:['ordnen']},
+  {id:'S4', name:'Formeln herleiten', hint:'a² = c² − b² → a = √(c² − b²)', types:['herleiten']}
+];
+const kern = ['raster','herleiten','fehlend','ordnen','ergaenzung'];
+const leicht = ['raster','herleiten','fehlend','ordnen','ergaenzung'];
+const plus = ['zeichnen','ohne_recht'];
+const plusHint = 'Selbst zeichnen · Ohne rechten Winkel?';
+const lzk = {aufwand:{ergaenzung:3, raster:3}};
+
+/* ---------- Erklärung ---------- */
+const neuZahlen = () => { const a=rnd(2,9); let b; do b=rnd(2,9); while(b===a); return {a,b}; };
+const erklaerung = {
+  beispiele: ()=>({z:neuZahlen(), t:pick(RASTER.slice(0,3))}),
+  neu(kind,E){ if(kind==='zahlen') E.z=neuZahlen(); if(kind==='raster') E.t=pick(RASTER); },
+  html(E){
+    const {a,b}=E.z, s=a+b, [k1,k2]=E.t, h=Math.round(Math.hypot(k1,k2));
+    return `<section class="sheet"><h2>Satz des Pythagoras: eine Begründung</h2>
+    <div class="rule"><h3>Quadrate über den Seiten</h3><p>Über jeder Seite des rechtwinkeligen Dreiecks steht ein Quadrat. Zähle die Kästchen: Die zwei ${K('Kathetenquadrate')} zusammen sind genau so groß wie das ${H('Hypotenusenquadrat')}.</p>
+      ${quadrateBild(k1,k2,{raster:true, einfaerben:true, namen:{k1:'a', k2:'b', h:'c'}, inhalt:{k1:String(k1*k1), k2:String(k2*k2), h:String(h*h)}, lage:'hyp'})}
+      <p class="ex">${k1*k1} + ${k2*k2} = ${h*h}, also ${k1}² + ${k2}² = ${h}²</p>
+      <p>Im großen Quadrat sind die Kästchen in den Farben der kleinen Quadrate gefärbt: Sie passen genau hinein.</p>
+      <button class="newex" data-newex="raster">Neues Beispiel</button></div>
+    <div class="rule"><h3>Die Ergänzungsfigur mit Zahlen</h3><p>Ein Quadrat mit der Seite a + b, in den Ecken vier gleiche Dreiecke. Innen bleibt ein Quadrat mit der Seite c.</p>
+      ${ergaenzungBild(a,b,{werte:{a:String(a), b:String(b)}, farbe:true, flaechen:{c:String(s*s-2*a*b)}, breite:220})}
+      <p class="ex">(${a} + ${b})² = ${s*s}<br>4 · ${a} · ${b} : 2 = ${2*a*b}<br>${s*s} − ${2*a*b} = ${s*s-2*a*b} = ${a}² + ${b}²</p>
+      <p>Für diese Zahlen stimmt es. Das ist eine Begründung an einem Beispiel. Dass es für <b>jedes</b> rechtwinkelige Dreieck stimmt, zeigt ein Beweis mit Variablen (X1).</p>
+      <button class="newex" data-newex="zahlen">Andere Zahlen</button></div>
+    <div class="rule"><h3>Formeln für die fehlenden Seiten</h3><p>Aus a² + b² = c² (c ist die Hypotenuse):</p>
+      <p class="ex">c = √(a² + b²)<br>a² = c² − b², also a = √(c² − b²)<br>b² = c² − a², also b = √(c² − a²)</p>
+      <p>Um a² allein zu haben, ziehst du b² auf beiden Seiten ab. Dann ziehst du die Wurzel.</p></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 1.3 Satz des Pythagoras.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`;
+  }
+};
+
+UR.kompetenzAnmelden({id:'M-Pyth-V1', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk, festeAuswahl:['raster','ordnen','zeichnen']});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.3 Satz-des-Pythagoras/M-Pyth-X1.js */
+/* Baustein M-Pyth-X1: „Ich kenne einen Beweis für den Satz des Pythagoras und kann ihn erklären.“
+   Steckbrief: M-Pyth-X1.md, Auswahl und Themenregeln: AUSWAHL.md (27.11.2026). Bilder: Mathe/bausteine/pythbilder.js.
+   Beweiswahl: Die Erklärung ist die Übersicht der Beweise; dort wählt das Kind seinen Beweis (Knopf, gespeichert unter
+   UR.store['M-Pyth-X1'].beweis, jederzeit änderbar). Die Typen X1-N01, N02, N04, N05 und N07 nehmen dann nur diesen Beweis,
+   vorher alle gemischt. X1-N08, N09 gelten für alle, X1-N06 ist immer der Beweis mit dem Kathetensatz (eigener Kern-Typ). */
+(function(UR){
+const {rnd, pick} = UR;
+const Dr = UR.dreiecke, Py = UR.pyth;
+const {mischen, bruch} = Dr;
+const {merk, umlegeBild, ergaenzungBild, kathetensatzBild, zerlegungBild, bildfolge, folgeHTML, beweisSeiten} = Py;
+
+const ID = 'M-Pyth-X1';
+const BEWEISE = {
+  umlege:{name:'Umlegebeweis', idee:'Gleich viel bedeckt, also gleich viel frei.', braucht:'zwei gleich große Quadrate mit der Seite a + b und je vier gleiche Dreiecke'},
+  ergaenzung:{name:'Ergänzungsbeweis', idee:'Großes Quadrat minus vier Dreiecke, mit der binomischen Formel.', braucht:'die binomische Formel (a + b)² = a² + 2ab + b²'},
+  kathete:{name:'Beweis mit dem Kathetensatz', idee:'a² = c · p, b² = c · q und p + q = c.', braucht:'den Kathetensatz und die Höhe auf die Hypotenuse (wie in X2)'}
+};
+const ARTEN = Object.keys(BEWEISE);
+const gewaehlt = () => { const s=UR.store&&UR.store[ID]; return s&&BEWEISE[s.beweis] ? s.beweis : null; };
+const beweisFuer = () => gewaehlt() || pick(ARTEN);
+const wahlText = b => gewaehlt() ? `Dein Beweis: <b>${BEWEISE[b].name}</b>.` : `<b>${BEWEISE[b].name}</b>. Deinen Beweis wählst du in der Erklärung (Übersicht der Beweise).`;
+const bildVon = (b, s, o={}) => b==='umlege' ? umlegeBild(s[0],s[1],o) : b==='ergaenzung' ? ergaenzungBild(s[0],s[1],o) : kathetensatzBild(s[0],s[1],o);
+const DREIECK = `${bruch('a · b','2')}`;
+// Zeilen mit [ab2] = Dreiecksfläche, ① ② = Lücken
+const zeileH = z => z.replace(/\[ab2\]/g, DREIECK).replace(/①/g,'<b>①</b> ___').replace(/②/g,'<b>②</b> ___');
+const zeileT = z => z.replace(/\[ab2\]/g, '(a · b durch 2)').replace(/①/g,'(1) …').replace(/②/g,'(2) …');
+const NR = ['①','②'];
+
+/* ---------- Pools ---------- */
+const SCHRITTE = {
+  umlege:['Zwei gleich große Quadrate mit der Seite a + b zeichnen', 'In beide je vier gleiche rechtwinkelige Dreiecke legen',
+    'Links bleibt ein Quadrat c² frei, rechts bleiben a² und b² frei', 'Die freien Flächen sind gleich groß, weil die Quadrate gleich groß sind und gleich viel bedeckt ist', 'Also a² + b² = c²'],
+  ergaenzung:['Quadrat mit der Seite a + b zeichnen', 'Vier gleiche Dreiecke in die Ecken legen', 'Innen bleibt ein Quadrat mit der Seite c',
+    'Großes Quadrat minus vier Dreiecke = c²', '(a + b)² − 2ab = a² + b², also a² + b² = c²'],
+  kathete:['Die Höhe auf die Hypotenuse teilt c in p und q: p + q = c', 'Kathetensatz: a² = c · p', 'Kathetensatz: b² = c · q',
+    'Addieren: a² + b² = c · p + c · q = c · (p + q) = c · c = c²']
+};
+// gleichwertige Reihenfolgen (Kathetensatz für a und b dürfen getauscht werden)
+const TAUSCH = {kathete:[[0,2,1,3]]};
+const JEDES = ['Warum gilt der Beweis für jedes rechtwinkelige Dreieck?', 'Er rechnet mit den Variablen a, b und c, nicht mit bestimmten Zahlen.', ['Weil es bei 3, 4 und 5 stimmt.', 'Weil das Bild genau gezeichnet ist.', 'Weil c die längste Seite ist.']];
+const BEGR = {
+  umlege:[
+    ['Warum sind die freien Flächen in beiden Quadraten gleich groß?', 'Beide Quadrate haben die Seite a + b und in beiden liegen vier gleiche Dreiecke.', ['Weil es im Bild so aussieht.', 'Weil c die längste Seite ist.', 'Weil es bei 3, 4 und 5 stimmt.']],
+    ['Warum ist die freie Fläche links ein Quadrat?', 'Alle vier Seiten sind c lang und die Winkel sind 90°, weil α + β = 90°.', ['Weil das große Quadrat ein Quadrat ist.', 'Weil es im Bild so aussieht.', 'Weil c die längste Seite ist.']],
+    ['Warum braucht man einen rechten Winkel?', 'Nur dann passen die vier Dreiecke genau in das Quadrat mit der Seite a + b.', ['Weil c sonst nicht die längste Seite ist.', 'Weil man sonst keine Quadrate zeichnen kann.', 'Weil sonst a und b gleich lang sind.']],
+    ['Warum sind die vier Dreiecke gleich groß?', 'Alle haben die Katheten a und b und einen rechten Winkel.', ['Weil sie in den Ecken liegen.', 'Weil es im Bild so aussieht.', 'Weil das große Quadrat vier Ecken hat.']],
+    ['Warum bleiben rechts genau a² und b² frei?', 'Je zwei Dreiecke bilden ein Rechteck aus a und b. Übrig bleiben ein Quadrat mit der Seite a und eines mit der Seite b.', ['Weil links c² frei bleibt.', 'Weil a und b die Katheten heißen.', 'Weil es bei 3, 4 und 5 stimmt.']],
+    ['Warum ist links gleich viel bedeckt wie rechts?', 'In beiden Quadraten liegen dieselben vier Dreiecke, nur anders angeordnet.', ['Weil beide Quadrate gleich aussehen.', 'Weil c² = a² + b² ist.', 'Weil die Dreiecke klein sind.']],
+    JEDES],
+  ergaenzung:[
+    ['Warum ist das innere Viereck ein Quadrat?', 'Alle vier Seiten sind c lang und jeder Winkel ist 180° − (α + β) = 90°.', ['Weil es im Bild so aussieht.', 'Weil es in einem Quadrat liegt.', 'Weil c die längste Seite ist.']],
+    ['Warum ist ein Dreieck halb so groß wie a · b?', 'Es ist ein halbes Rechteck mit den Seiten a und b.', ['Weil es zwei Katheten hat.', 'Weil a + b die Seite des Quadrats ist.', 'Weil es im Bild so aussieht.']],
+    ['Warum hat das große Quadrat die Fläche (a + b)²?', 'Jede Seite besteht aus a und b, ist also a + b lang.', ['Weil a² + b² = c² ist.', 'Weil es vier Dreiecke enthält.', 'Weil c die längste Seite ist.']],
+    ['Warum ist (a + b)² = a² + 2ab + b²?', 'Das ist die binomische Formel: (a + b) · (a + b) ausmultiplizieren.', ['Man quadriert einfach jeden Summanden.', 'Weil a² + b² = c² ist.', 'Weil es bei 3 und 4 stimmt.']],
+    ['Warum darf man auf beiden Seiten 2ab abziehen?', 'Zieht man auf beiden Seiten einer Gleichung dasselbe ab, bleibt sie richtig.', ['Weil 2ab sehr klein ist.', 'Weil 2ab = c² ist.', 'Weil es im Bild so aussieht.']],
+    ['Warum braucht man einen rechten Winkel?', 'Nur dann passen die vier Dreiecke genau in die Ecken des Quadrats mit der Seite a + b.', ['Weil c sonst nicht die längste Seite ist.', 'Weil man sonst keine binomische Formel hat.', 'Weil sonst a und b gleich lang sind.']],
+    JEDES],
+  kathete:[
+    ['Warum ist a² = c · p?', 'Das sagt der Kathetensatz: Das Kathetenquadrat ist so groß wie das Rechteck aus der Hypotenuse und dem anliegenden Abschnitt.', ['Weil a die längste Seite ist.', 'Weil es bei 3, 4 und 5 stimmt.', 'Weil p und q gleich lang sind.']],
+    ['Warum ist p + q = c?', 'Die Höhe teilt die Hypotenuse c in die zwei Abschnitte p und q.', ['Weil p und q gleich lang sind.', 'Weil p² + q² = c² ist.', 'Weil es im Bild so aussieht.']],
+    ['Warum ist c · p + c · q = c · (p + q)?', 'Man hebt c heraus (Distributivgesetz).', ['Weil p = q ist.', 'Weil man p mit q multipliziert.', 'Weil c die längste Seite ist.']],
+    ['Warum ist c · (p + q) = c²?', 'Weil p + q = c ist, steht dort c · c = c².', ['Weil c · c = 2c ist.', 'Weil p · q = c ist.', 'Weil es bei 3, 4 und 5 stimmt.']],
+    ['Warum teilt die Höhe das Hypotenusenquadrat in zwei Rechtecke?', 'Die verlängerte Höhe steht senkrecht auf c und teilt das Quadrat in Rechtecke mit den Breiten p und q.', ['Weil a und b gleich lang sind.', 'Weil die Höhe die längste Strecke ist.', 'Weil es im Bild so aussieht.']],
+    ['Warum braucht man einen rechten Winkel?', 'Der Kathetensatz gilt nur im rechtwinkeligen Dreieck.', ['Weil sonst c nicht die längste Seite ist.', 'Weil man sonst keine Höhe zeichnen kann.', 'Weil sonst p und q gleich lang sind.']],
+    JEDES]
+};
+// Lücken: z = Zeilen, l = je Lücke [richtig, falsch …]
+const TERME = {
+  ergaenzung:[
+    {z:['(a + b)² = c² + 4 · [ab2]', 'a² + 2ab + b² = c² + ①', 'a² + b² = c²'], l:[['2ab',['ab','4ab','a²b²']]]},
+    {z:['a² + 2ab + b² = c² + 2ab', '① = c²'], l:[['a² + b²',['2ab','a + b','(a + b)²']]]},
+    {z:['Großes Quadrat: ①', 'Vier Dreiecke: 4 · [ab2] = ②'], l:[['(a + b)²',['a² + b²','4ab','2 · (a + b)']], ['2ab',['ab','4ab','a²b²']]]},
+    {z:['(a + b)² = ①', '(a + b)² − 2ab = c²'], l:[['a² + 2ab + b²',['a² + b²','a² + ab + b²','2a + 2b']]]},
+    {z:['Inneres Quadrat: c² = (a + b)² − ①', 'c² = a² + 2ab + b² − 2ab = ②'], l:[['2ab',['ab','4ab','a² + b²']], ['a² + b²',['2ab','a² − b²','(a + b)²']]]}],
+  umlege:[
+    {z:['Frei links: (a + b)² − 4 · [ab2] = ①', 'Frei rechts: (a + b)² − 4 · [ab2] = ②'], l:[['c²',['2ab','(a + b)²','a · b']], ['a² + b²',['2ab','a + b','(a + b)²']]]},
+    {z:['Links frei: c². Rechts frei: ①', 'Gleich viel bedeckt, also ②'], l:[['a² + b²',['2ab','a + b','a · b']], ['a² + b² = c²',['a + b = c','a² − b² = c²','a² · b² = c²']]]},
+    {z:['Rechts bilden je zwei Dreiecke ein Rechteck mit der Fläche ①', 'Die vier Dreiecke zusammen: ②'], l:[['a · b',['a + b','c²','2ab']], ['2ab',['ab','4ab','a²b²']]]},
+    {z:['Jedes der beiden großen Quadrate hat die Fläche ①', 'Frei bleibt links c², rechts a² + b²'], l:[['(a + b)²',['a² + b²','c²','2 · (a + b)']]]}],
+  kathete:[
+    {z:['a² = c · p und b² = c · q', 'a² + b² = c · p + c · q = c · (①)', 'c · (p + q) = c · c = ②'], l:[['p + q',['p · q','p − q','2p']], ['c²',['2c','c','p · q']]]},
+    {z:['a² = c · p und b² = c · q', 'a² + b² = ①', '= c · (p + q) = c²'], l:[['c · p + c · q',['c · p · q','c² · p · q','p + q']]]},
+    {z:['a² + b² = c · (p + q)', 'Weil p + q = ①, ist a² + b² = c²'], l:[['c',['h','a + b','p · q']]]}]
+};
+const KATHETENSATZ = [
+  {z:['a² + b² = c · p + c · q = c · (①) = c · c = ②'], l:[['p + q',['p · q','p − q','h']], ['c²',['2c','c','p²']]]},
+  {z:['Nach dem Kathetensatz ist a² = c · ① und b² = c · ②'], l:[['p',['q','h','a']], ['q',['p','h','b']]]},
+  {z:['Die Höhe teilt c in p und q, also ist p + q = ①'], l:[['c',['h','a + b','p · q']]]},
+  {z:['a² + b² = c · p + c · q', 'c herausheben: a² + b² = ①'], l:[['c · (p + q)',['c · p · q','c² · (p + q)','(c + p) · q']]]},
+  {z:['a² = c · p und b² = c · q', 'Addieren: a² + b² = ①', 'Weil p + q = c ist: a² + b² = ②'], l:[['c · p + c · q',['c · p · q','c² · p · q','p + q']], ['c²',['2c','p · q','c']]]},
+  {z:['Für den Beweis braucht man a² = c · p und b² = c · q. Das ist der ①.'], l:[['Kathetensatz',['Höhensatz','Satz des Thales','Satz des Pythagoras']]]}
+];
+// Beweis oder Beispiel? [Text, HTML, beweis?, richtige Begründung]
+const BB = [
+  ['Am Raster: 3² + 4² = 9 + 16 = 25 = 5².', null, false, 'Es zeigt den Satz nur für das Dreieck 3, 4, 5.'],
+  ['Ich habe zehn Dreiecke gezeichnet und gemessen, es hat immer gestimmt.', null, false, 'Auch viele Beispiele sind kein Beweis.'],
+  ['(a + b)² − 4 · (a · b durch 2) = c² und (a + b)² − 4 · (a · b durch 2) = a² + b², also a² + b² = c².', `(a + b)² − 4 · ${DREIECK} = c² und (a + b)² − 4 · ${DREIECK} = a² + b², also a² + b² = c².`, true, 'Mit Variablen gerechnet, gilt es für alle a, b und c.'],
+  ['Zwei Quadrate mit der Seite a + b, in beiden vier gleiche Dreiecke mit den Katheten a und b: Links bleibt c² frei, rechts a² und b².', null, true, 'Die Überlegung verwendet nur a, b und c, sie gilt für jedes rechtwinkelige Dreieck.'],
+  ['a² = c · p und b² = c · q, also a² + b² = c · (p + q) = c · c = c².', null, true, 'Mit Variablen gerechnet, gilt es für alle a, b und c.'],
+  ['Für a = 5 und b = 12: (5 + 12)² − 4 · 30 = 289 − 120 = 169 = 13².', null, false, 'Mit Zahlen stimmt es nur für dieses Dreieck.'],
+  ['Ich habe die Kästchen der Quadrate über 6, 8 und 10 gezählt: 36 + 64 = 100.', null, false, 'Es zeigt den Satz nur für das Dreieck 6, 8, 10.'],
+  ['Im Bild sieht das Hypotenusenquadrat genau so groß aus wie die zwei Kathetenquadrate zusammen.', null, false, 'Ein Bild zeigt nur ein Dreieck, und Aussehen ist kein Beweis.'],
+  ['Ich habe die drei Quadrate aus Karton ausgeschnitten und gewogen: Die zwei kleinen wiegen zusammen so viel wie das große.', null, false, 'Messen zeigt es nur für dieses Dreieck, und nur ungefähr.'],
+  ['(a + b)² = a² + 2ab + b² und (a + b)² = c² + 2ab, also a² + b² = c².', null, true, 'Mit Variablen gerechnet, gilt es für alle a, b und c.']
+];
+const BB_FALSCH = {true:['Weil es bei 3, 4 und 5 stimmt.', 'Weil es im Bild so aussieht.', 'Es zeigt den Satz nur für ein Dreieck.'],
+  false:['Mit Variablen gerechnet, gilt es für alle a, b und c.', 'Weil es für ein Dreieck stimmt, stimmt es für alle.', 'Weil c die längste Seite ist.']};
+const UEB_FRAGEN = [
+  ['Welcher Beweis braucht die binomische Formel?', 'ergaenzung'], ['Welcher Beweis vergleicht zwei gleich große Quadrate mit der Seite a + b?', 'umlege'],
+  ['Welcher Beweis braucht die Höhe auf die Hypotenuse?', 'kathete'], ['Welcher Beweis rechnet: großes Quadrat minus vier Dreiecke?', 'ergaenzung'],
+  ['Welcher Beweis teilt das Hypotenusenquadrat in die Rechtecke c · p und c · q?', 'kathete'], ['Bei welchem Beweis bleiben einmal c² und einmal a² und b² frei?', 'umlege'],
+  ['Welcher Beweis kommt ohne Rechnung mit Termen aus, nur mit dem Umlegen von Dreiecken?', 'umlege'], ['Welcher Beweis braucht p + q = c?', 'kathete']
+];
+const BILD_KURZ = {umlege:'Bild: zwei Quadrate nebeneinander', ergaenzung:'Bild: Quadrat mit schrägem Quadrat innen', kathete:'Bild: Dreieck mit Höhe und Quadraten'};
+const CHECK = {
+  umlege:['Ich zeichne zwei gleich große Quadrate mit der Seite a + b.', 'In beide lege ich vier gleiche rechtwinkelige Dreiecke (Katheten a und b).', 'Links bleibt c² frei, rechts bleiben a² und b² frei.',
+    'Die freien Flächen sind gleich groß, weil gleich viel bedeckt ist.', 'Also gilt a² + b² = c², für jedes rechtwinkelige Dreieck.'],
+  ergaenzung:['Ich zeichne ein Quadrat mit der Seite a + b.', 'In die Ecken lege ich vier gleiche Dreiecke, innen bleibt ein Quadrat mit der Seite c.', 'c² = großes Quadrat minus vier Dreiecke = (a + b)² − 2ab.',
+    'Mit der binomischen Formel: (a + b)² − 2ab = a² + 2ab + b² − 2ab = a² + b².', 'Also gilt a² + b² = c², für jedes rechtwinkelige Dreieck.'],
+  kathete:['Die Höhe auf die Hypotenuse teilt c in p und q, p + q = c.', 'Nach dem Kathetensatz ist a² = c · p und b² = c · q.', 'Addieren: a² + b² = c · p + c · q = c · (p + q).',
+    'Weil p + q = c ist: a² + b² = c · c = c², für jedes rechtwinkelige Dreieck.']
+};
+
+// Lückentext als Form 'fragen'
+function lueckenAufgabe(e, o){
+  const l = o.leicht ? e.l.slice(0,1) : e.l, n = o.leicht ? 2 : 3;
+  // leichtere Fassung: nur die erste Lücke, die zweite ist schon ausgefüllt
+  const vor = x => o.leicht && e.l[1] ? x.replace('②', `§${e.l[1][0]}§`) : x;
+  const gruen = h => h.replace(/§([^§]+)§/g,'<b class="ph">$1</b>');
+  const H2 = x => gruen(zeileH(vor(x))), T2 = x => zeileT(vor(x)).replace(/§([^§]+)§/g,'$1');
+  const voll = x => gruen(zeileH(e.l.reduce((s,[w],i)=>s.replace(NR[i], `§${w}§`), x)));
+  return Dr.aufg({kind:'fragen', q:`${o.titel}: ${e.z.map(T2).join(' · ')}`, qh:`<p class="ex">${e.z.map(H2).join('<br>')}</p>`, text:true, lead:o.lead,
+    pruef:o.pruef, daten:{z:e.z}, bild:o.bild,
+    gruppen:l.map(([w,f],i)=>({frage:`Lücke ${NR[i]}`, optionen:mischen([w,...mischen(f).slice(0,n-1)]).map(x=>[x,x]), ans:w, klasse:'lang'})),
+    why:`Ganz: ${e.z.map(voll).join(' → ')}.${o.zusatz||''}`});
+}
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // X1-N08 Welche Beweise gibt es? (Überblick)
+  ueberblick(ctx){
+    const s=beweisSeiten(), namen=ARTEN.map(b=>[b, BEWEISE[b].name]);
+    if(Math.random()<.5){
+      const [frage, ans]=pick(UEB_FRAGEN);
+      return Dr.aufg({kind:'fragen', q:frage, text:true, lead:'Denke an die Übersicht der Beweise!', pruef:'ueberblick', daten:{frage},
+        gruppen:[{frage:'', optionen:mischen(namen), ans, klasse:'lang'}],
+        why:`${BEWEISE[ans].name}: ${BEWEISE[ans].idee} Man braucht ${BEWEISE[ans].braucht}.`, loesungBild:bildVon(ans, s, {farbe:true, breite:260})});
+    }
+    const dinge = mischen([...ARTEN.map(b=>({id:'bild-'+b, html:bildVon(b,s,{breite:180, klein:true, cName:true}), kurz:BILD_KURZ[b]})),
+      ...ARTEN.map(b=>({id:'idee-'+b, html:BEWEISE[b].idee, kurz:BEWEISE[b].idee}))]);
+    const ans={}; for(const b of ARTEN){ ans['bild-'+b]=b; ans['idee-'+b]=b; }
+    return Dr.aufg({kind:'zuordnen', q:'Ordne jedem Beweis sein Bild und seine Grundidee zu!', text:true, lead:'Tippe ein Kärtchen an, dann den passenden Beweis.',
+      pruef:'ueberblick', daten:{zuordnen:true}, dinge, ziele:namen.map(([id,text])=>({id, text})), ans,
+      why:ARTEN.map(b=>`${BEWEISE[b].name}: ${BEWEISE[b].idee}`).join(' ')});
+  },
+  // X1-N09 Beweis oder Beispiel?
+  beweis_beispiel(){
+    const [t, h, ok, grund]=pick(BB), falsch=mischen(BB_FALSCH[ok]).slice(0,2);
+    return Dr.aufg({kind:'fragen', q:`Zeigt das, dass der Satz des Pythagoras für jedes rechtwinkelige Dreieck gilt? ${t}`,
+      qh:`Zeigt das, dass der Satz des Pythagoras für <b>jedes</b> rechtwinkelige Dreieck gilt?<p class="ex">${h||t}</p>`, text:true, pruef:'beweis_beispiel', daten:{t},
+      gruppen:[{frage:'1. Das ist …', optionen:[['beweis','ein Beweis (gilt für jedes rechtwinkelige Dreieck)'],['beispiel','nur ein Beispiel (Einzelfall)']], ans:ok?'beweis':'beispiel', klasse:'lang'},
+        {frage:'2. Weil …', optionen:mischen([grund,...falsch]).map(x=>[x,x]), ans:grund, klasse:'lang'}],
+      why:`${ok?'Beweis':'Nur ein Beispiel'}: ${grund} Mit Zahlen stimmt es nur für ein Dreieck. Mit a, b und c gilt es für jedes rechtwinkelige Dreieck.`});
+  },
+  // X1-N04 Flächen im Beweisbild benennen
+  flaechen(ctx){
+    const leicht=ctx&&ctx.leicht, b=beweisFuer(), s=beweisSeiten();
+    const FR = {umlege:['a2','b2','c2','d'], ergaenzung:['c2','d','c2'], kathete:['a2','b2','cp','cq']}[b], w=pick(FR);
+    const NAME = {a2:'a²', b2:'b²', c2:'c²', d:'ein Dreieck', cp:'das Rechteck c · p', cq:'das Rechteck c · q'};
+    const frage = w==='d' ? 'Tippe ein Dreieck an!' : w==='cp'||w==='cq' ? `Tippe ${NAME[w]} an!` : `Tippe die Fläche an, die ${NAME[w]} ist!`;
+    const opt = FR.filter((x,i)=>FR.indexOf(x)===i).map(x=>[x, NAME[x]]);
+    const beschr = {umlege:{a:'a²', b:'b²', c:'c²'}, ergaenzung:{c:'c²'}, kathete:{a:'a²', b:'b²', cp:'c·p', cq:'c·q'}}[b];
+    return Dr.aufg({kind:'fragen', q:`${BEWEISE[b].name}: ${frage}`, text:true,
+      lead:`${wahlText(b)}${leicht?`<br>${merk('a² ist das Quadrat mit der Seite a, c² das Quadrat mit der Seite c.'+(b==='kathete'?' c · p ist das Rechteck mit den Seiten c und p.':''))}`:''}`,
+      pruef:'flaechen', daten:{b, s, w}, bild:bildVon(b, s, {tipp:'q0', farbe:leicht}),
+      gruppen:[{imBild:true, frage, optionen:opt, ans:w}],
+      why: w==='d' ? 'Die vier gleichen Dreiecke haben die Katheten a und b.' : w==='cp' ? 'c · p ist das Rechteck unter dem Abschnitt p, so groß wie a² (Kathetensatz).'
+        : w==='cq' ? 'c · q ist das Rechteck unter dem Abschnitt q, so groß wie b² (Kathetensatz).' : `${NAME[w]} ist das Quadrat mit der Seite ${w[0]}.`,
+      loesungBild:bildVon(b, s, {farbe:true, flaechen:Object.assign({d:''}, beschr)})});
+  },
+  // X1-N01 Beweisschritte ordnen
+  schritte_ordnen(ctx){
+    const leicht=ctx&&ctx.leicht, b=beweisFuer(), s=beweisSeiten(), folge=bildfolge(b, s[0], s[1]), texte=SCHRITTE[b];
+    const karten=texte.map((t,i)=>({id:'s'+i, text:`${folge[i]&&folge[i].bild?folge[i].bild:''}<span>${t}</span>`, kurz:t}));
+    const ids=karten.map(k=>k.id), loesungen=[ids, ...(TAUSCH[b]||[]).map(p=>p.map(i=>ids[i]))];
+    return Dr.aufg({kind:'reihenfolge', q:`${BEWEISE[b].name}: Bringe die Schritte deines Beweises in die richtige Reihenfolge!`, text:true,
+      lead:`${wahlText(b)}${leicht?' Das erste Kärtchen liegt schon richtig.':''}`, pruef:'schritte_ordnen', daten:{b},
+      karten:mischen(karten), loesungen, fest:leicht?1:0,
+      why:`Richtig: ${texte.join(' → ')}`, loesungBild:folgeHTML(folge.map((f,i)=>({bild:f.bild, text:texte[i]})))});
+  },
+  // X1-N02 Warum stimmt das? (Begründung wählen)
+  begruendung(ctx){
+    const leicht=ctx&&ctx.leicht, b=beweisFuer(), s=beweisSeiten(), [frage, ok, falsch]=pick(BEGR[b]);
+    return Dr.aufg({kind:'fragen', q:`${BEWEISE[b].name}: ${frage}`, text:true, lead:wahlText(b), pruef:'begruendung', daten:{b, frage},
+      bild:bildVon(b, s, {farbe:true, breite:260}),
+      gruppen:[{frage, optionen:mischen([ok,...mischen(falsch).slice(0,leicht?1:2)]).map(x=>[x,x]), ans:ok, klasse:'lang'}],
+      why:ok});
+  },
+  // X1-N05 Beweis mit Termen (Lücken)
+  terme(ctx){
+    const leicht=ctx&&ctx.leicht, b=beweisFuer(), s=beweisSeiten(), e=pick(TERME[b]);
+    return lueckenAufgabe(e, {leicht, titel:`${BEWEISE[b].name}, ergänze die Lücken`, lead:`${wahlText(b)} Ergänze die Lücken im Beweis!`, pruef:'terme',
+      bild:bildVon(b, s, {breite:240, flaechen:b==='kathete'?{}:undefined}),
+      zusatz:b==='ergaenzung'?' Binomische Formel: (a + b)² = a² + 2ab + b².':''});
+  },
+  // X1-N06 Beweis mit dem Kathetensatz
+  kathetensatz(ctx){
+    const leicht=ctx&&ctx.leicht, s=beweisSeiten(), e=pick(KATHETENSATZ);
+    return lueckenAufgabe(e, {leicht, titel:'Beweis mit dem Kathetensatz, ergänze', lead:'Ergänze den Beweis mit dem Kathetensatz! p liegt bei a, q bei b, p + q = c.', pruef:'kathetensatz',
+      bild:kathetensatzBild(s[0], s[1], {breite:240, farbe:true, flaechen:{a:'a²', b:'b²', cp:'c·p', cq:'c·q'}})});
+  },
+  // X1-N07 (Plus) Kann ich den Beweis erklären? (Checkliste)
+  checkliste(){
+    const b=beweisFuer(), s=beweisSeiten(), l=CHECK[b];
+    return Dr.aufg({kind:'fragen', q:`${BEWEISE[b].name}: Erkläre den Beweis laut oder auf Papier. Hake ab, was du gesagt hast!`, text:true, lead:wahlText(b), pruef:'checkliste', daten:{b},
+      bild:bildVon(b, s, {farbe:true, breite:240}),
+      gruppen:[{frage:'Das habe ich gesagt:', mehrfach:true, optionen:l.map((x,i)=>['p'+i, x]), ans:l.map((x,i)=>'p'+i).sort().join(','), klasse:'lang'}],
+      why:'Ein vollständiger Beweis hat alle Punkte. Erkläre den Beweis einer Lehrperson.', loesungBild:folgeHTML(bildfolge(b, s[0], s[1]))});
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Beweise im Überblick', hint:'Umlegebeweis, Ergänzungsbeweis, Kathetensatz', types:['ueberblick','beweis_beispiel']},
+  {id:'S2', name:'Mein Beweis: Bild und Schritte', hint:'zwei Quadrate mit der Seite a + b', types:['flaechen','schritte_ordnen']},
+  {id:'S3', name:'Mein Beweis: begründen und rechnen', hint:'(a + b)² − 2ab = a² + b² = c²', types:['begruendung','terme','kathetensatz']}
+];
+const kern = ['schritte_ordnen','begruendung','flaechen','terme','ueberblick','beweis_beispiel','kathetensatz'];
+const leicht = ['schritte_ordnen','begruendung','flaechen','terme','kathetensatz'];
+const plus = ['checkliste'];
+const plusHint = 'Kann ich den Beweis erklären?';
+const lzk = {aufwand:{schritte_ordnen:2}};
+
+/* ---------- Erklärung: Übersicht der Beweise mit Beweiswahl ---------- */
+const erklaerung = {
+  beispiele: ()=>({s:beweisSeiten()}),
+  neu(kind,E){
+    if(kind==='zahlen') E.s=beweisSeiten();
+    if(kind.startsWith('wahl-') && BEWEISE[kind.slice(5)]){ UR.comp(ID).beweis=kind.slice(5); UR.save(); }
+  },
+  html(E){
+    const s=E.s, g=gewaehlt();
+    const karte = b => `<div class="py-beweis${g===b?' gewaehlt':''}"><h4>${BEWEISE[b].name}${g===b?' ✓':''}</h4>
+      ${b==='umlege'?ergaenzungBild(s[0],s[1],{anim:true, farbe:true, flaechen:{a:'a²', b:'b²', c:'c²'}, breite:220}):bildVon(b,s,{farbe:true, breite:260, flaechen:b==='kathete'?{a:'a²', b:'b²', cp:'c·p', cq:'c·q'}:{c:'c²'}})}
+      <p><b>Grundidee:</b> ${BEWEISE[b].idee}</p><p class="small"><b>Du brauchst:</b> ${BEWEISE[b].braucht}.</p>
+      <details${g===b?' open':''}><summary>Schritt für Schritt</summary>${folgeHTML(bildfolge(b,s[0],s[1]))}</details>
+      ${g===b?'<p class="small muted">Das ist dein Beweis.</p>':`<button class="newex" data-newex="wahl-${b}">Diesen Beweis wähle ich</button>`}</div>`;
+    return `<section class="sheet"><h2>Beweise für den Satz des Pythagoras</h2>
+    <div class="rule"><p>Ein <b>Beweis</b> zeigt mit den Variablen a, b und c, dass a² + b² = c² für <b>jedes</b> rechtwinkelige Dreieck gilt. Ein Zahlenbeispiel (wie in V1) zeigt es nur für ein Dreieck.</p>
+      <p>${g?`Dein Beweis: <b>${BEWEISE[g].name}</b>. Du kannst ihn jederzeit ändern.`:'<b>Wähle einen Beweis.</b> Die Aufgaben nehmen dann deinen Beweis. Bis dahin kommen alle Beweise vor.'}</p></div>
+    ${ARTEN.map(karte).join('')}
+    <div class="rule"><h3>Zum Anschauen: Zerlegungsbeweis</h3><p>Das größere Kathetenquadrat wird in vier gleiche Teile geschnitten. Mit dem kleinen Kathetenquadrat füllen sie genau das Hypotenusenquadrat.</p>
+      ${zerlegungBild(s[0],s[1])}<button class="newex" data-newex="zahlen">Anderes Dreieck</button></div>
+    <div class="rule"><h3>Erkläre deinen Beweis</h3><p>Wenn du deinen Beweis gut kannst: Erkläre ihn einer Lehrperson (wie im Mathe Know How).</p></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 1.3 Satz des Pythagoras.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`;
+  }
+};
+
+UR.kompetenzAnmelden({id:ID, typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk,
+  festeAuswahl:['ueberblick','beweis_beispiel','schritte_ordnen','begruendung','terme','kathetensatz','checkliste']});
+UR.pythBeweise = {BEWEISE, gewaehlt};
+})(window.UR = window.UR || {});
+</script>
+<script>
 /* Mathe/2.1 Terme/M-Term-G1.js */
 /* Baustein M-Term-G1: „Ich kenne wichtige algebraische Begriffe und kann sie erklären.“
    Steckbrief: M-Term-G1.md, Auswahl der Lehrkraft: AUSWAHL.md (23.10.2026). Monom, Binom, Polynom nur im Plus-Paket. */
@@ -10290,15 +11039,14 @@ const typen = {
   },
   // X1-A05 Lücken ergänzen
   luecken_binom(){
-    const [a,b]=ab(), op=pick(['+',M]), mitte=text(`2·${a}·${b}`), L='<span class="luecke">?</span>';
-    const nr=n=>`<span class="num n${n}">${n}</span>`;
+    const [a,b]=ab(), op=pick(['+',M]), mitte=text(`2·${a}·${b}`);
     if(Math.random()<.5){
-      return aufg({kind:'felder', q:`(☐ ${op} ${b})² = ${quad(a)} ${op} ☐ + ☐`, qh:`(${nr(1)} ${op} ${b})² = ${quad(a)} ${op} ${nr(2)} + ${nr(3)}`, lead:'Ergänze die Lücken!',
-        felder:[{label:`Lücke ${nr(1)}`,modus:'genau',ans:a},{label:`Lücke ${nr(2)}`,modus:'genau',ans:mitte},{label:`Lücke ${nr(3)}`,modus:'genau',ans:quad(b)}],
+      return aufg({kind:'felder', q:`(☐ ${op} ${b})² = ${quad(a)} ${op} ☐ + ☐`, inline:true, lead:'Ergänze die Lücken!',
+        felder:[{label:'Lücke 1',modus:'genau',ans:a},{label:'Lücke 2',modus:'genau',ans:mitte},{label:'Lücke 3',modus:'genau',ans:quad(b)}],
         tasten:tastenFuer(a+b), pruef:'luecken', why:`${op==='+'?F1:F2}. ${MERK}`, steps:`(${a} ${op} ${b})² = ${quad(a)} ${op} ${mitte} + ${quad(b)}`});
     }
-    return aufg({kind:'felder', q:`(${a} ${op} ☐)² = ☐ ${op} ☐ + ${quad(b)}`, qh:`(${a} ${op} ${nr(1)})² = ${nr(2)} ${op} ${nr(3)} + ${quad(b)}`, lead:'Ergänze die Lücken!',
-      felder:[{label:`Lücke ${nr(1)}`,modus:'genau',ans:b},{label:`Lücke ${nr(2)}`,modus:'genau',ans:quad(a)},{label:`Lücke ${nr(3)}`,modus:'genau',ans:mitte}],
+    return aufg({kind:'felder', q:`(${a} ${op} ☐)² = ☐ ${op} ☐ + ${quad(b)}`, inline:true, lead:'Ergänze die Lücken!',
+      felder:[{label:'Lücke 1',modus:'genau',ans:b},{label:'Lücke 2',modus:'genau',ans:quad(a)},{label:'Lücke 3',modus:'genau',ans:mitte}],
       tasten:tastenFuer(a+b), pruef:'luecken', why:`${op==='+'?F1:F2}. ${MERK}`, steps:`(${a} ${op} ${b})² = ${quad(a)} ${op} ${mitte} + ${quad(b)}`});
   },
   // X1-A06 Welche Formel passt?
