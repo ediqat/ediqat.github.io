@@ -576,6 +576,19 @@ svg.quadrat .qp{fill:var(--ink-soft);stroke:var(--ink);stroke-width:1}
 .answer.pfz input.hoch-an{outline:2px dashed var(--x);outline-offset:1px}
 .pw-hb{display:inline-block;vertical-align:.9em;font-size:.55em;line-height:1}
 .pw-hb .bruch{font-size:1em}
+
+/* Satz des Pythagoras (Mathe/bausteine/pythagoras.js, MKH G1 a): Katheten rot, Hypotenuse grün, rechter Winkel blau */
+.dr-kath{stroke:var(--x);stroke-width:5;stroke-linecap:round}
+.dr-hyp{stroke:var(--g);stroke-width:5;stroke-linecap:round}
+.dr-rb path{fill:none;stroke:var(--c1);stroke-width:2.2} .dr-rb circle{fill:var(--c1)}
+.dr-rw{display:none} .dr-rw.an{display:inline} circle.tipp[data-rwahl].sel{fill-opacity:.2}
+.dr-thales{fill:none;stroke:var(--cop);stroke-width:2;stroke-dasharray:6 4}
+.pk{color:var(--x);font-weight:800} .ph{color:var(--g);font-weight:800} .pr{color:var(--c1);font-weight:800}
+.sz-boden{stroke:var(--muted);stroke-width:2} .sz-wand{fill:var(--ink-soft);stroke:var(--muted);stroke-width:1.5}
+.sz-ding{fill:none;stroke:var(--text);stroke-width:2} .sz-fein{fill:none;stroke:var(--muted);stroke-width:1.4}
+.sz-dr{fill:none;stroke:var(--text);stroke-width:2.5;stroke-linejoin:round} .sz-was{fill:var(--ink-soft);stroke:none}
+.sz-t{fill:var(--text);font-size:15px;font-weight:700;text-anchor:middle;font-family:var(--f-body);paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round} .sz-t.klein{font-size:12px;font-weight:600;fill:var(--muted)}
+svg.szene{display:block;width:100%;max-width:340px;margin:0 auto;height:auto}
 </style>
 </head>
 <body>
@@ -1006,7 +1019,7 @@ UR.formAnmelden('fragen', {
     if(g.length===1 && !g[0].imBild && !g[0].mehrfach)        // eine Frage mit Knöpfen: Antippen genügt
       return `${UR.aufgabeKopf(t)}${frage(g[0])}<div class="choices ${g[0].klasse||''}">${g[0].optionen.map(([v,l])=>`<button data-choice="${esc(v)}">${l}</button>`).join('')}</div>`;
     return `${UR.aufgabeKopf(t)}<form class="selfform" id="multiForm" autocomplete="off">${g.map((x,i)=>UR.wahlFeld('q'+i)).join('')}
-      ${g.map((x,i)=>`${frage(x)}${x.imBild?'':UR.wahlGruppe('q'+i,x.optionen,x)}`).join('')}${okKnopf}</form>`;
+      ${g.map((x,i)=>`${frage(x)}${x.imBild?(x.mehrfach?`<span hidden data-wgruppe="q${i}" data-mehrfach="1"></span>`:''):UR.wahlGruppe('q'+i,x.optionen,x)}`).join('')}${okKnopf}</form>`;
   },
   bewerten(t,pre,raw){
     const l=Array.isArray(raw)?raw:[raw];
@@ -1918,7 +1931,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-27.1","datum":"27.11.2026","pruefsumme":"89b578c818ca12ea"};
+UR.version = {"nummer":"2026-11-27.5","datum":"27.11.2026","pruefsumme":"2f36f836fa7e0d79"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -2786,7 +2799,11 @@ function merkwuerdig(P){
    Konstruktionen (V1, später X1): nurSeiten ['c'] (nur diese Seiten zeichnen, Dreieck unsichtbar), eckenNur ['A','B'],
    markSeiten ['a','b'] und markWinkel ['A'] (gegebene Stücke farbig), boegen [{mitte, r, durch, spanne, nr, wg}]
    (Zirkelbogen um mitte mit Radius r, um den Punkt durch herum), strahlen [{von, bis, nr, wg}] (Winkelschenkel), nummern [{seite, nr, wg}];
-   nr = Nummer im Kreis, wg = Frage, zu der die Nummer antippbar ist. */
+   nr = Nummer im Kreis, wg = Frage, zu der die Nummer antippbar ist.
+   Satz des Pythagoras (M-Pyth, 27.11.2026): namen {a:'p', b:'m', c:'n'} (freie Seitennamen; antippbar bleibt a/b/c),
+   rolle {a:'k', b:'k', c:'h'} (Katheten rot, Hypotenuse grün), rechtBogen (rechter Winkel als Bogen mit Punkt, blau),
+   rechtWahl 'q0' (Ecke antippen: dort erscheint der rechte Winkel, Antwort A/B/C), thales 'c' (Halbkreis über der Seite c,
+   auf der Seite der dritten Ecke, mit Mittelpunkt). */
 function zeichne(P,o={}){
   const h=o.hilfe||'nackt', voll=h==='voll', mitFarbe=h!=='nackt';
   const ecken=o.ecken??voll, sNamen=o.seitenNamen??voll, wNamen=o.winkelNamen??false, farben=o.farben??mitFarbe, rechter=o.rechter??mitFarbe;
@@ -2801,6 +2818,11 @@ function zeichne(P,o={}){
   const kreisPunkte = c => Array.from({length:24},(_,i)=>plus(c.mitte,[c.r*Math.cos(i*Math.PI/12), c.r*Math.sin(i*Math.PI/12)]));
   for(const c of o.kreise||[]) alle.push(...kreisPunkte(c));
   for(const s of o.strahlen||[]) alle.push(s.von,s.bis);
+  // Thaleskreis: Halbkreis über einer Seite, zur dritten Ecke hin
+  let thPunkte=null, thMitte=null;
+  if(o.thales){ const E=o.thales.toUpperCase(), [p1,p2]=gegen[E].map(n=>P[n]), V=P[E], m=mal(plus(p1,p2),.5), R=dist(p1,p2)/2, a0=Math.atan2(p1[1]-m[1],p1[0]-m[0]);
+    const pk=sg=>Array.from({length:37},(_,i)=>plus(m,[R*Math.cos(a0+sg*i*Math.PI/36), R*Math.sin(a0+sg*i*Math.PI/36)]));
+    const hin=pk(1)[18]; thPunkte=((hin[0]-m[0])*(V[0]-m[0])+(hin[1]-m[1])*(V[1]-m[1])>=0)?pk(1):pk(-1); thMitte=m; alle.push(...thPunkte); }
   const xs=alle.map(p=>p[0]), ys=alle.map(p=>p[1]), x0=Math.min(...xs), y1=Math.max(...ys);
   const bw=Math.max(...xs)-x0||1, bh=y1-Math.min(...ys)||1;
   const k=Math.min((W-2*PAD)/bw, (o.hoeheMax||240)/bh), H=bh*k+2*PAD, dx=(W-2*PAD-bw*k)/2;
@@ -2818,6 +2840,12 @@ function zeichne(P,o={}){
   for(const s of o.strahlen||[]) linien.push([S(s.von),S(s.bis)]);
   for(const b of o.boegen||[]){ const pk=bogenPunkte(b).map(S); for(let i=0;i<4;i++) linien.push([pk[i],pk[i+1],1]); }
   for(const c of o.kreise||[]){ const pk=kreisPunkte(c).map(S); pk.forEach((q,i)=>linien.push([q,pk[(i+1)%pk.length],1])); }
+  if(thPunkte){ const pk=thPunkte.map(S); for(let i=0;i<pk.length-1;i++) linien.push([pk[i],pk[i+1],1]); }
+  const nm = s => (o.namen||{})[s]||s;
+  // rechter Winkel als Bogen mit Punkt (Pythagoras)
+  const rechtBogenSVG = (e,cls,extra='') => { const [u,w]=gegen[e].map(n=>einheitV(minus(Q[n],Q[e]))), kurz=Math.min(dist(Q[e],Q[gegen[e][0]]),dist(Q[e],Q[gegen[e][1]])),
+      r=Math.min(20,kurz*.3), a=plus(Q[e],mal(u,r)), b=plus(Q[e],mal(w,r)), kr=u[0]*w[1]-u[1]*w[0], pu=plus(Q[e],mal(einheitV(plus(u,w)),r*.5));
+    return `<g class="${cls}"${extra}><path d="M${pt(a)} A${rund(r,1)},${rund(r,1)} 0 0 ${kr>0?1:0} ${pt(b)}"/><circle cx="${rund(pu[0],1)}" cy="${rund(pu[1],1)}" r="2.4"/></g>`; };
   const belegt=(p,r)=>kasten.push({x:p[0]-r,y:p[1]-r,w:2*r,h:2*r});
   const zb=(c,fs)=>fs*(c===' '?.28:/[0-9]/.test(c)?.57:/[,.]/.test(c)?.28:/[=≈]/.test(c)?.6:c==='°'?.4:c==='?'?.55:.62);
   const breite=(html,fs)=>{ let w=0; String(html).replace(/<sub>(.*?)<\/sub>|<[^>]+>|([^<]+)/g,(m,s,t)=>{ for(const c of s||'') w+=zb(c,fs*.7); for(const c of t||'') w+=zb(c,fs); return ''; }); return w; };
@@ -2841,6 +2869,7 @@ function zeichne(P,o={}){
   // gleich große Winkel (Farbe 2), rechter Winkel als Quadrat
   for(const e of 'ABC'){
     const [u,w]=gegen[e].map(n=>einheitV(minus(Q[n],Q[e]))), kurz=Math.min(dist(Q[e],Q[gegen[e][0]]),dist(Q[e],Q[gegen[e][1]]));
+    if(rechter && Math.abs(WI[e]-90)<1e-6 && o.rechtBogen){ svg+=rechtBogenSVG(e,'dr-rb'); continue; }
     if(rechter && Math.abs(WI[e]-90)<1e-6){ const q=Math.min(14,kurz*.3); svg+=`<path class="dr-recht" d="M${pt(plus(Q[e],mal(u,q)))} L${pt(plus(plus(Q[e],mal(u,q)),mal(w,q)))} L${pt(plus(Q[e],mal(w,q)))}"/>`; continue; }
     const andere='ABC'.replace(e,'').split('');
     if(farben && andere.some(f=>gleich(WI[e],WI[f]))){
@@ -2851,6 +2880,9 @@ function zeichne(P,o={}){
   for(const c of o.kreise||[]){ const m=S(c.mitte); svg+=`<circle class="dr-kreis" cx="${m[0]}" cy="${m[1]}" r="${rund(c.r*k,2)}"/>`; }
   for(const v of o.verlaengern||[]) svg+=`<line class="dr-verl" x1="${S(v[0])[0]}" y1="${S(v[0])[1]}" x2="${S(v[1])[0]}" y2="${S(v[1])[1]}"/>`;
   svg+=`<polygon class="dr" data-ecken="${pt(Q.A)} ${pt(Q.B)} ${pt(Q.C)}" points="${pt(Q.A)} ${pt(Q.B)} ${pt(Q.C)}"${o.nurSeiten?' style="stroke:none"':''}/>`;
+  if(thPunkte){ const pk=thPunkte.map(S); svg+=`<path class="dr-thales" d="M${pk.map(pt).join(' L')}"/>`; const m=S(thMitte); svg+=`<circle class="dr-punkt" cx="${m[0]}" cy="${m[1]}" r="3"/>`; }
+  for(const e of 'ABC'){ const r=(o.rolle||{})[KL[e]]; if(!r) continue; const [p,q]=gegen[e].map(n=>Q[n]);
+    svg+=`<line class="${r==='h'?'dr-hyp':'dr-kath'}" x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}"/>`; }
   for(const s of o.nurSeiten||[]){ const [p,q]=gegen[s.toUpperCase()].map(n=>Q[n]); svg+=`<line class="dr-seite" x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}"/>`; }
   // Konstruktion: Zirkelbögen und Winkelschenkel, Nummern zum Antippen
   const nummer = (p,nr,wg) => (belegt(p,11), '') + `<circle class="dr-nr" cx="${rund(p[0],1)}" cy="${rund(p[1],1)}" r="11"/><text class="dr-nrt" x="${rund(p[0],1)}" y="${rund(p[1]+5,1)}">${nr}</text>${
@@ -2903,7 +2935,7 @@ function zeichne(P,o={}){
     let n=einheitV([-(q[1]-p[1]), q[0]-p[0]]); if((sm[0]-mitte[0])*n[0]+(sm[1]-mitte[1])*n[1]<0) n=mal(n,-1);
     const st=(o.seitenText||{})[KL[e]];
     if(!st&&!sNamen) continue;
-    const txt=st?(/[=≈]/.test(st)||o.ohneNamen?st:`${KL[e]} = ${st}`):KL[e], an=f=>plus(p,mal(minus(q,p),f));
+    const txt=st?(/[=≈]/.test(st)||o.ohneNamen?st:`${nm(KL[e])} = ${st}`):nm(KL[e]), an=f=>plus(p,mal(minus(q,p),f));
     svg+=setze(txt,st?'dr-t klein':'dr-t',(bw,bh)=>[...[.5,.4,.6,.3,.7].flatMap(f=>[4,9,16].map(d=>aussen(an(f),n,bw,bh,d))), [...aussen(sm,mal(n,-1),bw,bh,6),1]]);
   }
   for(const e of 'ABC'){
@@ -2918,7 +2950,9 @@ function zeichne(P,o={}){
       return [...innen, ...aus, ...[0,8,16,26,40].map(x=>[...plus(Q[e],mal(bi,r0+x)),1])]; });
   }
   // antippbare Seiten und Winkel (Frage q0 …)
+  if(o.rechtWahl) for(const e of 'ABC') svg+=rechtBogenSVG(e,'dr-rb dr-rw',` data-rw="${o.rechtWahl}" data-wert="${e}"`);
   if(o.tippSeiten) for(const e of 'ABC'){ const [p,q]=gegen[e].map(n=>Q[n]); svg+=`<line class="tipp" data-wg="${o.tippSeiten}" data-wert="${KL[e]}" x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}"/>`; }
+  if(o.rechtWahl) for(const e of 'ABC'){ const v=einheitV(minus(mitte,Q[e])), t=plus(Q[e],mal(v,14)); svg+=`<circle class="tipp" data-rwahl="1" data-wg="${o.rechtWahl}" data-wert="${e}" cx="${rund(t[0],1)}" cy="${rund(t[1],1)}" r="22"/>`; }
   if(o.tippWinkel) for(const e of 'ABC'){ const v=einheitV(minus(mitte,Q[e])), t=plus(Q[e],mal(v,22)); svg+=`<circle class="tipp" data-wg="${o.tippWinkel}" data-wert="${e}" cx="${rund(t[0],1)}" cy="${rund(t[1],1)}" r="19"/>`; }
   // Tiefstellung (h<sub>a</sub>) gibt es in SVG nicht: als tspan
   svg=svg.replace(/<sub>(.*?)<\/sub>/g,'<tspan class="tief" dy="4">$1</tspan><tspan dy="-4"> </tspan>');
@@ -2981,13 +3015,14 @@ function einheitHinweis(e, soll){
    t.s2 {label, ans, tol, einheitAns, einheit (fest) oder Einheiten-Tasten, ansText, fehler:[[Wert, Hinweis]]}
          oder {label, ansText, felder:[{label, ans, tol, auch, einheit | einheitAns}]} (mehrere Zahlen, V2)
          oder {label, ansText, art:'wahl', wahl:[[Wert,Beschriftung]], ans} (Auswahl als Schritt 2)
-   t.pre {ans, optionen:[[Wert,Beschriftung]]}: Einstieg mit Hilfe = Schritt 1 auswählen. */
+   t.pre {ans, optionen:[[Wert,Beschriftung]], klasse}: Einstieg mit Hilfe = Schritt 1 auswählen (klasse 'lang': Knöpfe untereinander,
+   z. B. Gleichungen im Satz des Pythagoras; ebenso t.s1.klasse bei der Auswahl in Schritt 1). */
 const okKnopf = `<div class="answer"><button class="big" type="submit">${T.ok}</button></div>`;
 const RTASTEN = ['+','·'];
 const rechenTasten = `<div class="tasten" role="group" aria-label="Zeichen einfügen">${RTASTEN.map(x=>`<button type="button" class="taste" data-rt="${x}">${x}</button>`).join('')}</div>`;
 function feld1(t){
   const s=t.s1;
-  if(s.art==='wahl') return `${UR.wahlFeld('s1')}${UR.wahlGruppe('s1',s.wahl,{klasse:'drei'})}`;
+  if(s.art==='wahl') return `${UR.wahlFeld('s1')}${UR.wahlGruppe('s1',s.wahl,{klasse:s.klasse||'drei'})}`;
   if(s.art==='rechnung') return `<div class="answer"><input class="rechnung" data-feld inputmode="text" autocomplete="off" placeholder="?" aria-label="${esc(s.kurz)}"></div>${rechenTasten}`;
   return `<div class="answer"><input class="zahl" data-feld inputmode="decimal" placeholder="?" aria-label="${esc(s.kurz)}">${s.einheit?`<span class="einheit">${s.einheit}</span>`:''}</div>`;
 }
@@ -3014,7 +3049,7 @@ UR.formAnmelden('schritte', {
     const kopf=UR.aufgabeKopf(t);
     if(st.self) return `${kopf}<form class="selfform" id="multiForm" autocomplete="off"><label class="lbl">${t.s1.label}</label>${feld1(t)}
       <label class="lbl">${t.s2.label}</label>${feld2(t)}${okKnopf}</form>`;
-    if(!st.stage) return `${kopf}<p class="muted">${t.s1.label}</p><div class="choices ${t.pre.optionen.some(o=>o[1].length>14)?'lang':'drei'}">${
+    if(!st.stage) return `${kopf}<p class="muted">${t.s1.label}</p><div class="choices ${t.pre.klasse||(t.pre.optionen.some(o=>o[1].length>14)?'lang':'drei')}">${
       t.pre.optionen.map(([v,l])=>`<button data-pre="${esc(v)}">${l}</button>`).join('')}</div>`;
     const s = st.coach && !st.preOk ? t.pre.ans : st.pre, txt=(t.pre.optionen.find(o=>o[0]===s)||[s,s])[1];
     const note = !st.coach ? '' : st.preOk ? `<div class="fb ok"><span><b class="t">${T.richtig}!</b></span></div>`
@@ -3054,6 +3089,9 @@ UR.formAnmelden('schritte', {
 });
 UR.bindungen.push(app=>{ if(!app.querySelector) return;   // Testumgebung ohne DOM
  
+  // Ecke antippen: dort erscheint der rechte Winkel (Pythagoras, rechtWahl)
+  app.querySelectorAll('circle.tipp[data-rwahl]').forEach(c=>c.addEventListener('click',()=>{
+    const svg=c.closest('svg'); svg.querySelectorAll(`.dr-rw[data-rw="${c.dataset.wg}"]`).forEach(g=>g.classList.toggle('an', g.dataset.wert===c.dataset.wert)); }));
   const inp=app.querySelector('input.rechnung'); if(!inp) return;
   app.querySelectorAll('[data-rt]').forEach(b=>{
     b.onpointerdown = e => e.preventDefault();
@@ -4650,6 +4688,185 @@ UR.powu = {M, NB, rnd, pick, mischen, versuche, zieher, D, dKurz, dMul, dPot, dA
   rundFeld, exaktFeld, bruchFeld, kuerzenHinweis, bau, normName, aufg, merk, quadratSVG, quadratTabelle,
   mono, monoH, hochT, termKurzHinweis, hochEinfuegen,
   dZehn, dMalZehn, dGleit, gleitT, gleitLesen, istNormiert, gleitHinweis, ZEHN_NAME, ZEHN_KURZ, zehnerTabelle, kommaPfeil, stellenText};
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/bausteine/pythagoras.js */
+/* Mathe-Baustein Satz des Pythagoras (1.3, Steckbriefe M-Pyth-*), 27.11.2026.
+   Themenregeln: Mathe/1.3 Satz-des-Pythagoras/AUSWAHL.md. Baut auf dreiecke.js (Zeichnung, Form 'schritte') und
+   potenzen.js (exakte Dezimalzahlen, exakt gerundete Wurzel) auf.
+   - Rechtwinkelige Dreiecke in zufälliger Lage (gedreht, gespiegelt), spitze Winkel 15° bis 75°.
+   - Seitennamen aus Buchstabengruppen (a b c, e f g …); die Hypotenuse heißt oft nicht c.
+   - Satz aufstellen als Schritt 1 der Form 'schritte' (Auswahl, genau eine richtige Gleichung, quadriert oder mit Wurzel),
+     Schritt 2 das Ergebnis mit Einheiten-Tasten (Fall A mit Stelle, Fall B nur bei Sachaufgaben).
+   - Sachaufgaben-Bilder (szene): Leiter, Feuerwehrleiter, Bildschirm, Regal, Klapptisch, Grundstück, Drachen, Boot, Rallye, Sprint. */
+(function(UR){
+const {rnd, pick} = UR;
+const Dr = UR.dreiecke, PW = UR.powu;
+const {mischen, versuche, rad, plus, minus, mal, dist, einheitV} = Object.assign({einheitV: v => { const l=Math.hypot(v[0],v[1])||1; return [v[0]/l, v[1]/l]; }}, Dr);
+const {D, dMul, dAdd, dSub, dVgl, dZahl, dText, dRund, wurzelRund, istPotenz, rundWort} = PW;
+
+const GRUPPEN = [['a','b','c'],['e','f','g'],['k','l','m'],['m','n','p'],['r','s','t'],['u','v','w'],['x','y','z']];
+const LAENGEN = ['mm','cm','dm','m'];
+const merk = s => `<span class="merk">${s}</span>`;
+const K = s => `<span class="pk">${s}</span>`, H = s => `<span class="ph">${s}</span>`;
+
+/* ---------- Zahlen ---------- */
+// Zahl mit höchstens einer Nachkommastelle zwischen lo und hi (ganz mit Wahrscheinlichkeit pGanz)
+const zahl1 = (lo, hi, pGanz=.4) => Math.random()<pGanz ? D(rnd(Math.ceil(lo),Math.floor(hi))) : D(rnd(Math.round(lo*10),Math.round(hi*10))/10);
+const T = d => dText(D(d));                 // „78,4“, „1 225“
+const quad = d => dMul(D(d),D(d));
+// Wurzel aus einer exakten Dezimalzahl: geht sie auf? sonst exakt gerundet
+function wurzel(x){
+  const w=wurzelRund(x,2,3); const glatt = istPotenz(x,2);
+  return {glatt, exakt: glatt ? wurzelRund(x,2,2).r : null, rund: k => wurzelRund(x,2,k).r, nahe: [1,2,3].some(k=>wurzelRund(x,2,k).nahe), w3:w.r};
+}
+// Fall B ohne Stelle: Soll = auf 3 Stellen gerundet, wenn das auf 1 und 2 Stellen dieselbe Rundung gibt wie der exakte Wert
+const fallBTauglich = x => { const w=wurzel(x); if(w.glatt) return true; if(w.nahe||PW.dStellen(w.w3)<3) return false;
+  return [1,2].every(k=>dVgl(dRund(w.w3,k), w.rund(k))===0); };
+
+/* ---------- Dreieck ----------
+   recht: Ecke mit dem rechten Winkel (A, B, C), k1, k2: Längen der Katheten (Zahlen); A, B, C gegen den Uhrzeigersinn,
+   dann gedreht und (wenn spiegeln) gespiegelt. */
+function rwDreieck(recht, k1, k2, o={}){
+  const R=[0,0], X=[k1,0], Y=[0,k2], P={};
+  const folge = {A:['A','B','C'], B:['B','C','A'], C:['C','A','B']}[recht];
+  P[folge[0]]=R; P[folge[1]]=X; P[folge[2]]=Y;
+  let Q = o.drehen===false ? P : Dr.lage(P);
+  if(o.spiegeln) Q={A:[-Q.A[0],Q.A[1]], B:[-Q.B[0],Q.B[1]], C:[-Q.C[0],Q.C[1]]};
+  return Q;
+}
+// Kathetenverhältnis für spitze Winkel zwischen 15° und 75° (bis etwa 1 : 3,7)
+const verhaeltnis = () => Math.tan(rad(rnd(15,75)));
+const gegenSeite = e => e.toLowerCase();
+// Dreieck mit Kathetenlängen k1, k2: {P, recht, hyp ('a'|'b'|'c'), kath:[Seite mit k1, Seite mit k2]}
+function dreieckMit(k1, k2, o={}){
+  const recht=o.recht||pick(['A','B','C']), folge={A:['A','B','C'], B:['B','C','A'], C:['C','A','B']}[recht];
+  const P=rwDreieck(recht, k1, k2, {spiegeln:o.spiegeln??Math.random()<.5, drehen:o.drehen});
+  return {P, recht, hyp:gegenSeite(recht), kath:[gegenSeite(folge[2]), gegenSeite(folge[1])]};
+}
+const zufallsDreieck = (o={}) => dreieckMit(1, o.v||verhaeltnis(), o);
+// Seitennamen: Gruppe wählen, die Hypotenuse heißt in etwa der Hälfte nicht wie der letzte Buchstabe
+function benennen(d, gruppe){
+  const g=gruppe||pick(GRUPPEN), hName = Math.random()<.5 ? g[2] : pick(g.slice(0,2)), rest=mischen(g.filter(x=>x!==hName));
+  const namen={[d.hyp]:hName, [d.kath[0]]:rest[0], [d.kath[1]]:rest[1]};
+  return Object.assign(d,{namen, gruppe:g, hName, kNamen:[rest[0],rest[1]]});
+}
+const rolle = d => ({[d.hyp]:'h', [d.kath[0]]:'k', [d.kath[1]]:'k'});
+
+/* ---------- Gleichungen (Satz aufstellen) ----------
+   h = Hypotenuse, k1, k2 = Katheten (Namen); gesucht: Name oder null (nur der Satz). Richtig ist genau eine. */
+const q2 = x => `${x}²`;
+function richtigeGleichung(h, k1, k2, gesucht, form){
+  if(!gesucht||form==='satz') return `${q2(k1)} + ${q2(k2)} = ${q2(h)}`;
+  if(gesucht===h) return form==='wurzel' ? `${h} = √(${q2(k1)} + ${q2(k2)})` : `${q2(h)} = ${q2(k1)} + ${q2(k2)}`;
+  const andere = gesucht===k1 ? k2 : k1;
+  return form==='wurzel' ? `${gesucht} = √(${q2(h)} − ${q2(andere)})` : `${q2(gesucht)} = ${q2(h)} − ${q2(andere)}`;
+}
+// falsche Gleichungen in derselben Form (für das Gesuchte bzw. den Satz)
+function falscheGleichungen(h, k1, k2, gesucht, form){
+  const f=[];
+  if(!gesucht||form==='satz'){
+    f.push(`${q2(k1)} + ${q2(h)} = ${q2(k2)}`, `${q2(k2)} + ${q2(h)} = ${q2(k1)}`, `${q2(k1)} · ${q2(k2)} = ${q2(h)}`, `${k1} + ${k2} = ${h}`);
+    return f;
+  }
+  const W = form==='wurzel';
+  if(gesucht===h){
+    f.push(W?`${h} = √(${q2(k1)} − ${q2(k2)})`:`${q2(h)} = ${q2(k1)} − ${q2(k2)}`,
+      W?`${h} = √(${q2(k1)} · ${q2(k2)})`:`${q2(h)} = ${q2(k1)} · ${q2(k2)}`,
+      W?`${h} = √(${k1} + ${k2})`:`${h} = ${k1} + ${k2}`,
+      W?`${h} = √(${q2(k2)} − ${q2(k1)})`:`${q2(h)} = ${q2(k2)} − ${q2(k1)}`);
+  } else {
+    const a = gesucht===k1 ? k2 : k1;
+    f.push(W?`${gesucht} = √(${q2(h)} + ${q2(a)})`:`${q2(gesucht)} = ${q2(h)} + ${q2(a)}`,
+      W?`${gesucht} = √(${q2(a)} − ${q2(h)})`:`${q2(gesucht)} = ${q2(a)} − ${q2(h)}`,
+      W?`${gesucht} = √(${q2(h)} · ${q2(a)})`:`${q2(gesucht)} = ${q2(h)} · ${q2(a)}`,
+      W?`${gesucht} = √(${h} − ${a})`:`${gesucht} = ${h} − ${a}`);
+  }
+  return f;
+}
+// Auswahl: n Gleichungen (1 richtig), Schlüssel g0 …; liefert {wahl, ans, richtig}
+function gleichungsWahl(h, k1, k2, gesucht, n, form){
+  form = form || (Math.random()<.5 ? 'quadrat' : 'wurzel');
+  const richtig=richtigeGleichung(h,k1,k2,gesucht,form), falsch=mischen(falscheGleichungen(h,k1,k2,gesucht,form)).slice(0,n-1);
+  const l=mischen([richtig,...falsch]).map((g,i)=>['g'+i,g]);
+  return {wahl:l, ans:l.find(x=>x[1]===richtig)[0], richtig, form};
+}
+
+/* ---------- Rechnung: Hypotenuse oder Kathete ----------
+   art 'h' (aus zwei Katheten) oder 'k' (aus Hypotenuse und Kathete); x, y exakte Dezimalzahlen (bei 'k': x = Hypotenuse).
+   k = Stelle (Fall A) oder null (Fall B, Soll auf 3 Stellen gerundet, siehe fallBTauglich). */
+function rechne(art, x, y){
+  const rad = art==='h' ? dAdd(quad(x),quad(y)) : dSub(quad(x),quad(y));
+  return Object.assign({rad, art}, wurzel(rad));
+}
+// Feld für Schritt 2: ans (gerundet oder exakt), stellen bzw. offen, ansText
+function ergebnisFeld(r, k, name, einheit, o={}){
+  const s2 = {label:o.label||`Schritt 2: ${name} = ? (mit Einheit)`, einheiten:Dr.EINHEITEN, einheitAns:einheit, tol:0};
+  if(k){ const g = r.glatt ? r.exakt : r.rund(k); Object.assign(s2, {ans:dZahl(g), stellen:k, ansText:`${name} ${r.glatt?'=':'≈'} ${r.glatt?T(g):dText(g,k)} ${einheit}`, gerundet:g}); }
+  else { const g = r.glatt ? r.exakt : r.w3; Object.assign(s2, {ans:dZahl(g), offen:true, ansText:`${name} ${r.glatt?'=':'≈'} ${T(r.glatt?g:r.rund(2))} ${einheit}`, gerundet:g}); }
+  return s2;
+}
+// Rechenweg als Text: c = √(78,4² + 9,7²) = √6 240,65 ≈ 79,00
+function rechenweg(name, art, x, y, r, k){
+  const op = art==='h' ? '+' : '−', g = r.glatt ? T(r.exakt) : k ? dText(r.rund(k),k) : T(r.rund(2));
+  return `${name} = √(${T(x)}² ${op} ${T(y)}²) = √(${T(quad(x))} ${op} ${T(quad(y))}) = √${T(r.rad)} ${r.glatt?'=':'≈'} ${g}`;
+}
+// typische falsche Ergebnisse (für Hinweise): plus statt minus, ohne Quadrate
+function typischeFehler(art, x, y, k){
+  const out=[], rw = v => k ? dZahl(wurzelRund(v,2,k).r) : null;
+  if(art==='k'){ const v=dAdd(quad(x),quad(y)); out.push([rw(v), 'Gesucht ist eine Kathete: Hypotenuse² − Kathete². Dein Ergebnis ist länger als die Hypotenuse, das kann nicht sein.']); }
+  else { const v=dSub(quad(x),quad(y)); if(v.n>0n) out.push([rw(v), 'Gesucht ist die Hypotenuse: Kathete² + Kathete², also plus. Die Hypotenuse ist die längste Seite.']); }
+  out.push([dZahl(art==='h'?dAdd(D(x),D(y)):dSub(D(x),D(y))), 'Erst quadrieren, dann rechnen, dann die Wurzel ziehen.']);
+  return out.filter(f=>f[0]!==null);
+}
+
+/* ---------- Zeichnung im Thema ---------- */
+// Bild eines Dreiecks mit Namen; werte {a:'78,4 mm'}; hilfen: farbe (Rollen), recht (eingezeichnet), wahl ('q0' Ecke antippen), tipp ('q1' Seiten antippen)
+function bild(d, o={}){
+  return Dr.zeichne(d.P, {ecken:!!o.ecken, seitenNamen:o.seitenNamen!==false && !o.ohneNamen, ohneNamen:o.ohneNamen, namen:d.namen, seitenText:o.werte||{}, rechter:!!o.recht, rechtBogen:true,
+    rolle:o.farbe?rolle(d):o.rolle||null, rechtWahl:o.wahl, tippSeiten:o.tipp, thales:o.thales, breite:o.breite||300, hoeheMax:o.hoeheMax||220, farben:false, winkelText:o.winkelText});
+}
+
+/* ---------- Sachaufgaben-Szenen ----------
+   Ein Bild aus Linien in Weltkoordinaten (y nach oben); das Dreieck mit beschrifteten Seiten und rechtem Winkel.
+   teile: [{art:'l'|'poly'|'rect'|'kreis'|'text', …, cls}]; dr: {pkte:[R, X, Y] (R = rechter Winkel), texte:[am RX, am RY, am XY]} */
+function szene(teile, dr, o={}){
+  const alle=[...dr.pkte]; for(const t of teile) alle.push(...(t.pkte||[]), ...(t.p?[t.p]:[]), ...(t.m?[[t.m[0]-t.r,t.m[1]-t.r],[t.m[0]+t.r,t.m[1]+t.r]]:[]));
+  const W=o.breite||340, PAD=34, xs=alle.map(p=>p[0]), ys=alle.map(p=>p[1]), x0=Math.min(...xs), y1=Math.max(...ys);
+  const bw=Math.max(...xs)-x0||1, bh=y1-Math.min(...ys)||1, k=Math.min((W-2*PAD)/bw, (o.hoeheMax||230)/bh), Hh=bh*k+2*PAD, dx=(W-2*PAD-bw*k)/2;
+  const S=p=>[Dr.rund(PAD+dx+(p[0]-x0)*k,1), Dr.rund(PAD+(y1-p[1])*k,1)], pt=p=>S(p).join(',');
+  let s='';
+  for(const t of teile){
+    if(t.art==='l') s+=`<line class="${t.cls||'sz-ding'}" x1="${S(t.pkte[0])[0]}" y1="${S(t.pkte[0])[1]}" x2="${S(t.pkte[1])[0]}" y2="${S(t.pkte[1])[1]}"/>`;
+    if(t.art==='poly') s+=`<polygon class="${t.cls||'sz-ding'}" points="${t.pkte.map(pt).join(' ')}"/>`;
+    if(t.art==='weg') s+=`<polyline class="${t.cls||'sz-ding'}" points="${t.pkte.map(pt).join(' ')}"/>`;
+    if(t.art==='kreis'){ const m=S(t.m); s+=`<circle class="${t.cls||'sz-ding'}" cx="${m[0]}" cy="${m[1]}" r="${Dr.rund(t.r*k,1)}"/>`; }
+    if(t.art==='text'){ const p=S(t.p); s+=`<text class="sz-t klein" x="${p[0]}" y="${p[1]}">${t.text}</text>`; }
+  }
+  const [R,X,Y]=dr.pkte.map(S), cls=dr.farbe?['dr-kath','dr-kath','dr-hyp']:['sz-dr','sz-dr','sz-dr'];
+  s+=`<polygon class="sz-dr" points="${[R,X,Y].map(p=>p.join(',')).join(' ')}"/>`;
+  if(dr.farbe) [[R,X],[R,Y],[X,Y]].forEach(([p,q],i)=>{ s+=`<line class="${cls[i]}" x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}"/>`; });
+  // rechter Winkel bei R
+  const u=einheitV(minus(X,R)), w=einheitV(minus(Y,R)), r=Math.min(16,.3*Math.min(dist(R,X),dist(R,Y))), a=plus(R,mal(u,r)), b=plus(R,mal(w,r)), kr=u[0]*w[1]-u[1]*w[0], pu=plus(R,mal(einheitV(plus(u,w)),r*.5));
+  s+=`<g class="dr-rb"><path d="M${a.join(',')} A${Dr.rund(r,1)},${Dr.rund(r,1)} 0 0 ${kr>0?1:0} ${b.join(',')}"/><circle cx="${Dr.rund(pu[0],1)}" cy="${Dr.rund(pu[1],1)}" r="2.4"/></g>`;
+  // Beschriftungen: außen neben der Seitenmitte (vom Schwerpunkt weg)
+  const sp=[(R[0]+X[0]+Y[0])/3,(R[1]+X[1]+Y[1])/3], kasten=[];
+  [[R,X],[R,Y],[X,Y]].forEach(([p,q],i)=>{ const txt=dr.texte[i]; if(!txt) return;
+    const m=mal(plus(p,q),.5); let n=einheitV([-(q[1]-p[1]), q[0]-p[0]]); if((m[0]-sp[0])*n[0]+(m[1]-sp[1])*n[1]<0) n=mal(n,-1);
+    const bw2=String(txt).replace(/<[^>]+>/g,'').length*8.2, c=plus(m,mal(n,12+Math.abs(n[0])*bw2/2+Math.abs(n[1])*8));
+    kasten.push([c[0]-bw2/2,c[1]-12,c[0]+bw2/2,c[1]+6]);
+    s+=`<text class="sz-t" x="${Dr.rund(c[0],1)}" y="${Dr.rund(c[1]+5,1)}">${txt}</text>`; });
+  const vx0=Math.min(0,...kasten.map(b=>b[0]-4)), vy0=Math.min(0,...kasten.map(b=>b[1]-4)), vx1=Math.max(W,...kasten.map(b=>b[2]+4)), vy1=Math.max(Hh,...kasten.map(b=>b[3]+4));
+  return `<svg class="szene" viewBox="${Dr.rund(vx0,1)} ${Dr.rund(vy0,1)} ${Dr.rund(vx1-vx0,1)} ${Dr.rund(vy1-vy0,1)}" role="img" aria-label="Skizze">${s}</svg>`;
+}
+
+// alle pythagoräischen Tripel a < b < c ≤ max
+const tripel = max => { const l=[]; for(let c=5;c<=max;c++) for(let a=3;a<c;a++){ const b=Math.round(Math.sqrt(c*c-a*a)); if(b>a&&a*a+b*b===c*c) l.push([a,b,c]); } return l; };
+const istTripel = (a,b,c) => { const s=[a,b,c].map(D).sort(dVgl); return dVgl(dAdd(quad(s[0]),quad(s[1])),quad(s[2]))===0; };
+
+UR.pyth = {GRUPPEN, LAENGEN, merk, K, H, zahl1, T, quad, wurzel, fallBTauglich, rwDreieck, verhaeltnis, zufallsDreieck, dreieckMit, tripel, istTripel, benennen, rolle,
+  richtigeGleichung, falscheGleichungen, gleichungsWahl, rechne, ergebnisFeld, rechenweg, typischeFehler, bild, szene, rundWort};
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -8505,6 +8722,595 @@ const erklaerung = {
 
 const lzk = {merkmal:{gleiche_basis:'powu_x2_basis', pot_pot:'powu_x2_potpot', produkt_hoch:'powu_x2_produkt', wurzelregeln:'powu_x2_wurzel', vereinfachen:'powu_x2_lzk'}};
 UR.kompetenzAnmelden({id:'M-PoWu-X2', ohneFallB:true, typen, stationen, kern, leicht, plus, plusHint, festeAuswahl, erklaerung, lzk});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.3 Satz-des-Pythagoras/M-Pyth-G1.js */
+/* Baustein M-Pyth-G1: „Ich kenne wichtige Begriffe und Eigenschaften betreffend Satz des Pythagoras und kann sie erklären.“
+   Steckbrief: M-Pyth-G1.md, Auswahl und Themenregeln: AUSWAHL.md (27.11.2026). Der rechte Winkel ist in G1 nicht
+   eingezeichnet: Das Kind tippt zuerst die Ecke an (dort erscheint er), dann bestimmt es Katheten und Hypotenuse.
+   Im geführten Einstieg ist er schon eingezeichnet (dann nur Schritt 2). */
+(function(UR){
+const {rnd, pick} = UR;
+const Dr = UR.dreiecke, Py = UR.pyth;
+const {mischen, versuche, GR, NAMEN, dist, gegen} = Dr;
+const {D, dMul, dAdd, dText, dVgl, dZahl} = UR.powu;
+const {merk, K, H, T, quad, bild, benennen, zufallsDreieck, dreieckMit, gleichungsWahl, tripel, istTripel} = Py;
+
+const MERK = merk('Zuerst den rechten Winkel suchen. Die Katheten bilden ihn, die Hypotenuse liegt ihm gegenüber.');
+const WARUM_KH = 'Die Hypotenuse liegt dem rechten Winkel gegenüber, sie ist die längste Seite. Die Katheten bilden den rechten Winkel.';
+const ecken = d => ['A','B','C'].map(e=>[e, e===d.recht?'Ecke mit dem rechten Winkel':'Ecke mit einem spitzen Winkel']);
+const rollenName = (d,s) => s===d.hyp ? 'Hypotenuse' : 'Kathete';
+// Lösungsbild: rechter Winkel blau, Katheten rot (K), Hypotenuse grün (H)
+const loesung = (d, mitNamen) => bild(d, {farbe:true, recht:true, seitenNamen:true, ohneNamen:!mitNamen,
+  werte: mitNamen ? {} : {[d.hyp]:'H', [d.kath[0]]:'K', [d.kath[1]]:'K'}});
+const nackt = d => Object.assign({}, d, {namen:{}});
+
+/* ---------- Pools ---------- */
+const LUECKEN = [
+  ['Jedes rechtwinkelige Dreieck hat genau ① rechten Winkel und zwei ② Winkel.', [['1',['2','3','0']], ['spitze',['stumpfe','rechte','gestreckte']]]],
+  ['Die ① Seite des Dreiecks, die dem rechten Winkel gegenüberliegt, heißt ②.', [['längste',['kürzeste','mittlere']], ['Hypotenuse',['Kathete','Höhe','Diagonale']]]],
+  ['Die zwei Seiten, die den rechten Winkel bilden, heißen ①.', [['Katheten',['Hypotenusen','Höhen','Diagonalen']]]],
+  ['Die Länge des Durchmessers des Thaleskreises entspricht der Länge der ①.', [['Hypotenuse',['Kathete','Höhe','Winkelhalbierenden']]]],
+  ['Der Satz des Pythagoras gilt nur in ① Dreiecken.', [['rechtwinkeligen',['spitzwinkeligen','stumpfwinkeligen','gleichseitigen']]]],
+  ['Liegt der Punkt C auf dem ① über der Strecke AB, dann hat das Dreieck ABC bei C einen rechten Winkel.', [['Halbkreis',['Viertelkreis','Quadrat','Rechteck']]]],
+  ['Mit dem Thaleskreis kann man ein rechtwinkeliges Dreieck ①.', [['konstruieren',['spiegeln','verschieben','drehen']]]],
+  ['Drei natürliche Zahlen a, b, c mit a² + b² = c² heißen ①.', [['pythagoräisches Tripel',['Quadratzahlen','Primzahlen','Brüche']]]],
+  ['Mit dem Satz des Pythagoras kann man aus zwei bekannten ① die dritte berechnen.', [['Seitenlängen',['Winkeln','Flächen','Umfängen']]]],
+  ['Im rechtwinkeligen Dreieck ist die Fläche des Quadrats über der ① so groß wie die Flächen der Quadrate über den ② zusammen.', [['Hypotenuse',['Kathete','Höhe']], ['Katheten',['Höhen','Diagonalen','Winkeln']]]],
+  ['Das kleinste pythagoräische Tripel ist (①, 4, 5).', [['3',['2','1','6']]]],
+  ['Im rechtwinkeligen Dreieck ist die Hypotenuse immer ① als jede Kathete.', [['länger',['kürzer','gleich lang','halb so lang']]]],
+  ['Gilt in einem Dreieck a² + b² = c², dann ist das Dreieck ①.', [['rechtwinkelig',['stumpfwinkelig','gleichseitig','spitzwinkelig']]]]
+];
+const NR = ['①','②'];
+const AUSSAGEN = [
+  ['Die Hypotenuse ist immer die längste Seite im rechtwinkeligen Dreieck.', true, 'Sie liegt dem größten Winkel (90°) gegenüber.'],
+  ['Ein rechtwinkeliges Dreieck kann zwei rechte Winkel haben.', false, '90° + 90° = 180°: Für den dritten Winkel bleibt nichts übrig.'],
+  ['Die Katheten liegen dem rechten Winkel gegenüber.', false, 'Die Katheten bilden den rechten Winkel. Gegenüber liegt die Hypotenuse.'],
+  ['Der Satz des Pythagoras gilt in jedem Dreieck.', false, 'Er gilt nur in rechtwinkeligen Dreiecken.'],
+  ['Die beiden Katheten bilden den rechten Winkel.', true, 'Sie treffen sich im rechten Winkel.'],
+  ['Jedes rechtwinkelige Dreieck hat genau eine Hypotenuse.', true, 'Es gibt nur einen rechten Winkel, also nur eine Seite gegenüber.'],
+  ['(3, 4, 5) ist ein pythagoräisches Tripel.', true, '3² + 4² = 9 + 16 = 25 = 5².'],
+  ['(4, 5, 6) ist ein pythagoräisches Tripel.', false, '4² + 5² = 16 + 25 = 41, aber 6² = 36.'],
+  ['Verdoppelt man alle Zahlen eines pythagoräischen Tripels, erhält man wieder ein pythagoräisches Tripel.', true, 'Zum Beispiel (3, 4, 5) → (6, 8, 10): 36 + 64 = 100.'],
+  ['Liegt C auf dem Halbkreis über AB, dann ist der Winkel bei C ein rechter.', true, 'Das ist der Satz des Thales.'],
+  ['Liegt C innerhalb des Halbkreises über AB, dann ist der Winkel bei C spitz.', false, 'Innerhalb wird der Winkel stumpf, außerhalb spitz.'],
+  ['Der Mittelpunkt des Thaleskreises ist der Mittelpunkt der Hypotenuse.', true, 'Der Thaleskreis ist der Halbkreis über der Hypotenuse.'],
+  ['Eine Kathete kann länger sein als die Hypotenuse.', false, 'Die Hypotenuse ist immer die längste Seite.'],
+  ['In einem rechtwinkeligen Dreieck sind die beiden anderen Winkel spitz.', true, 'Sie ergeben zusammen 90°.'],
+  ['Die Hypotenuse heißt immer c.', false, 'Die Hypotenuse ist die Seite gegenüber dem rechten Winkel, egal welcher Buchstabe.'],
+  ['Kathete² + Kathete² = Hypotenuse².', true, 'Das ist der Satz des Pythagoras.'],
+  ['Hypotenuse² + Kathete² = Kathete².', false, 'Richtig ist: Kathete² + Kathete² = Hypotenuse².']
+];
+const TRIPEL100 = tripel(100), TRIPEL65 = tripel(65);
+const tT = l => `(${l.map(x=>typeof x==='object'?T(x):x).join(', ')})`;
+const probeText = ([a,b,c]) => { const l=a*a+b*b, r=c*c; return l===r ? `${a}² + ${b}² = ${a*a} + ${b*b} = ${l} = ${c}²` : `${a}² + ${b}² = ${a*a} + ${b*b} = ${l}, aber ${c}² = ${r}`; };
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // G1-A01 Rechten Winkel finden, dann Katheten und Hypotenuse antippen
+  kh_tippen(ctx){
+    const leicht=ctx&&ctx.leicht, d=zufallsDreieck(), art=pick(['h','kk','k']);
+    const mark = art==='k' ? pick(d.kath) : null;
+    const ans = art==='h' ? d.hyp : art==='kk' ? [...d.kath].sort().join(',') : d.kath.find(s=>s!==mark);
+    const was = art==='h' ? 'die Hypotenuse' : art==='kk' ? 'beide Katheten' : 'die zweite Kathete';
+    const vor = art==='k' ? 'Eine Kathete ist rot markiert. ' : '';
+    const rol = mark ? {[mark]:'k'} : null, seiten=['a','b','c'].map(s=>[s, rollenName(d,s)]);
+    const q = leicht ? `${vor}Der rechte Winkel ist schon eingezeichnet. Tippe ${was} an!` : `${vor}Zeichne den rechten Winkel ein (Ecke antippen)! Tippe dann ${was} an!`;
+    const gruppen = leicht ? [{imBild:true, mehrfach:true, frage:`Tippe ${was} an.`, optionen:seiten, ans}]
+      : [{imBild:true, frage:'1. Tippe die Ecke mit dem rechten Winkel an.', optionen:ecken(d), ans:d.recht}, {imBild:true, mehrfach:true, frage:`2. Tippe ${was} an.`, optionen:seiten, ans}];
+    return Dr.aufg({kind:'fragen', q, text:true, lead:leicht?MERK:'', pruef:'kh_tippen', daten:{d, art, mark},
+      bild:bild(nackt(d), {seitenNamen:false, recht:leicht, rolle:rol, wahl:leicht?undefined:'q0', tipp:leicht?'q0':'q1'}),
+      gruppen, why:WARUM_KH, loesungBild:loesung(nackt(d))});
+  },
+  // G1-A02 Welche Variable steht für die Hypotenuse?
+  variable(ctx){
+    const leicht=ctx&&ctx.leicht, d=benennen(zufallsDreieck()), kk=Math.random()<.25, [k1,k2]=d.kNamen;
+    const opt=mischen(d.gruppe).map(n=>[n,n]), ans = kk ? [k1,k2].sort().join(',') : d.hName;
+    const frage = kk ? 'Welche Variablen stehen für die Katheten?' : 'Welche Variable steht für die Hypotenuse?';
+    const g2 = {frage:(leicht?'':'2. ')+frage, optionen:opt, ans, mehrfach:kk, klasse:'drei'};
+    return Dr.aufg({kind:'fragen', q:leicht?`Der rechte Winkel ist eingezeichnet. ${frage}`:`Zeichne den rechten Winkel ein (Ecke antippen)! ${frage}`, text:true,
+      lead:leicht?MERK:'', pruef:'variable', daten:{d, kk},
+      bild:bild(d, {recht:leicht, wahl:leicht?undefined:'q0'}),
+      gruppen: leicht ? [g2] : [{imBild:true, frage:'1. Tippe die Ecke mit dem rechten Winkel an.', optionen:ecken(d), ans:d.recht}, g2],
+      why:`Der rechte Winkel liegt zwischen ${k1} und ${k2}: Das sind die Katheten. Gegenüber liegt ${d.hName}: Das ist die Hypotenuse.${d.hName!==d.gruppe[2]?` Die Hypotenuse heißt nicht immer ${d.gruppe[2]}.`:''}`,
+      loesungBild:loesung(d, true)});
+  },
+  // G1-A03 Begriffe in Lücken
+  luecken(ctx){
+    const leicht=ctx&&ctx.leicht, [satz,l]=pick(LUECKEN);
+    const voll = l.reduce((s,[w],i)=>s.replace(NR[i],`<b class="ph">${w}</b>`), satz);
+    return Dr.aufg({kind:'fragen', q:l.reduce((s,_,i)=>s.replace(NR[i],`(${i+1}) …`), satz), qh:l.reduce((s,_,i)=>s.replace(NR[i],`<b>${NR[i]}</b> ___`), satz), text:true,
+      lead:'Ergänze die Lücken mit den passenden Wörtern!', pruef:'luecken', satz,
+      gruppen:l.map(([w,abl],i)=>({frage:`Lücke ${NR[i]}`, optionen:mischen([w,...mischen(abl).slice(0,leicht?1:3)]).map(x=>[x,x]), ans:w, klasse:'lang'})),
+      why:`Richtig: ${voll}`});
+  },
+  // G1-A05 Pythagoräische Tripel erkennen
+  tripel(ctx){
+    const leicht=ctx&&ctx.leicht, n=leicht?4:6, nJa=leicht?2:rnd(2,4);
+    return versuche(()=>{
+      const ja=mischen(TRIPEL100).slice(0,nJa);
+      const nein=[]; for(let i=0;i<50&&nein.length<n-nJa;i++){ const t=[...pick(TRIPEL100)], j=rnd(0,2); t[j]+=pick([-3,-2,-1,1,2,3]);
+        t.sort((p,q)=>p-q); if(t[0]<2||t[2]>100||t[0]===t[1]||t[1]===t[2]||istTripel(...t)||nein.some(x=>x.join()===t.join())||ja.some(x=>x.join()===t.join())) continue; nein.push(t); }
+      if(nein.length<n-nJa) return null;
+      const alle=mischen([...ja.map(t=>({t,ok:true})), ...nein.map(t=>({t,ok:false}))]);
+      const opt=alle.map((x,i)=>['t'+i, tT(x.t)]), ans=alle.map((x,i)=>x.ok?'t'+i:null).filter(Boolean).sort().join(',');
+      return Dr.aufg({kind:'fragen', q:'Kreuze alle pythagoräischen Tripel an!', text:true, lead:leicht?merk('Rechne a² + b² und vergleiche mit c². Sind beide gleich, ist es ein pythagoräisches Tripel.'):'',
+        pruef:'tripel', alle:alle.map(x=>x.t), gruppen:[{frage:'Tippe alle an, die passen.', mehrfach:true, optionen:opt, ans}],
+        why:'Ein pythagoräisches Tripel (a, b, c) erfüllt a² + b² = c².',
+        loesungBild:`<div class="ex">${alle.map(x=>`<div class="${x.ok?'ph':'pk'}">${tT(x.t)}: ${probeText(x.t)}</div>`).join('')}</div>`});
+    });
+  },
+  // G1-A06 Den Satz des Pythagoras für ein Dreieck aufstellen
+  gleichung(ctx){
+    const leicht=ctx&&ctx.leicht, d=benennen(zufallsDreieck()), [k1,k2]=d.kNamen, satz=Math.random()<2/3, ges=satz?null:pick([k1,k2]);
+    const gw=gleichungsWahl(d.hName,k1,k2,ges,leicht?3:4,satz?'satz':'quadrat');
+    const frage = satz ? 'Welche Gleichung passt zum Dreieck?' : `Welche Gleichung gilt für ${ges}?`;
+    const g2 = {frage:(leicht?'':'2. ')+frage, optionen:gw.wahl, ans:gw.ans, klasse:'lang'};
+    return Dr.aufg({kind:'fragen', q:leicht?`Der rechte Winkel ist eingezeichnet. ${frage}`:`Zeichne den rechten Winkel ein (Ecke antippen)! ${frage}`, text:true,
+      lead:leicht?merk('Kathete² + Kathete² = Hypotenuse². Die Hypotenuse liegt dem rechten Winkel gegenüber.'):'', pruef:'gleichung', daten:{d, ges},
+      bild:bild(d, {recht:leicht, wahl:leicht?undefined:'q0'}),
+      gruppen: leicht ? [g2] : [{imBild:true, frage:'1. Tippe die Ecke mit dem rechten Winkel an.', optionen:ecken(d), ans:d.recht}, g2],
+      why:`Die Hypotenuse ist ${d.hName} (gegenüber dem rechten Winkel). Kathete² + Kathete² = Hypotenuse²: ${k1}² + ${k2}² = ${d.hName}²${ges?`, also ${gw.richtig}`:''}.`,
+      loesungBild:loesung(d, true)});
+  },
+  // G1-A07 Mit dem Thaleskreis konstruieren und messen
+  thales(ctx){
+    const leicht=ctx&&ctx.leicht, X=pick(['A','B','C']), x=X.toLowerCase();
+    const [Y,Z]=gegen[X], y=Y.toLowerCase(), z=Z.toLowerCase();   // y gegeben (Kathete), z gesucht
+    const [hv,yv] = versuche(()=>{
+      if(Math.random()<.5){ const t=pick([[3,4,5],[6,8,10],[5,12,13],[8,15,17],[9,12,15],[12,16,20],[7,24,25],[15,20,25],[20,21,29]]), f=rnd(2,40)/10;
+        const l=t.map(v=>Math.round(v*f*10)/10); if(l[2]<5||l[2]>12) return null; const i=rnd(0,1); if(l[i]<2||l[i]>l[2]-2||l[1-i]<1.5) return null; return [D(l[2]),D(l[i])]; }
+      const h=rnd(50,120)/10, k=rnd(20,Math.round(h*10)-20)/10, rest=Math.sqrt(h*h-k*k); if(rest<1.5||Py.istTripel(h,k,rest)) return null; return [D(h),D(k)];
+    });
+    const zv=Math.sqrt(dZahl(hv)**2-dZahl(yv)**2), soll=`${z} ≈ ${Dr.D(Dr.rund(zv,1))} cm`;
+    // Bild: Hypotenuse waagrecht (Enden Y, Z), X oben, A, B, C gegen den Uhrzeigersinn
+    const h=dZahl(hv), u=(h*h+zv*zv-dZahl(yv)**2)/(2*h);    // Y=(0|0), Z=(h|0), X: Abstand zv von Y, Abstand y von Z
+    let P={[Y]:[0,0],[Z]:[h,0],[X]:[u,Math.sqrt(Math.max(0,zv*zv-u*u))]};
+    const fl=(P.B[0]-P.A[0])*(P.C[1]-P.A[1])-(P.C[0]-P.A[0])*(P.B[1]-P.A[1]); if(fl<0) for(const e of 'ABC') P[e]=[h-P[e][0],P[e][1]];
+    const ang=`${y} = ${T(yv)} cm, ${x} = ${T(hv)} cm, ${GR[X]} = 90°`;
+    const schritte=[`Zeichne die Hypotenuse ${x} = ${T(hv)} cm mit den Enden ${Y} und ${Z}.`, `Halbiere ${x}: Mittelpunkt M.`,
+      `Zeichne den Halbkreis um M durch ${Y} und ${Z} (Thaleskreis).`, `Zeichne einen Kreisbogen um ${Z} mit dem Radius ${y} = ${T(yv)} cm. Wo er den Thaleskreis schneidet, liegt ${X}.`,
+      `Verbinde ${X} mit ${Y} und ${Z} und miss ${z}.`];
+    return Dr.aufg({kind:'zahlen', papierPlatz:4, q:`Gegeben: ${ang}. Zeichne das rechtwinkelige Dreieck mit Hilfe des Thaleskreises! Miss die Seite ${z}!`, text:true,
+      lead:`Du brauchst Papier, Zirkel, Geodreieck und Bleistift.${leicht?`<br>${merk(`So geht es:<ol class="kon-liste">${schritte.map(s=>`<li>${s}</li>`).join('')}</ol>`)}`:''}`,
+      pruef:'thales', daten:{X, x, y, z, hv:T(hv), yv:T(yv)},
+      felder:[{label:`Gemessen: ${z} =`, ans:zv, tol:.2, einheit:'cm', ansText:soll}],
+      why:`${GR[X]} = 90°: Die Hypotenuse ist ${x}, der rechte Winkel liegt auf dem Thaleskreis über ${x}. Probe mit dem Satz des Pythagoras: ${z} = √(${T(hv)}² − ${T(yv)}²) ≈ ${Dr.D(Dr.rund(zv,1))} cm. Bis 2 mm daneben zählt als richtig.`,
+      loesungBild:Dr.zeichne(P,{ecken:true, thales:x, rechter:true, rechtBogen:true, seitenText:{[x]:`${T(hv)} cm`, [y]:`${T(yv)} cm`, [z]:`≈ ${Dr.D(Dr.rund(zv,1))} cm`},
+        boegen:[{mitte:P[Z], r:dist(P[Z],P[X]), durch:P[X]}]})});
+  },
+  // G1-A04 (Plus) Ist das Dreieck rechtwinkelig? (nachrechnen)
+  nachrechnen(){
+    return versuche(()=>{
+      const u=pick(['mm','cm','m']), basis=pick(tripel(120).filter(t=>t[2]<=120)), ja=Math.random()<.5;
+      const dez=Math.random()<.35, f=dez?rnd(1,9)/10:rnd(1,Math.floor(120/basis[2]));
+      let s=basis.map(v=>D(Math.round(v*f*10)/10));
+      if(s[0].n===0n||dZahl(s[0])<1) return null;
+      if(!ja){ const j=rnd(0,2), d=dez?pick([-3,-2,-1,1,2,3])/10:pick([-3,-2,-1,1,2,3]); s[j]=dAdd(s[j],D(d)); s.sort(dVgl);
+        if(dZahl(s[0])<1||dZahl(s[2])>120||dVgl(s[0],s[1])===0||dVgl(s[1],s[2])===0||dZahl(s[0])+dZahl(s[1])<=dZahl(s[2])||istTripel(...s)) return null; }
+      const [a,b,c]=s, sum=dAdd(quad(a),quad(b)), cq=quad(c), gleich=dVgl(sum,cq)===0;
+      const zeige=mischen(['a','b','c']), werte={}; [a,b,c].forEach((v,i)=>werte[zeige[i]]=v);
+      const q=['a','b','c'].map(n=>`${n} = ${T(werte[n])} ${u}`).join(', ')+'. Ist das Dreieck rechtwinkelig?';
+      const lang=['a','b','c'].find(n=>dVgl(werte[n],c)===0), kurz=['a','b','c'].filter(n=>n!==lang);
+      const falsch1=dMul(dAdd(a,b),dAdd(a,b));
+      return Dr.aufg({kind:'schritte', q, text:true, lead:'Überprüfe mit dem Satz des Pythagoras!', pruef:'nachrechnen', daten:{werte:Object.fromEntries(Object.entries(werte).map(([k,v])=>[k,T(v)])), u},
+        s1:{label:'Schritt 1: Addiere die Quadrate der zwei kürzeren Seiten', kurz:`${kurz[0]}² + ${kurz[1]}²`, art:'zahl', wert:dZahl(sum), exakt:true, einheit:u+'²', ansText:`${kurz[0]}² + ${kurz[1]}² = ${T(sum)} ${u}²`},
+        s2:{label:'Schritt 2: Vergleiche mit dem Quadrat der längsten Seite', ansText:`${lang}² = ${T(cq)} ${u}² · ${gleich?'ja':'nein'}`,
+          felder:[{label:`${lang}² =`, ans:dZahl(cq), exakt:true, einheit:u+'²', ansText:`${lang}² = ${T(cq)} ${u}²`},
+            {label:'Ist das Dreieck rechtwinkelig?', wahl:[['ja','Ja, rechtwinkelig'],['nein','Nein, nicht rechtwinkelig']], ans:gleich?'ja':'nein', klasse:'lang', ansText:gleich?'ja':'nein'}]},
+        pre:{ans:T(sum), optionen:mischen([[T(sum),`${T(sum)} ${u}²`],[T(falsch1),`${T(falsch1)} ${u}²`]])},
+        schritt:'Quadrate addieren', alleinText:'Ab der nächsten Aufgabe rechnest du die Summe selbst.',
+        why:`Die längste Seite ist die mögliche Hypotenuse. ${T(a)}² + ${T(b)}² = ${T(quad(a))} + ${T(quad(b))} = ${T(sum)} und ${T(c)}² = ${T(cq)}: ${gleich?'gleich, also rechtwinkelig':'verschieden, also nicht rechtwinkelig'}.`,
+        steps:`${T(a)}² + ${T(b)}² = ${T(sum)}, ${T(c)}² = ${T(cq)} → ${gleich?'ja':'nein'}`});
+    });
+  },
+  // G1-N01 (Plus) Thaleskreis: Welcher Winkel entsteht?
+  thales_winkel(){
+    return versuche(()=>{
+      const L=rnd(4,10), R=L/2, lage=pick(['auf','innen','aussen']), th=Dr.rad(rnd(25,155));
+      const r = lage==='auf' ? R : lage==='innen' ? R*rnd(45,85)/100 : R*rnd(115,150)/100;
+      if(lage!=='auf'&&Math.abs(r-R)<.3) return null;
+      const C=[R+r*Math.cos(th), r*Math.sin(th)]; if(C[1]<.8) return null;
+      const P={A:[0,0],B:[L,0],C}, w=Dr.winkel(P).C;
+      const ans = lage==='auf' ? 'recht' : lage==='innen' ? 'stumpf' : 'spitz';
+      return Dr.aufg({kind:'fragen', q:`Über der Strecke AB = ${L} cm ist der Halbkreis gezeichnet. Der Punkt C liegt auf, innerhalb oder außerhalb des Halbkreises. Welcher Winkel entsteht bei C?`, text:true,
+        pruef:'thales_winkel', daten:{P, L}, bild:Dr.zeichne(P,{ecken:true, thales:'c'}),
+        gruppen:[{frage:'Der Winkel bei C ist …', optionen:[['spitz','spitz'],['recht','ein rechter'],['stumpf','stumpf']], ans, klasse:'drei'}],
+        why:`C liegt ${lage==='auf'?'auf dem':lage==='innen'?'innerhalb des':'außerhalb des'} Halbkreises. Auf dem Halbkreis ist der Winkel bei C ein rechter (Satz des Thales). Innen wird er stumpf, außen spitz. Hier: γ ≈ ${Math.round(w)}°.`,
+        loesungBild:Dr.zeichne(P,{ecken:true, thales:'c', winkelText:{C:`${Math.round(w)}°`}})});
+    });
+  },
+  // G1-N02 (Plus) Stimmt die Aussage?
+  aussagen(){
+    const l=versuche(()=>{ const x=mischen(AUSSAGEN).slice(0,4), w=x.filter(a=>a[1]).length; return w>=1&&w<=3?x:null; });
+    return Dr.aufg({kind:'fragen', q:'Welche Aussage ist richtig, welche falsch? '+l.map(a=>a[0]).join(' · '), qh:'Welche Aussage ist richtig, welche falsch?', text:true, pruef:'aussagen', aussagen:l,
+      gruppen:l.map(a=>({frage:a[0], optionen:[['w','richtig'],['f','falsch']], ans:a[1]?'w':'f', klasse:'drei'})),
+      why:l.map(a=>`${a[0]} ${a[1]?'Richtig':'Falsch'}: ${a[2]}`).join(' ')});
+  },
+  // G1-N03 (Plus) Neue Tripel durch Vervielfachen
+  tripel_mal(){
+    return versuche(()=>{
+      const t=pick(TRIPEL65), f=rnd(2,10); if(t[2]*f>300) return null;
+      const n=t.map(v=>v*f), i=Math.random()<.5?2:rnd(0,1), zeig=n.map((v,j)=>j===i?'?':String(v));
+      return Dr.aufg({kind:'zahlen', q:`Das pythagoräische Tripel ${tT(t)} wird mit ${f} multipliziert: (${zeig.join(', ')}). Welche Zahl fehlt?`,
+        qh:`Das pythagoräische Tripel ${tT(t)} wird mit ${f} multipliziert:<br><b>(${zeig.map(v=>v==='?'?'___':v).join(', ')})</b><br>Welche Zahl fehlt?`, text:true,
+        lead:'Ergänze das pythagoräische Tripel!', pruef:'tripel_mal', daten:{t, f, i},
+        felder:[{label:'Fehlende Zahl:', ans:n[i], exakt:true, ansText:String(n[i])}],
+        why:`${tT(t)} mal ${f} = ${tT(n)}. Probe: ${probeText(n)}.`});
+    });
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Kathete und Hypotenuse', hint:'Die Hypotenuse liegt dem rechten Winkel gegenüber', types:['kh_tippen','variable','luecken']},
+  {id:'S2', name:'Den Satz aufstellen', hint:'m² + u² = x²', types:['gleichung']},
+  {id:'S3', name:'Pythagoräische Tripel', hint:'9² + 12² = 15²', types:['tripel']},
+  {id:'S4', name:'Thaleskreis', hint:'c = 5 cm, a = 3 cm → b = 4 cm', types:['thales']}
+];
+const kern = ['kh_tippen','variable','luecken','tripel','gleichung','thales'];
+const leicht = ['kh_tippen','variable','luecken','tripel','gleichung','thales'];
+const plus = ['nachrechnen','thales_winkel','aussagen','tripel_mal'];
+const plusHint = 'Nachrechnen · Thaleskreis · Stimmt das? · Tripel vervielfachen';
+const lzk = {aufwand:{thales:3}};
+
+/* ---------- Erklärung ---------- */
+const bsp = () => benennen(zufallsDreieck());
+const erklaerung = {
+  beispiele: ()=>({d:bsp()}),
+  neu(kind,E){ if(kind==='dreieck') E.d=bsp(); },
+  html(E){
+    const d=E.d, [k1,k2]=d.kNamen, h=d.hName;
+    const P={A:[0,0],B:[5,0],C:[1.8,2.4]};
+    return `<section class="sheet"><h2>Satz des Pythagoras: Begriffe</h2>
+    <div class="rule"><h3>Kathete und Hypotenuse</h3><p>Ein <b>rechtwinkeliges</b> Dreieck hat genau einen rechten Winkel (<span class="pr">blau</span>). Die zwei Seiten, die ihn bilden, heißen ${K('Katheten')} (K). Die Seite gegenüber heißt ${H('Hypotenuse')} (H): Sie ist die längste Seite.</p>
+      ${bild(d,{farbe:true, recht:true})}
+      <p>Hier: Katheten ${K(k1)} und ${K(k2)}, Hypotenuse ${H(h)}. Die Hypotenuse heißt nicht immer c. Suche zuerst den rechten Winkel!</p>
+      <button class="newex" data-newex="dreieck">Neues Beispiel</button></div>
+    <div class="rule"><h3>Der Satz des Pythagoras</h3><p class="ex">Kathete² + Kathete² = Hypotenuse²</p><p>Für das Dreieck oben: <b>${k1}² + ${k2}² = ${h}²</b>. Die Quadrate über den beiden Katheten sind zusammen so groß wie das Quadrat über der Hypotenuse.</p></div>
+    <div class="rule"><h3>Pythagoräische Tripel</h3><p>Drei natürliche Zahlen mit a² + b² = c² heißen pythagoräisches Tripel, zum Beispiel (3, 4, 5): 9 + 16 = 25. Vervielfacht man alle drei Zahlen, entsteht wieder eins: (6, 8, 10), (9, 12, 15) …</p></div>
+    <div class="rule"><h3>Thaleskreis</h3><p>Liegt C auf dem Halbkreis über AB, dann ist der Winkel bei C ein rechter (Satz des Thales). So konstruierst du ein rechtwinkeliges Dreieck: Hypotenuse zeichnen, halbieren, Halbkreis um den Mittelpunkt, dann eine Kathete mit dem Zirkel abtragen.</p>
+      ${Dr.zeichne(P,{ecken:true, thales:'c', rechter:true, rechtBogen:true, seitenNamen:true})}</div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 1.3 Satz des Pythagoras.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`;
+  }
+};
+
+UR.kompetenzAnmelden({id:'M-Pyth-G1', typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk, festeAuswahl:['luecken','aussagen']});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.3 Satz-des-Pythagoras/M-Pyth-G2.js */
+/* Baustein M-Pyth-G2: „Ich kann den Satz des Pythagoras in rechtwinkeligen Dreiecken anwenden.“
+   Steckbrief: M-Pyth-G2.md, Auswahl und Themenregeln: AUSWAHL.md (27.11.2026). Jede Rechnung: Schritt 1 der Satz für
+   dieses Dreieck (Auswahl, genau eine richtige Gleichung), Schritt 2 das Ergebnis mit Einheiten-Tasten. Gerundet wird
+   exakt (UR.powu.wurzelRund); Fall A mit genannter Stelle, Fall B (ohne Stelle) nur bei Sachaufgaben. */
+(function(UR){
+const {rnd, pick} = UR;
+const Dr = UR.dreiecke, Py = UR.pyth;
+const {mischen, versuche, GR, NAMEN} = Dr;
+const {D, dAdd, dSub, dMul, dText, dVgl, dZahl, wurzelRund} = UR.powu;
+const {merk, K, H, T, quad, zahl1, wurzel, fallBTauglich, bild, benennen, dreieckMit, gleichungsWahl, rechne, ergebnisFeld, rechenweg, typischeFehler,
+  tripel, istTripel, szene, rundWort, LAENGEN} = Py;
+
+const TRIPEL = tripel(100);
+const passtV = (p,q) => { const v=p/q; return v>=1/3.7&&v<=3.7; };
+// zwei Katheten (art 'h') bzw. Hypotenuse und Kathete (art 'k') zwischen lo und hi; zu einem Viertel aus einem Tripel
+function werte(art, lo, hi, o={}){
+  return versuche(()=>{
+    if(Math.random()<(o.pTripel??.25)){
+      const t=pick(TRIPEL), f=Math.random()<.5?rnd(1,20):rnd(1,30)/10, l=t.map(v=>D(Math.round(v*f*10)/10));
+      if(l.some(v=>dZahl(v)<lo||dZahl(v)>hi)) return null;
+      const i=rnd(0,1); return art==='h' ? {x:l[i], y:l[1-i], tripel:true} : {x:l[2], y:l[i], tripel:true};
+    }
+    const p=o.pGanz??.4;
+    if(art==='h'){ const x=zahl1(lo,hi,p), y=zahl1(lo,hi,p); if(!passtV(dZahl(x),dZahl(y))||Math.hypot(dZahl(x),dZahl(y))>hi*1.5) return null; return {x,y}; }
+    const x=zahl1(Math.max(lo,2),hi,p), y=zahl1(lo,dZahl(x)-1,p); if(dVgl(y,D(lo))<0) return null;
+    const z=Math.sqrt(dZahl(x)**2-dZahl(y)**2); if(z<lo*.5||!passtV(dZahl(y),z)) return null; return {x,y};
+  });
+}
+const stelle = () => pick([1,2]);
+const HINWEIS_ROLLE = {h:'Gesucht ist die Hypotenuse: Kathete² + Kathete² = Hypotenuse².', k:'Gesucht ist eine Kathete: Hypotenuse² − Kathete². Die Kathete ist kürzer als die Hypotenuse.'};
+const muster = art => art==='h'
+  ? merk('Muster (Mathe Know How): Gesucht ist die Hypotenuse e. f² + g² = e², also e = √(f² + g²). Erst quadrieren, dann addieren, dann die Wurzel ziehen.')
+  : merk('Muster (Mathe Know How): e = 6,5 cm, f = 3,5 cm, gesucht g. g² = e² − f², also g = √(6,5² − 3,5²) = √30 ≈ 5,48 cm.');
+
+/* ---------- gemeinsamer Aufbau einer Rechenaufgabe ----------
+   o: {h, k1, k2 (Namen), ges (Name), art, x, y (D), einheit, k (Stelle oder null), ctx, q, qh, bild, loesungBild, pruef, daten, why,
+       plus: {wert (D), name, text} (Ergebnis = Wurzel + wert, z. B. Umfang, Sprint), fehler: weitere [[Wert, Hinweis]]} */
+function rechenAufgabe(o){
+  const ctx=o.ctx||{}, gw=gleichungsWahl(o.h,o.k1,o.k2,o.ges,3), r=rechne(o.art,o.x,o.y);
+  const falsch=gw.wahl.find(w=>w[0]!==gw.ans);
+  const name = o.plus ? o.plus.name : o.ges;
+  let s2 = ergebnisFeld(r, o.k, name, o.einheit, {label:o.plus?`Schritt 2: ${o.plus.text} (mit Einheit)`:undefined});
+  let fehler = typischeFehler(o.art, o.x, o.y, o.k);
+  if(o.plus){ const g=dAdd(s2.gerundet, o.plus.wert); s2.ans=dZahl(g);
+    s2.ansText=`${name} ${r.glatt?'=':'≈'} ${o.k?dText(dAdd(r.glatt?r.exakt:r.rund(o.k),o.plus.wert),o.k):T(dAdd(r.rund(2),o.plus.wert))} ${o.einheit}`;
+    fehler = fehler.map(([w,hw])=>[o.k?dZahl(dAdd(D(w),o.plus.wert)):w, hw]);
+    fehler.push([dZahl(o.k?(r.glatt?r.exakt:r.rund(o.k)):r.w3), o.plus.vergessen]); }
+  s2.fehler=[...fehler, ...(o.fehler||[])].filter(([w])=>Math.abs(w-s2.ans)>1e-9);
+  const weg = rechenweg(o.ges, o.art, o.x, o.y, r, o.k);
+  return Dr.aufg({kind:'schritte', q:o.q, qh:o.qh, text:true, papierLead:'Stelle den Satz des Pythagoras auf und berechne!',
+    lead:ctx.einstieg||ctx.leicht ? muster(o.art) : '', bild:o.bild, pruef:o.pruef, daten:Object.assign({h:o.h, k1:o.k1, k2:o.k2, ges:o.ges, art:o.art, x:T(o.x), y:T(o.y), einheit:o.einheit, k:o.k,
+      plus:o.plus?T(o.plus.wert):null}, o.daten||{}),
+    s1:{label:'Schritt 1: Stelle den Satz des Pythagoras für dieses Dreieck auf', kurz:'Satz', art:'wahl', wahl:gw.wahl, ans:gw.ans, ansText:gw.richtig, klasse:'lang'},
+    s2, pre:{ans:gw.ans, optionen:mischen([gw.wahl.find(w=>w[0]===gw.ans), falsch]), klasse:'lang'},
+    schritt:'Satz aufstellen', alleinText:'Ab der nächsten Aufgabe wählst du den Satz aus drei Gleichungen.',
+    why:o.why || HINWEIS_ROLLE[o.art], steps:`${gw.richtig}; ${weg} ${o.einheit}${o.plus?`; ${s2.ansText}`:''}`, loesungBild:o.loesungBild});
+}
+const mitStelle = (q,k) => k ? `${q} Runde ${rundWort(k)}!` : q;
+const wertText = (v,u) => `${T(v)} ${u}`;
+
+/* ---------- Sachaufgaben ----------
+   Je Situation: Seiten RX und RY (Katheten, R = rechter Winkel) und XY (Hypotenuse) mit Namen und Bereich, Text je
+   gesuchter Seite, Skizze. */
+const SACHEN = [
+  {id:'leiter', u:'m', namen:['a','h','l'], ber:{RX:[.8,3.5], RY:[2.5,11.8], XY:[3,12]}, ges:['RY','XY'], ok:(rx,ry)=>ry/rx>=2.4,
+    text:(g,w)=>g==='RY' ? `Eine ${w.XY} lange Leiter lehnt an einer Hauswand. Ihr Fuß steht ${w.RX} von der Wand entfernt. Wie hoch reicht die Leiter (h)?`
+      : `Eine Leiter soll an einer Hauswand bis in ${w.RY} Höhe reichen. Ihr Fuß steht ${w.RX} von der Wand entfernt. Wie lang muss die Leiter sein (l)?`,
+    skizze:(rx,ry)=>({teile:[{art:'poly', pkte:[[-.5,0],[0,0],[0,ry+.6],[-.5,ry+.6]], cls:'sz-wand'}, {art:'l', pkte:[[-.8,0],[rx+.8,0]], cls:'sz-boden'},
+      ...Array.from({length:6},(_,i)=>{ const f=(i+1)/7, p=[rx*(1-f),ry*f], n=[ry,rx].map(v=>v/Math.hypot(rx,ry)*.18); return {art:'l', pkte:[[p[0]-n[0],p[1]-n[1]],[p[0]+n[0],p[1]+n[1]]], cls:'sz-fein'}; })],
+      pkte:[[0,0],[rx,0],[0,ry]]})},
+  {id:'feuerwehr', u:'m', namen:['d','h','l'], ber:{RX:[3,12], RY:[8,28], XY:[12,30]}, ges:['RY','XY'], ok:(rx,ry)=>ry/rx>=1.4,
+    text:(g,w)=>g==='RY' ? `Die Drehleiter der Feuerwehr ist ${w.XY} lang ausgefahren. Ihr Drehpunkt ist ${w.RX} von der Hauswand entfernt. Wie hoch über dem Drehpunkt reicht die Leiter (h)?`
+      : `Die Feuerwehr muss ein Fenster erreichen, das ${w.RY} über dem Drehpunkt der Leiter liegt. Der Drehpunkt ist ${w.RX} von der Hauswand entfernt. Wie lang muss die Leiter ausgefahren werden (l)?`,
+    skizze:(rx,ry)=>({teile:[{art:'poly', pkte:[[-1.2,-2.5],[0,-2.5],[0,ry+1.5],[-1.2,ry+1.5]], cls:'sz-wand'}, {art:'l', pkte:[[-1.5,-2.5],[rx+4,-2.5]], cls:'sz-boden'},
+      {art:'poly', pkte:[[rx-1.5,-2.5],[rx+3.5,-2.5],[rx+3.5,-.4],[rx-1.5,-.4]], cls:'sz-ding'}, {art:'kreis', m:[rx-.5,-2.5], r:.5, cls:'sz-ding'}, {art:'kreis', m:[rx+2.5,-2.5], r:.5, cls:'sz-ding'},
+      {art:'poly', pkte:[[0,ry-.6],[.0,ry+.6],[-.8,ry+.6],[-.8,ry-.6]], cls:'sz-ding'}],
+      pkte:[[0,0],[rx,0],[0,ry]]})},
+  {id:'bildschirm', u:'cm', namen:['b','h','d'], ber:{RX:[40,180], RY:[25,110], XY:[50,200]}, ges:['XY','RX','RY'], ok:(rx,ry)=>rx/ry>=1.3&&rx/ry<=2.2,
+    text:(g,w)=>g==='XY' ? `Ein Bildschirm ist ${w.RX} breit und ${w.RY} hoch. Wie lang ist seine Diagonale (d)?`
+      : g==='RX' ? `Die Diagonale eines Fernsehers ist ${w.XY} lang, seine Höhe ${w.RY}. Wie breit ist der Fernseher (b)?`
+      : `Die Diagonale eines Bildschirms ist ${w.XY} lang, seine Breite ${w.RX}. Wie hoch ist der Bildschirm (h)?`,
+    skizze:(rx,ry)=>({teile:[{art:'poly', pkte:[[-.04*rx,-.04*rx],[1.04*rx,-.04*rx],[1.04*rx,ry+.04*rx],[-.04*rx,ry+.04*rx]], cls:'sz-ding'},
+      {art:'l', pkte:[[rx/2,-.04*rx],[rx/2,-.16*rx]], cls:'sz-ding'}, {art:'l', pkte:[[rx*.38,-.16*rx],[rx*.62,-.16*rx]], cls:'sz-ding'}],
+      pkte:[[rx,0],[0,0],[rx,ry]]})},
+  {id:'regal', u:'cm', namen:['b','h','s'], ber:{RX:[50,200], RY:[60,220], XY:[80,280]}, ges:['XY','RY'], ok:()=>true,
+    text:(g,w)=>g==='XY' ? `Ein Regal ist ${w.RX} breit und ${w.RY} hoch. Hinten wird eine Strebe schräg von Ecke zu Ecke geschraubt. Wie lang ist die Strebe (s)?`
+      : `Hinten an einem ${w.RX} breiten Regal ist eine ${w.XY} lange Strebe von Ecke zu Ecke geschraubt. Wie hoch ist das Regal (h)?`,
+    skizze:(rx,ry)=>({teile:[{art:'poly', pkte:[[0,0],[rx,0],[rx,ry],[0,ry]], cls:'sz-ding'}, ...[1,2,3].map(i=>({art:'l', pkte:[[0,ry*i/4],[rx,ry*i/4]], cls:'sz-fein'}))],
+      pkte:[[rx,0],[0,0],[rx,ry]]})},
+  {id:'gatter', u:'m', namen:['b','h','s'], ber:{RX:[1,4.5], RY:[.8,2], XY:[1.3,5]}, ges:['XY'], ok:()=>true,
+    text:(g,w)=>`Ein Gartentor ist ${w.RX} breit und ${w.RY} hoch. Eine Latte geht schräg von unten nach oben über das ganze Tor. Wie lang ist die Latte (s)?`,
+    skizze:(rx,ry)=>({teile:[{art:'poly', pkte:[[0,0],[rx,0],[rx,ry],[0,ry]], cls:'sz-ding'}, ...[1,2,3,4].map(i=>({art:'l', pkte:[[rx*i/5,0],[rx*i/5,ry]], cls:'sz-fein'})), {art:'l', pkte:[[-.3,-.05],[rx+.3,-.05]], cls:'sz-boden'}],
+      pkte:[[rx,0],[0,0],[rx,ry]]})},
+  {id:'klapptisch', u:'cm', namen:['t','w','s'], ber:{RX:[25,60], RY:[20,50], XY:[35,75]}, ges:['XY','RY'], ok:()=>true,
+    text:(g,w)=>g==='XY' ? `Ein Klapptisch ist an der Wand befestigt. Eine Stützleiste geht von der Wand (${w.RY} unter der Tischplatte) zur Tischplatte (${w.RX} von der Wand entfernt). Wie lang ist die Stützleiste (s)?`
+      : `Die Stützleiste eines Klapptisches ist ${w.XY} lang. Sie trifft die Tischplatte ${w.RX} von der Wand entfernt. Wie weit unter der Tischplatte ist sie an der Wand befestigt (w)?`,
+    skizze:(rx,ry)=>({teile:[{art:'poly', pkte:[[-8,-ry-10],[0,-ry-10],[0,12],[-8,12]], cls:'sz-wand'}, {art:'poly', pkte:[[0,0],[rx*1.35,0],[rx*1.35,3],[0,3]], cls:'sz-ding'}],
+      pkte:[[0,0],[rx,0],[0,-ry]]})},
+  {id:'drachen', u:'m', namen:['e','h','s'], ber:{RX:[10,70], RY:[12,90], XY:[20,100]}, ges:['RY'], ok:(rx,ry)=>ry/rx>=.6,
+    text:(g,w)=>`Lea lässt einen Drachen an einer ${w.XY} langen Schnur steigen. Der Punkt genau unter dem Drachen ist ${w.RX} von Lea entfernt. Wie hoch fliegt der Drachen (h)? (Die Schnur ist straff, die Hand rechnen wir nicht mit.)`,
+    skizze:(rx,ry)=>{ const s=Math.max(rx,ry)*.07; return {teile:[{art:'l', pkte:[[-s*2,0],[rx+s*2,0]], cls:'sz-boden'},
+      {art:'poly', pkte:[[rx,ry+s*1.4],[rx+s*.8,ry+s*.2],[rx,ry-s*1.2],[rx-s*.8,ry+s*.2]], cls:'sz-ding'}, {art:'weg', pkte:[[rx,ry-s*1.2],[rx+s*.4,ry-s*2],[rx-s*.2,ry-s*2.8]], cls:'sz-fein'}],
+      pkte:[[rx,0],[0,0],[rx,ry]]}; }},
+  {id:'boot', u:'m', namen:['b','a','w'], ber:{RX:[40,200], RY:[10,90], XY:[45,220]}, ges:['XY','RY'], ok:(rx,ry)=>rx/ry>=1.3,
+    text:(g,w)=>g==='XY' ? `Ein Boot fährt quer über einen ${w.RX} breiten Fluss. Die Strömung treibt es dabei ${w.RY} flussabwärts. Wie lang ist der Weg des Bootes (w)?`
+      : `Ein Boot fährt quer über einen ${w.RX} breiten Fluss und legt dabei ${w.XY} zurück, weil die Strömung es abtreibt. Wie weit wird es flussabwärts getrieben (a)?`,
+    skizze:(rx,ry)=>({teile:[{art:'poly', pkte:[[-ry*.6,0],[ry*1.8,0],[ry*1.8,rx],[-ry*.6,rx]], cls:'sz-was'}, {art:'l', pkte:[[-ry*.6,0],[ry*1.8,0]], cls:'sz-boden'}, {art:'l', pkte:[[-ry*.6,rx],[ry*1.8,rx]], cls:'sz-boden'},
+      {art:'text', p:[ry*1.45,rx*.5], text:'Strömung →'}],
+      pkte:[[0,rx],[0,0],[ry,rx]]})},
+  {id:'rallye', u:'km', namen:['o','n','l'], ber:{RX:[2,40], RY:[2,40], XY:[3,55]}, ges:['XY'], ok:()=>true,
+    text:(g,w)=>`Bei einer Rallye liegt Checkpoint 2 genau ${w.RX} östlich und ${w.RY} nördlich von Checkpoint 1. Wie lang ist die Luftlinie zwischen den beiden Checkpoints (l)?`,
+    skizze:(rx,ry)=>({teile:[{art:'kreis', m:[0,0], r:Math.max(rx,ry)*.04, cls:'sz-ding'}, {art:'kreis', m:[rx,ry], r:Math.max(rx,ry)*.04, cls:'sz-ding'},
+      {art:'text', p:[-Math.max(rx,ry)*.02,-Math.max(rx,ry)*.12], text:'CP 1'}, {art:'text', p:[rx,ry+Math.max(rx,ry)*.1], text:'CP 2'}],
+      pkte:[[rx,0],[0,0],[rx,ry]]})},
+  {id:'grundstueck', u:'m', namen:['a','b','c'], ber:{RX:[15,80], RY:[15,80], XY:[20,115]}, ges:['XY'], ok:()=>true, plus:true,
+    text:(g,w)=>`Ein dreieckiges Grundstück liegt an einer Kreuzung. Zwei Seiten liegen an den Straßen, die im rechten Winkel aufeinandertreffen: ${w.RX} und ${w.RY}. Das Grundstück wird rundherum eingezäunt. Wie lang ist der Zaun?`,
+    skizze:(rx,ry)=>{ const s=Math.max(rx,ry)*.12; return {teile:[{art:'poly', pkte:[[-s,-s],[rx+s,-s],[rx+s,-s*.1],[-s*.1,-s*.1],[-s*.1,ry+s],[-s,ry+s]], cls:'sz-wand'},
+      {art:'poly', pkte:[[0,0],[rx,0],[0,ry]], cls:'sz-was'}], pkte:[[0,0],[rx,0],[0,ry]]}; }},
+  {id:'sprint', u:'m', namen:['l','b','d'], ber:{RX:[90,120], RY:[45,90], XY:[100,150]}, ges:['XY'], ok:(rx,ry)=>rx/ry>=1.2, plus:true, pGanz:1,
+    text:(g,w,o)=>`Ein Fußballfeld ist ${w.RX} lang und ${w.RY} breit. Beim Training sprintet Tom diagonal von einer Eckfahne Richtung gegenüberliegende Eckfahne und hört ${o.n} m davor auf. Wie lang ist sein Sprint?`,
+    skizze:(rx,ry)=>({teile:[{art:'poly', pkte:[[0,0],[rx,0],[rx,ry],[0,ry]], cls:'sz-was'}, {art:'l', pkte:[[rx/2,0],[rx/2,ry]], cls:'sz-fein'}, {art:'kreis', m:[rx/2,ry/2], r:9.15, cls:'sz-fein'}],
+      pkte:[[rx,0],[0,0],[rx,ry]]})}
+];
+function sachAufgabe(ctx){
+  return versuche(()=>{
+    const S=pick(SACHEN), g=pick(S.ges), B=S.ber, u=S.u, art=g==='XY'?'h':'k', p=S.pGanz??.4;
+    // gegebene Werte
+    let w={}; const tr=Math.random()<.25;
+    if(tr){ const t=pick(TRIPEL), f=Math.random()<.5?rnd(1,20):rnd(1,30)/10, l=t.map(v=>D(Math.round(v*f*10)/10)), i=rnd(0,1); w={RX:l[i], RY:l[1-i], XY:l[2]}; }
+    else { const z=s=>zahl1(B[s][0],B[s][1],p);
+      if(art==='h'){ w.RX=z('RX'); w.RY=z('RY'); } else { w.XY=z('XY'); w[g==='RX'?'RY':'RX']=z(g==='RX'?'RY':'RX'); } }
+    const num=s=>w[s]?dZahl(w[s]):null;
+    const rx=num('RX')??Math.sqrt(num('XY')**2-num('RY')**2), ry=num('RY')??Math.sqrt(num('XY')**2-num('RX')**2);
+    if(!(rx>0&&ry>0)||Number.isNaN(rx)||Number.isNaN(ry)) return null;
+    for(const [s,v] of [['RX',rx],['RY',ry],['XY',Math.hypot(rx,ry)]]) if(v<B[s][0]*.9||v>B[s][1]*1.1) return null;
+    if(!S.ok(rx,ry)) return null;
+    const [nRX,nRY,nXY]=S.namen, nm={RX:nRX, RY:nRY, XY:nXY}, gesN=nm[g];
+    const x = art==='h' ? w.RX : w.XY, y = art==='h' ? w.RY : (g==='RX' ? w.RY : w.RX);
+    const k = Math.random()<.5 && fallBTauglich(art==='h'?dAdd(quad(x),quad(y)):dSub(quad(x),quad(y))) ? null : stelle();
+    const plus = S.id==='grundstueck' ? {wert:dAdd(w.RX,w.RY), name:'u', text:'Zaunlänge u = ?', vergessen:'Der Zaun geht rund um das Grundstück: u = a + b + c.'}
+      : S.id==='sprint' ? null : null;
+    let extra = {};
+    if(S.id==='sprint'){ extra.n=rnd(5,15); }
+    const plusS = S.id==='sprint' ? {wert:D(-extra.n), name:'s', text:'Länge des Sprints s = ?', vergessen:`Tom hört ${extra.n} m vor der Eckfahne auf: s = d − ${extra.n} m.`} : plus;
+    const wt=Object.fromEntries(Object.entries(w).filter(([s])=>s!==g).map(([s,v])=>[s,wertText(v,u)]));
+    const q = mitStelle(S.text(g,wt,extra), k);
+    const sk = S.skizze(rx,ry), beschr = f => ['RX','RY','XY'].map(s=>s===g?`${nm[s]} = ?`:w[s]&&s!==g&&wt[s]?`${nm[s]} = ${wt[s]}`:nm[s]);
+    const bildSz = farbe => szene(sk.teile, {pkte:sk.pkte, texte:beschr(), farbe});
+    const [k1,k2] = [nRX,nRY];
+    return rechenAufgabe({h:nXY, k1, k2, ges:gesN, art, x, y, einheit:u, k, ctx, q, bild:bildSz(!!(ctx&&(ctx.einstieg||ctx.leicht))), loesungBild:bildSz(true),
+      pruef:'sache', daten:{sache:S.id, pkte:sk.pkte, texte:beschr(), gegeben:Object.fromEntries(Object.entries(w).filter(([s])=>s!==g).map(([s,v])=>[nm[s],T(v)]))}, plus:plusS,
+      why:`${HINWEIS_ROLLE[art]} In der Skizze: Katheten ${k1} und ${k2} (sie bilden den rechten Winkel), Hypotenuse ${nXY}.${plusS?` ${plusS.vergessen}`:''}`});
+  });
+}
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // G2-A01 Hypotenuse berechnen
+  hypotenuse(ctx){
+    const u=pick(LAENGEN), {x,y}=werte('h',1,100), k=stelle(), dd=benennen(dreieckMit(dZahl(x),dZahl(y))), [k1,k2]=dd.kath.map(s=>dd.namen[s]), h=dd.hName;
+    const farbe=!!(ctx&&(ctx.einstieg||ctx.leicht));
+    const wt={[dd.kath[0]]:wertText(x,u), [dd.kath[1]]:wertText(y,u), [dd.hyp]:'?'};
+    return rechenAufgabe({h, k1, k2, ges:h, art:'h', x, y, einheit:u, k, ctx, pruef:'hypotenuse', daten:{P:dd.P, namen:dd.namen},
+      q:mitStelle(`${k1} = ${wertText(x,u)}, ${k2} = ${wertText(y,u)}. Stelle den Satz des Pythagoras für das Dreieck auf! Berechne die Länge der Hypotenuse ${h}!`, k),
+      bild:bild(dd,{recht:true, werte:wt, farbe}), loesungBild:bild(dd,{recht:true, werte:wt, farbe:true}),
+      why:`Gesucht ist die Hypotenuse: Kathete² + Kathete² = Hypotenuse². ${rechenweg(h,'h',x,y,rechne('h',x,y),k)} ${u}. Erst quadrieren, dann addieren, dann die Wurzel ziehen.`});
+  },
+  // G2-A02 Kathete berechnen
+  kathete(ctx){
+    const u=pick(LAENGEN), {x,y}=werte('k',1,100), k=stelle(), z=Math.sqrt(dZahl(x)**2-dZahl(y)**2);
+    const dd=benennen(dreieckMit(dZahl(y),z)), [k1,k2]=dd.kath.map(s=>dd.namen[s]), h=dd.hName;   // k1 gegeben, k2 gesucht
+    const farbe=!!(ctx&&(ctx.einstieg||ctx.leicht)), wt={[dd.hyp]:wertText(x,u), [dd.kath[0]]:wertText(y,u), [dd.kath[1]]:'?'};
+    return rechenAufgabe({h, k1, k2, ges:k2, art:'k', x, y, einheit:u, k, ctx, pruef:'kathete', daten:{P:dd.P, namen:dd.namen},
+      q:mitStelle(`${h} = ${wertText(x,u)}, ${k1} = ${wertText(y,u)}. Stelle den Satz des Pythagoras für das Dreieck auf! Berechne die Länge der fehlenden Kathete ${k2}!`, k),
+      bild:bild(dd,{recht:true, werte:wt, farbe}), loesungBild:bild(dd,{recht:true, werte:wt, farbe:true}),
+      why:`Gesucht ist eine Kathete: Hypotenuse² − Kathete². ${rechenweg(k2,'k',x,y,rechne('k',x,y),k)} ${u}. Die Kathete muss kürzer als die Hypotenuse sein.`});
+  },
+  // G2-A03 Ist x Kathete oder Hypotenuse?
+  x_seite(ctx){
+    const art=Math.random()<.5?'h':'k', {x,y}=werte(art,1,30,{pGanz:.15}), u='cm', k=1;
+    const z = art==='h' ? null : Math.sqrt(dZahl(x)**2-dZahl(y)**2);
+    const dd = art==='h' ? dreieckMit(dZahl(x),dZahl(y)) : dreieckMit(dZahl(y),z);
+    const [p,q2] = pick([['a','b'],['e','f'],['r','s'],['u','v'],['m','n'],['k','l']]);
+    let h,k1,k2;
+    if(art==='h'){ h='x'; [k1,k2]=mischen([p,q2]); dd.namen={[dd.hyp]:h, [dd.kath[0]]:k1, [dd.kath[1]]:k2}; }
+    else { h=p; k1=q2; k2='x'; dd.namen={[dd.hyp]:h, [dd.kath[0]]:k1, [dd.kath[1]]:k2}; }
+    const wt = art==='h' ? {[dd.kath[0]]:wertText(x,u), [dd.kath[1]]:wertText(y,u), [dd.hyp]:'?'} : {[dd.hyp]:wertText(x,u), [dd.kath[0]]:wertText(y,u), [dd.kath[1]]:'?'};
+    const farbe=!!(ctx&&(ctx.einstieg||ctx.leicht));
+    return rechenAufgabe({h, k1, k2, ges:'x', art, x, y, einheit:u, k, ctx, pruef:'x_seite', daten:{P:dd.P, namen:dd.namen},
+      q:mitStelle(`Berechne die Länge der Seite x! Stelle zuerst den Satz auf: Daran siehst du, ob x eine Kathete oder die Hypotenuse ist.`, k),
+      bild:bild(dd,{recht:true, werte:wt, farbe}), loesungBild:bild(dd,{recht:true, werte:wt, farbe:true}),
+      why: art==='h' ? `x liegt dem rechten Winkel gegenüber, also ist x die Hypotenuse: x = √(${T(x)}² + ${T(y)}²).`
+        : `x bildet mit ${k1} den rechten Winkel, also ist x eine Kathete. Die Hypotenuse ist ${h}: x = √(${T(x)}² − ${T(y)}²).`});
+  },
+  // G2-A04 Dreieck ABC ohne Bild (rechter Winkel bei α, β oder γ)
+  abc(ctx){
+    const R=pick(['A','B','C']), hyp=R.toLowerCase(), kath=['a','b','c'].filter(s=>s!==hyp), art=Math.random()<.5?'h':'k', u=pick(LAENGEN);
+    const {x,y,tripel:tr}=werte(art,1,700,{pTripel:.5});
+    const k = tr ? 1 : stelle();
+    let werteS, ges, k1, k2;
+    if(art==='h'){ [k1,k2]=mischen(kath); werteS={[k1]:x, [k2]:y}; ges=hyp; }
+    else { [k1,k2]=mischen(kath); werteS={[hyp]:x, [k1]:y}; ges=k2; }
+    const angabe = Object.keys(werteS).sort().map(s=>`${s} = ${wertText(werteS[s],u)}`).join(', ');
+    const zv = art==='h' ? Math.hypot(dZahl(x),dZahl(y)) : Math.sqrt(dZahl(x)**2-dZahl(y)**2);
+    const L={[hyp]:art==='h'?Math.hypot(dZahl(x),dZahl(y)):dZahl(x), [k1]:dZahl(art==='h'?x:y), [k2]:art==='h'?dZahl(y):zv};
+    const folge={A:['A','B','C'], B:['B','C','A'], C:['C','A','B']}[R], sR=folge[2].toLowerCase(), sY=folge[1].toLowerCase();
+    const P=Py.rwDreieck(R, L[sR], L[sY], {spiegeln:false});
+    const st=Object.fromEntries(['a','b','c'].map(s=>[s, werteS[s]?wertText(werteS[s],u):'?']));
+    return rechenAufgabe({h:hyp, k1, k2, ges, art, x, y, einheit:u, k, ctx, pruef:'abc', daten:{recht:R},
+      q:mitStelle(`Im rechtwinkeligen Dreieck ABC ist ${angabe}, ${GR[R]} = 90°. Berechne ${ges}!`, k),
+      loesungBild:Dr.zeichne(P,{ecken:true, seitenNamen:true, rechter:true, rechtBogen:true, seitenText:st, rolle:{[hyp]:'h', [kath[0]]:'k', [kath[1]]:'k'}}),
+      why:`${GR[R]} = 90° liegt bei ${R}. Gegenüber von ${R} liegt ${hyp}: ${hyp} ist die Hypotenuse. ${HINWEIS_ROLLE[art]}`});
+  },
+  // G2-A05 Sachaufgaben (Leiter, Bildschirm, Regal …)
+  sache(ctx){ return sachAufgabe(ctx); },
+  // G2-N01 (Plus) Verschiedene Einheiten
+  einheiten(ctx){
+    return versuche(()=>{
+      const [u1,u2,f]=pick([['mm','cm',10],['cm','dm',10],['cm','m',100],['dm','m',10]]), art=Math.random()<.5?'h':'k', k=stelle();
+      const {x,y}=werte(art,2,100,{pTripel:.3, pGanz:.5});
+      // einer der Werte wird in der größeren Einheit angegeben: dann muss er in u1 ein Vielfaches von f/10 sein
+      const welche=pick(['x','y']), v=welche==='x'?x:y, schritt=D(f/10);
+      if(dZahl(v)%dZahl(schritt)!==0) return null;
+      const v2=D(Math.round(dZahl(v)/f*10)/10);
+      const gT={x:wertText(x,u1), y:wertText(y,u1)}; gT[welche]=wertText(v2,u2);
+      const q = art==='h' ? mitStelle(`Die Katheten eines rechtwinkeligen Dreiecks sind ${gT.x} und ${gT.y} lang. Berechne die Hypotenuse!`, k)
+        : mitStelle(`Die Hypotenuse eines rechtwinkeligen Dreiecks ist ${gT.x} lang, eine Kathete ${gT.y}. Berechne die zweite Kathete!`, k);
+      const r=rechne(art,x,y), name=art==='h'?'c':'b', s2=ergebnisFeld(r,k,name,u1);
+      const falschU=D(dZahl(v2)*(f===10?100:10));
+      // nicht umgerechnet: mit der Zahl in der größeren Einheit weitergerechnet
+      const xs=welche==='x'?v2:x, ys=welche==='y'?v2:y, radF=art==='h'?dAdd(quad(xs),quad(ys)):dSub(quad(xs),quad(ys));
+      const fehlerE=typischeFehler(art,x,y,k).concat(radF.n>0n?[[dZahl(wurzelRund(radF,2,k).r),'Rechne zuerst beide Längen in dieselbe Einheit um.']]:[]);
+      return Dr.aufg({kind:'schritte', q, text:true, pruef:'einheiten', daten:{art, x:T(x), y:T(y), u1, u2, f, welche, v2:T(v2), k},
+        s1:{label:`Schritt 1: Rechne ${gT[welche]} in ${u1} um`, kurz:'Umgerechnet', art:'zahl', wert:dZahl(v), exakt:true, einheit:u1, ansText:`${gT[welche]} = ${wertText(v,u1)}`},
+        s2:Object.assign(s2,{fehler:fehlerE}),
+        pre:{ans:T(v), optionen:mischen([[T(v),wertText(v,u1)],[T(falschU),wertText(falschU,u1)]])},
+        schritt:'Umrechnen', alleinText:'Ab der nächsten Aufgabe rechnest du selbst um.',
+        why:`Zuerst in eine Einheit umrechnen: ${gT[welche]} = ${wertText(v,u1)}. Dann ${rechenweg(name,art,x,y,r,k)} ${u1}. Das Ergebnis darf auch in einer anderen Einheit stehen, wenn es richtig umgerechnet ist.`,
+        steps:`${gT[welche]} = ${wertText(v,u1)}; ${rechenweg(name,art,x,y,r,k)} ${u1}`});
+    });
+  },
+  // G2-N02 (Plus) Fehler im Rechenweg finden
+  fehler_finden(ctx){
+    return versuche(()=>{
+      const art=Math.random()<.5?'h':'k', {x,y,tripel:tr}=werte(art,2,40,{pTripel:.5, pGanz:.7}), u=pick(['cm','m']), k=tr?1:stelle();
+      const name=pick(NAMEN), n=art==='h'?'c':'b', op=art==='h'?'+':'−', xq=quad(x), yq=quad(y), r=rechne(art,x,y);
+      const fehler=pick(art==='h'?['plusminus','summe','mal2','wurzel']:['plusminus','summe','mal2','wurzel']);
+      const erg = rr => rr.glatt ? `= ${T(rr.exakt)}` : `≈ ${dText(rr.rund(k),k)}`;
+      let z=[], zeile;
+      const rad2 = (a,b,o) => o==='+'?dAdd(a,b):dSub(a,b);
+      if(fehler==='plusminus'){ const o2=art==='h'?'−':'+'; const rr2=rad2(xq,yq,o2); if(rr2.n<=0n) return null; const w2=Py.wurzel(rr2);
+        z=[`${n} = √(${T(x)}² ${o2} ${T(y)}²)`, `${n} = √(${T(xq)} ${o2} ${T(yq)})`, `${n} = √${T(rr2)} ${erg(w2)}`]; zeile=1; }
+      else if(fehler==='summe'){ const s=rad2(D(x),D(y),op); if(s.n<=0n) return null;
+        z=[`${n} = √(${T(x)}² ${op} ${T(y)}²)`, `${n} = √((${T(x)} ${op} ${T(y)})²)`, `${n} = ${T(s)}`]; zeile=2; }
+      else if(fehler==='mal2'){ const a2=dMul(D(x),D(2)), b2=dMul(D(y),D(2)), rr2=rad2(a2,b2,op); if(rr2.n<=0n) return null; const w2=Py.wurzel(rr2);
+        z=[`${n} = √(${T(x)}² ${op} ${T(y)}²)`, `${n} = √(${T(a2)} ${op} ${T(b2)})`, `${n} = √${T(rr2)} ${erg(w2)}`]; zeile=2; }
+      else { z=[`${n}² = ${T(x)}² ${op} ${T(y)}²`, `${n}² = ${T(xq)} ${op} ${T(yq)} = ${T(r.rad)}`, `${n} = ${T(r.rad)}`]; zeile=3; }
+      const gegeben = art==='h' ? `Die Katheten sind ${wertText(x,u)} und ${wertText(y,u)} lang.` : `Die Hypotenuse ist ${wertText(x,u)} lang, eine Kathete ${wertText(y,u)}.`;
+      const warum = {plusminus:art==='h'?'Zeile 1: Für die Hypotenuse wird addiert, nicht subtrahiert.':'Zeile 1: Für eine Kathete wird subtrahiert (Hypotenuse² − Kathete²), nicht addiert.',
+        summe:'Zeile 2: Erst quadrieren, dann rechnen. (a + b)² ist nicht a² + b².', mal2:'Zeile 2: ² heißt „mit sich selbst multiplizieren“, nicht „mal 2“.',
+        wurzel:`Zeile 3: Die Wurzel fehlt. ${n}² = ${T(r.rad)}, also ${n} = √${T(r.rad)}.`}[fehler];
+      const s2=ergebnisFeld(r,k,n,u,{label:`Schritt 2: Richtiges Ergebnis ${n} = ? (mit Einheit)`});
+      const zeilenW=z.map((l,i)=>['z'+(i+1),`Zeile ${i+1}`]);
+      return Dr.aufg({kind:'schritte', q:mitStelle(`${gegeben} ${name} hat ${n} so berechnet: ${z.map((l,i)=>`(${i+1}) ${l}`).join('; ')}. Wo steckt der Fehler?`, k),
+        qh:mitStelle(`${gegeben} ${name} hat ${n} so berechnet:<ol class="kon-liste">${z.map(l=>`<li>${l}</li>`).join('')}</ol>Wo steckt der Fehler? Wähle die Zeile und rechne richtig!`, k), text:true,
+        pruef:'fehler_finden', daten:{art, x:T(x), y:T(y), u, k, fehler, zeile, z},
+        s1:{label:'Schritt 1: In welcher Zeile ist der Fehler?', kurz:'Fehler in', art:'wahl', wahl:zeilenW, ans:'z'+zeile, ansText:`Zeile ${zeile}`},
+        s2, pre:{ans:'z'+zeile, optionen:mischen([zeilenW[zeile-1], zeilenW[zeile%3]])},
+        schritt:'Fehler finden', alleinText:'Ab der nächsten Aufgabe wählst du aus allen drei Zeilen.',
+        why:`${warum} Richtig: ${rechenweg(n,art,x,y,r,k)} ${u}.`, steps:rechenweg(n,art,x,y,r,k)+' '+u});
+    });
+  },
+  // G2-N04 (Plus) Kann das stimmen? (Überschlag)
+  ueberschlag(ctx){
+    return versuche(()=>{
+      const art=Math.random()<.5?'h':'k', {x,y}=werte(art,2,60,{pTripel:.2}), u=pick(['cm','m']), r=rechne(art,x,y);
+      const ri = r.glatt ? r.exakt : r.rund(2);
+      let f1, f2, grenzen;
+      if(art==='h'){ f1=dAdd(D(x),D(y)); const gr=dVgl(D(x),D(y))>=0?x:y, kl=gr===x?y:x, d=dSub(quad(gr),quad(kl)); if(d.n<=0n) return null; f2=Py.wurzel(d).glatt?Py.wurzel(d).exakt:Py.wurzel(d).rund(2);
+        grenzen=`Die Hypotenuse ist länger als die längere Kathete (${wertText(gr,u)}), aber kürzer als beide Katheten zusammen (${wertText(f1,u)}).`; }
+      else { f1=Py.wurzel(dAdd(quad(x),quad(y))); f1=f1.glatt?f1.exakt:f1.rund(2); f2=dSub(D(x),D(y));
+        grenzen=`Eine Kathete ist kürzer als die Hypotenuse (${wertText(x,u)}), aber länger als ${T(x)} − ${T(y)} = ${wertText(f2,u)} (sonst entsteht kein Dreieck).`; }
+      const l=[ri,f1,f2]; if(l.some((a,i)=>l.some((b,j)=>j>i&&dVgl(a,b)===0))||dZahl(f2)<=0) return null;
+      const opt=mischen(l.map((v,i)=>['e'+i, wertText(v,u)]));
+      const gegeben = art==='h' ? `Die Katheten sind ${wertText(x,u)} und ${wertText(y,u)} lang. Wie lang ist die Hypotenuse?` : `Die Hypotenuse ist ${wertText(x,u)} lang, eine Kathete ${wertText(y,u)}. Wie lang ist die zweite Kathete?`;
+      return Dr.aufg({kind:'fragen', q:`${gegeben} Welches Ergebnis kann stimmen? Überlege ohne zu rechnen!`, text:true, pruef:'ueberschlag', daten:{art, x:T(x), y:T(y), u},
+        gruppen:[{frage:'Welches Ergebnis kann stimmen?', optionen:opt, ans:'e0', klasse:'drei'}],
+        why:`${grenzen} Nur ${wertText(ri,u)} liegt dazwischen.`});
+    });
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Hypotenuse berechnen', hint:'t = √(78,4² + 9,7²) ≈ 79,00 mm', types:['hypotenuse']},
+  {id:'S2', name:'Kathete berechnen', hint:'g = √(6,5² − 3,5²) ≈ 5,48 cm', types:['kathete']},
+  {id:'S3', name:'Kathete oder Hypotenuse?', hint:'α = 90° → a ist die Hypotenuse', types:['x_seite','abc']},
+  {id:'S4', name:'Sachaufgaben', hint:'Leiter, Bildschirm, Feuerwehr', types:['sache']}
+];
+const kern = ['hypotenuse','kathete','x_seite','abc','sache'];
+const plus = ['einheiten','fehler_finden','ueberschlag'];
+const plusHint = 'Verschiedene Einheiten · Fehler im Rechenweg · Kann das stimmen?';
+const jeTyp = {hypotenuse:2, kathete:2};
+
+/* ---------- Erklärung ---------- */
+const bsp = () => benennen(dreieckMit(rnd(3,9), rnd(3,9)));
+const erklaerung = {
+  beispiele: ()=>({d:bsp()}),
+  neu(kind,E){ if(kind==='dreieck') E.d=bsp(); },
+  html(E){
+    const d=E.d, [k1,k2]=d.kNamen, h=d.hName;
+    return `<section class="sheet"><h2>Den Satz des Pythagoras anwenden</h2>
+    <div class="rule"><h3>1. Katheten und Hypotenuse bestimmen</h3><p>Die ${H('Hypotenuse')} liegt dem rechten Winkel gegenüber, die ${K('Katheten')} bilden ihn. Die Hypotenuse ist die längste Seite.</p>
+      ${bild(d,{farbe:true, recht:true})}<button class="newex" data-newex="dreieck">Neues Beispiel</button></div>
+    <div class="rule"><h3>2. Den Satz aufstellen</h3><p class="ex">${k1}² + ${k2}² = ${h}²</p></div>
+    <div class="rule"><h3>3. Nach der gesuchten Seite umstellen, Wurzel ziehen</h3>
+      <p>Hypotenuse gesucht: <b>${h} = √(${k1}² + ${k2}²)</b></p>
+      <p>Kathete gesucht: <b>${k1} = √(${h}² − ${k2}²)</b></p>
+      <p class="ex">Beispiel: e = 6,5 cm, f = 3,5 cm, gesucht g (Kathete).<br>g = √(6,5² − 3,5²) = √(42,25 − 12,25) = √30 ≈ 5,48 cm</p>
+      <p>Erst quadrieren, dann addieren bzw. subtrahieren, dann die Wurzel ziehen (Taschenrechner). Runde erst am Schluss.</p></div>
+    <div class="rule"><h3>Kontrolle</h3><p>Die Hypotenuse ist länger als jede Kathete, aber kürzer als beide zusammen. Eine berechnete Kathete muss kürzer sein als die Hypotenuse.</p></div>
+    <div class="rule"><h3>Sachaufgaben</h3><p>Zeichne eine Skizze und suche das rechtwinkelige Dreieck: Bei einer Leiter an der Wand ist die Leiter die Hypotenuse, Wand und Boden bilden den rechten Winkel. Hier: h = √(10² − 2,8²) = √92,16 = 9,6 m.</p>
+      ${szene([{art:'poly', pkte:[[-.5,0],[0,0],[0,10.2],[-.5,10.2]], cls:'sz-wand'}, {art:'l', pkte:[[-.8,0],[3.6,0]], cls:'sz-boden'}], {pkte:[[0,0],[2.8,0],[0,9.6]], texte:['a = 2,8 m','h = ?','l = 10 m'], farbe:true}, {hoeheMax:180})}</div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 1.3 Satz des Pythagoras.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`;
+  }
+};
+
+UR.kompetenzAnmelden({id:'M-Pyth-G2', typen, stationen, kern, plus, plusHint, jeTyp, erklaerung});
 })(window.UR = window.UR || {});
 </script>
 <script>
