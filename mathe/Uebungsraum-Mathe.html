@@ -1544,7 +1544,8 @@ function submitStation(raw){
   const e=evaluate(t,view.pre,raw,view.self), st=stState();
   st.tries++; let justDone=false, nowSelf=false;
   if((gef&&!view.self)||view.leicht){ if(e.ok){st.scaff=(st.scaff||0)+1; nowSelf=st.scaff===SCAFF} }
-  else { if(e.ok){st.correct++;st.streak++}else st.streak=0; if(!st.done&&st.streak>=NEED_STREAK){st.done=true;justDone=true} }
+  // Hinweis „Station geschafft“ jedes Mal, wenn die Folge NEED_STREAK erreicht, auch bei schon früher geschafften Stationen
+  else { if(e.ok){st.correct++;st.streak++}else st.streak=0; if(st.streak===NEED_STREAK||(!st.done&&st.streak>NEED_STREAK)){st.done=true;justDone=true} }
   UR.save(); view.fb={ok:e.ok,preOk:e.preOk,valOk:e.valOk,justDone,nowSelf}; render();
 }
 
@@ -1966,7 +1967,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-27.18","datum":"27.11.2026","pruefsumme":"19a293474c2b38f3"};
+UR.version = {"nummer":"2026-11-27.19","datum":"27.11.2026","pruefsumme":"e4318ee24134934e"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
