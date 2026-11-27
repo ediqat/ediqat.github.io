@@ -605,6 +605,9 @@ svg.pyb{display:block;width:100%;max-width:340px;margin:0 auto;height:auto} svg.
 .py-t.gross{font-size:16px} .py-t.klein{font-size:12px;font-weight:600} .py-t.name{font-style:italic} .py-t.hyp{fill:var(--g)}
 svg.pyb.klein .py-t{font-size:17px} svg.pyb.klein .py-t.klein{font-size:15px}
 .py-tipp{stroke-width:0}
+/* Höhe auf die Hypotenuse (M-Pyth-X2): a und p rot, b und q blau, markierte Strecke dick */
+.py-l{stroke:var(--text);stroke-width:2;stroke-linecap:round} .py-l.sa{stroke:var(--x);stroke-width:3} .py-l.sb{stroke:var(--ink);stroke-width:3}
+.py-t.sa{fill:var(--x)} .py-t.sb{fill:var(--ink)} .py-l.mark,.py-hoehe.mark{stroke:var(--v);stroke-width:5;stroke-dasharray:none} .py-band{stroke:none}
 polygon.tipp.sel{fill:var(--v);fill-opacity:.45}
 .py-schieb{animation:py-schieben 6s ease-in-out infinite}
 .py-anim-hin{animation:py-hin 6s ease-in-out infinite} .py-anim-weg{animation:py-weg 6s ease-in-out infinite}
@@ -1967,7 +1970,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-27.19","datum":"27.11.2026","pruefsumme":"e4318ee24134934e"};
+UR.version = {"nummer":"2026-11-27.24","datum":"27.11.2026","pruefsumme":"bbfdf23d2c969f6a"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -4940,7 +4943,7 @@ const drehe = (p,w) => [p[0]*Math.cos(w)-p[1]*Math.sin(w), p[0]*Math.sin(w)+p[1]
 function alleP(teile){ const l=[]; for(const t of teile){ if(t.art==='g') l.push(...alleP(t.teile)); else if(t.pkte) l.push(...t.pkte); else if(t.p&&!t.ohneRand) l.push(t.p); if(t.weg) l.push(...t.weg); } return l; }
 function svgAus(teile, o={}){
   const lang=Math.max(0,...teile.filter(t=>t.art==='text'&&t.n&&t.abst>0).map(t=>String(t.text).replace(/<[^>]+>/g,'').length));
-  const W=o.breite||320, PAD=(o.pad??22)+Math.max(0,lang-2)*8, l=alleP(teile), xs=l.map(p=>p[0]), ys=l.map(p=>p[1]);
+  const W=o.breite||320, PAD=(o.pad??22)+(o.extraPad ?? Math.max(0,lang-2)*8), l=alleP(teile), xs=l.map(p=>p[0]), ys=l.map(p=>p[1]);
   const x0=Math.min(...xs), y1=Math.max(...ys), bw=Math.max(...xs)-x0||1, bh=y1-Math.min(...ys)||1;
   const k=Math.min((W-2*PAD)/bw, (o.hoeheMax||300)/bh), H=bh*k+2*PAD, dx=(W-2*PAD-bw*k)/2;
   const S = p => [r1(PAD+dx+(p[0]-x0)*k), r1(PAD+(y1-p[1])*k)], pt = p => S(p).join(',');
@@ -4961,9 +4964,10 @@ function svgAus(teile, o={}){
       return `<g class="dr-rb"><path d="M${r1(a[0])},${r1(a[1])} A${r1(r)},${r1(r)} 0 0 ${kr>0?1:0} ${r1(b[0])},${r1(b[1])}"/><circle cx="${r1(m[0])}" cy="${r1(m[1])}" r="2.2"/></g>`; }
     return '';
   };
-  // antippbare Flächen zuletzt (oben), damit sie die Beschriftung nicht verdecken: transparent
-  const tipp = (o.tipp ? teile.flatMap(function f(t){ return t.art==='g' ? (t.schiebe?[]:t.teile.flatMap(f)) : t.wert&&t.art==='poly' ? [t] : []; }) : [])
-    .map(t=>`<polygon class="tipp py-tipp" data-wg="${o.tipp}" data-wert="${t.wert}" points="${t.pkte.map(pt).join(' ')}"/>`).join('');
+  // antippbare Flächen (poly) und Strecken (l) zuletzt (oben), damit sie die Beschriftung nicht verdecken: transparent
+  const tipp = (o.tipp ? teile.flatMap(function f(t){ return t.art==='g' ? (t.schiebe?[]:t.teile.flatMap(f)) : t.wert&&(t.art==='poly'||t.art==='l') ? [t] : []; }) : [])
+    .map(t=>t.art==='l' ? `<line class="tipp" data-wg="${o.tipp}" data-wert="${t.wert}" x1="${S(t.pkte[0])[0]}" y1="${S(t.pkte[0])[1]}" x2="${S(t.pkte[1])[0]}" y2="${S(t.pkte[1])[1]}"/>`
+      : `<polygon class="tipp py-tipp" data-wg="${o.tipp}" data-wert="${t.wert}" points="${t.pkte.map(pt).join(' ')}"/>`).join('');
   return `<svg class="pyb${o.klein?' klein':''}" viewBox="0 0 ${W} ${r1(H)}" role="img" aria-label="${o.titel||'Bild'}">${teile.map(eins).join('')}${tipp}</svg>`;
 }
 // Text neben einer Strecke, auf der Seite weg vom Punkt weg (z. B. Mitte der Figur)
@@ -5084,6 +5088,41 @@ function kathetensatzTeile(a, b, o={}){
 }
 const kathetensatzBild = (a, b, o={}) => svgAus(kathetensatzTeile(a,b,o), {breite:o.breite||300, hoeheMax:o.hoeheMax||300, tipp:o.tipp, klein:o.klein, pad:o.pad, titel:'Dreieck mit der Höhe auf die Hypotenuse'});
 
+/* ---------- Höhe auf die Hypotenuse mit h, p, q (M-Pyth-X2) ----------
+   a, b Katheten (Zahlen); A, B, C wie in der LZK: rechter Winkel bei C, Höhe h von C auf c mit Fußpunkt F,
+   p = FB (bei a), q = AF (bei b). Zufällige Lage über drehung (Grad) und spiegeln.
+   o: texte {a, b, c, h, p, q} (Text statt Name, false = ohne Beschriftung; c steht unter p und q), farbe (a und p rot,
+   b und q blau), mark ('p' | 'q' | 'h' | 'a' | 'b' | 'c': Strecke hervorgehoben), tipp ('q0': Strecken p, q, h, a, b, c
+   antippbar, data-wert = Name), punkte (A, B, C, Standard ja), deko (weitere Teile in denselben Koordinaten, für Skizzen). */
+function hoehenTeile(a, b, o={}){
+  const c=Math.hypot(a,b), q=b*b/c, h=a*b/c, w=(o.drehung||0)*Math.PI/180;
+  const T = p => { let r=drehe(p,w); if(o.spiegeln) r=[-r[0],r[1]]; return r; };
+  const A=T([0,0]), B=T([c,0]), C=T([q,h]), F=T([q,0]), sp=mitte([A,B,C]);
+  const S = {a:[C,B], b:[A,C], c:[A,B], p:[F,B], q:[A,F], h:[C,F]};
+  const X = o.texte||{}, txt = n => X[n]===false ? null : X[n]??n, F2=o.farbe;
+  const kl = {a:F2?'sa':'', p:F2?'sa':'', b:F2?'sb':'', q:F2?'sb':'', c:'', h:''};
+  const teile=[...(o.deko||[]), {art:'poly', pkte:[A,B,C], cls:'py-dr'}];
+  for(const n of ['c','p','q','a','b']) teile.push({art:'l', pkte:S[n], cls:`py-l ${kl[n]}${o.mark===n?' mark':''}`});
+  teile.push({art:'l', pkte:S.h, cls:`py-hoehe${o.mark==='h'?' mark':''}`}, {art:'rb', R:C, X:A, Y:B}, {art:'rb', R:F, X:B, Y:C});
+  const T1 = (n, weg, abst, extra='') => { const t=txt(n); if(t) teile.push(nebenText(S[n][0], S[n][1], t, weg, abst, `py-t name ${kl[n]}${extra}`)); };
+  T1('a',sp,12); T1('b',sp,12); T1('p',C,12); T1('q',C,12); T1('c',C,X.p===false&&X.q===false?12:32,' hyp');
+  // h näher am Fußpunkt, damit die Beschriftung bei kurzer Höhe nicht an a oder b rückt
+  if(txt('h')) teile.push(nebenText(F, plus(F,mal(minus(C,F),.8)), txt('h'), q>c-q?B:A, 9, 'py-t name'));   // auf der Seite mit mehr Platz
+  if(o.punkte!==false) for(const [P,n] of [[A,'A'],[B,'B'],[C,'C']]){ const v=minus(P,sp), l=Math.hypot(...v)||1; teile.push({art:'text', p:P, n:[v[0]/l, v[1]/l], abst:12, text:n, cls:'py-t klein', ohneRand:true}); }
+  if(o.tipp){ const k=.06*c, kurz = ([p,s]) => { const v=minus(s,p), l=Math.hypot(...v)||1, e=mal(v,1/l); return [plus(p,mal(e,k)), minus(s,mal(e,k))]; };
+    for(const n of ['c','p','q','a','b','h']) teile.push({art:'l', pkte:kurz(S[n]), cls:'py-band', wert:n}); }
+  return {teile, P:{A,B,C,F}, sp, S};
+}
+function hoehenBild(a, b, o={}){
+  const {teile, sp, S}=hoehenTeile(a,b,o);
+  // Rand: Beschriftung neben den Strecken (waagrecht ganz, sonst halb so breit), c steht weiter weg
+  const ext = teile.filter(t=>t.art==='text'&&t.n).map(t=>{ const n=String(t.text).replace(/<[^>]+>/g,'').length;
+    return (Math.abs(t.n[0])>.7 ? n*8.5 : n*4.5) + Math.max(0,t.abst-12); });
+  return svgAus(teile, {breite:o.breite||300, hoeheMax:o.hoeheMax||220, tipp:o.tipp, pad:24, extraPad:Math.max(0,...ext), titel:'Rechtwinkeliges Dreieck mit der Höhe auf die Hypotenuse'});
+}
+// zufällige Lage: drehung und spiegeln (Themenregeln: Hypotenuse nicht immer unten)
+const hoehenLage = () => ({drehung:UR.rnd(0,359), spiegeln:Math.random()<.5});
+
 /* ---------- Zerlegungsbeweis nach Perigal (nur zum Anschauen) ----------
    Das größere Kathetenquadrat wird durch zwei Linien durch seine Mitte (parallel und senkrecht zur Hypotenuse) in vier
    gleiche Teile zerlegt; verschoben füllen sie mit dem kleinen Quadrat das Hypotenusenquadrat. */
@@ -5144,7 +5183,7 @@ const folgeHTML = l => `<ol class="py-folge">${l.map(x=>`<li>${x.bild?`<div clas
 // Verhältnis a : b zwischen 1 : 3 und 3 : 1, nie gleich (für Beweisbilder)
 function beweisSeiten(){ for(;;){ const a=UR.rnd(2,9), b=UR.rnd(2,9); if(a!==b && Math.max(a,b)<=3*Math.min(a,b)) return [a,b]; } }
 
-Object.assign(Py, {svgAus, quadratUeber, quadrateBild, ergaenzungTeile, ergaenzungBild, umlegeBild, kathetensatzBild, zerlegungBild, bildfolge, folgeHTML, beweisSeiten});
+Object.assign(Py, {svgAus, nebenText, hoehenTeile, hoehenBild, hoehenLage, quadratUeber, quadrateBild, ergaenzungTeile, ergaenzungBild, umlegeBild, kathetensatzBild, zerlegungBild, bildfolge, folgeHTML, beweisSeiten});
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -10061,6 +10100,425 @@ const erklaerung = {
 UR.kompetenzAnmelden({id:ID, typen, stationen, kern, leicht, plus, plusHint, erklaerung, lzk,
   festeAuswahl:['ueberblick','beweis_beispiel','schritte_ordnen','begruendung','terme','kathetensatz','checkliste']});
 UR.pythBeweise = {BEWEISE, gewaehlt};
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/1.3 Satz-des-Pythagoras/M-Pyth-X2.js */
+/* Baustein M-Pyth-X2: „Ich kenne Höhensatz und Kathetensatz und kann sie anwenden.“
+   Steckbrief: M-Pyth-X2.md, Auswahl und Themenregeln: AUSWAHL.md (27.11.2026). Bezeichnung wie in der LZK: rechter Winkel
+   bei C, Höhe h auf c, p = Abschnitt bei a, q = Abschnitt bei b, p + q = c. Kathetensatz a² = c · p, b² = c · q,
+   Höhensatz h² = p · q. Jede Rechnung: Schritt 1 der passende Satz (Auswahl, genau eine richtige Gleichung), Schritt 2 das
+   Ergebnis mit Einheiten-Tasten (Fall A, Stelle genannt; geht es auf, zählt der genaue Wert). Gerechnet wird exakt mit
+   Brüchen (BigInt), Wurzeln exakt gerundet. */
+(function(UR){
+const {rnd, pick} = UR;
+const Dr = UR.dreiecke, Py = UR.pyth;
+const {mischen, versuche} = Dr;
+const {D, dKurz, dText, dZahl} = UR.powu;
+const {merk, T, zahl1, rundWort, hoehenBild, hoehenLage, verhaeltnis} = Py;
+const ID = 'M-Pyth-X2';
+
+/* ---------- exakte Brüche {z, n} (BigInt) ---------- */
+const P10 = k => 10n ** BigInt(k);
+const ggt = (a,b) => { a=a<0n?-a:a; b=b<0n?-b:b; while(b) [a,b]=[b,a%b]; return a; };
+const kurzR = x => { const g=ggt(x.z,x.n)||1n; return {z:x.z/g, n:x.n/g}; };
+const R = d => { d=D(d); return kurzR({z:d.n, n:P10(d.k)}); };
+const rMul = (x,y) => kurzR({z:x.z*y.z, n:x.n*y.n}), rDiv = (x,y) => kurzR({z:x.z*y.n, n:x.n*y.z});
+const rAdd = (x,y) => kurzR({z:x.z*y.n+y.z*x.n, n:x.n*y.n}), rSub = (x,y) => rAdd(x,{z:-y.z, n:y.n});
+const rGl = (x,y) => x.z*y.n===y.z*x.n;
+const rZahl = x => Number(x.z)/Number(x.n);
+const isqrt = v => { if(v<2n) return v; let x=BigInt(Math.floor(Math.sqrt(Number(v)))); while(x*x>v) x--; while((x+1n)*(x+1n)<=v) x++; return x; };
+const rRund = (x,k) => dKurz({n:(2n*x.z*P10(k)+x.n)/(2n*x.n), k});                    // x > 0, kaufmännisch
+const rWurzel = (x,k) => dKurz({n:(isqrt(4n*x.z*P10(2*k)/x.n)+1n)/2n, k});              // √x exakt gerundet
+// Ergebnis E = {X, w}: Wert X (w: die Wurzel daraus)
+const E = (X, w) => ({X, w:!!w});
+const wert = (e,k) => e.w ? rWurzel(e.X,k) : rRund(e.X,k);
+const glatt = (e,k) => { const v=R(wert(e,k)); return rGl(e.w?rMul(v,v):v, e.X); };
+const zeig = (e,k) => glatt(e,k) ? `= ${T(wert(e,k))}` : `≈ ${dText(wert(e,k),k)}`;
+const SATZ = 'Kathetensatz: a² = c · p und b² = c · q (a liegt bei p, b bei q). Höhensatz: h² = p · q.';
+const muster = () => merk(`${SATZ} Beispiel: c = 12 cm, p = 4 cm → a² = 12 · 4 = 48, a = √48 ≈ 6,93 cm.`);
+const PARTNER = {a:'p', b:'q', p:'a', q:'b'}, ANDERER = {p:'q', q:'p', a:'b', b:'a'};
+
+/* ---------- Werte ---------- */
+// Abschnitt zwischen 15 % und 85 % der Hypotenuse (sonst wird das Bild zu schief)
+const abschnittOk = (x, c) => { const v=dZahl(x)/dZahl(c); return v>=.15&&v<=.85; };
+const pqOk = (p,q) => { const v=dZahl(p)/dZahl(q); return v>=1/5.5&&v<=5.5; };
+// Katheten fürs Bild aus c und p (Zahlen): a = √(c·p), b = √(c·q)
+const kath = (c,p) => [Math.sqrt(c*p), Math.sqrt(c*(c-p))];
+const bildO = (o={}) => Object.assign(hoehenLage(), o);
+const stelle = () => pick([1,2]);
+const mitStelle = (q,k) => `${q} Runde ${rundWort(k)}!`;
+const W = (v,u) => `${T(v)} ${u}`;
+
+/* ---------- Gleichungen ----------
+   je Gesuchtem eine richtige (zwei Formen) und falsche in derselben Form; Auswahl mit genau einer richtigen. */
+const GL = {
+  a: {quadrat:['a² = c · p', ['a² = c · q','a² = p · q','a² = c + p','a = c · p']], wurzel:['a = √(c · p)', ['a = √(c · q)','a = √(p · q)','a = √(c + p)','a = c · p']]},
+  b: {quadrat:['b² = c · q', ['b² = c · p','b² = p · q','b² = c + q','b = c · q']], wurzel:['b = √(c · q)', ['b = √(c · p)','b = √(p · q)','b = √(c + q)','b = c · q']]},
+  p: {quadrat:['a² = c · p', ['a² = c · q','p² = a · c','a = c · p','a² = c + p']], teilen:['p = a² : c', ['p = c² : a','p = a · c','p = a : c','q = a² : c']]},
+  q: {quadrat:['b² = c · q', ['b² = c · p','q² = b · c','b = c · q','b² = c + q']], teilen:['q = b² : c', ['q = c² : b','q = b · c','q = b : c','p = b² : c']]},
+  h: {quadrat:['h² = p · q', ['h² = p + q','h = p · q','h² = c · p','h² = p² + q²']], wurzel:['h = √(p · q)', ['h = √(p + q)','h = p · q','h = √(c · p)','h = √(p² + q²)']]},
+  // Höhensatz nach einem Abschnitt (aus h und dem anderen Abschnitt)
+  hp: {quadrat:['h² = p · q', ['h = p · q','h² = p + q','h² = c · p','h² = a · q']], teilen:['p = h² : q', ['p = q² : h','p = h : q','p = h · q','p = q : h²']]},
+  hq: {quadrat:['h² = p · q', ['h = p · q','h² = p + q','h² = c · q','h² = b · p']], teilen:['q = h² : p', ['q = p² : h','q = h : p','q = h · p','q = p : h²']]}
+};
+function gleichungen(art, n){
+  const formen=Object.keys(GL[art]), [richtig, falsch]=GL[art][pick(formen)];
+  const l=mischen([richtig, ...mischen(falsch).slice(0,n-1)]).map((g,i)=>['g'+i,g]);
+  return {wahl:l, ans:l.find(x=>x[1]===richtig)[0], richtig};
+}
+
+/* ---------- gemeinsame Rechenaufgabe (Form 'schritte') ----------
+   o: {art (Schlüssel in GL), ges (Name), e (Ergebnis E), k, u, q, bild, loesungBild, weg (Rechenweg), why, fehler [[E, Hinweis]], pruef, daten, ctx} */
+function rechenAufgabe(o){
+  const ctx=o.ctx||{}, gw=gleichungen(o.art,3), falsch=gw.wahl.find(w=>w[0]!==gw.ans);
+  const v=wert(o.e,o.k), gl=glatt(o.e,o.k);
+  const s2={label:`Schritt 2: ${o.ges} = ? (mit Einheit)`, einheiten:Dr.EINHEITEN, einheitAns:o.u, tol:0, ans:dZahl(v), stellen:o.k,
+    ansText:`${o.ges} ${gl?'=':'≈'} ${gl?T(v):dText(v,o.k)} ${o.u}`};
+  s2.fehler=(o.fehler||[]).map(([e,h])=>[dZahl(wert(e,o.k)),h]).filter(([w])=>Math.abs(w-s2.ans)>1e-9);
+  return Dr.aufg({kind:'schritte', q:o.q, text:true, papierLead:'Stelle den passenden Satz auf und berechne!',
+    lead:ctx.einstieg||ctx.leicht ? muster() : '', bild:o.bild, loesungBild:o.loesungBild, pruef:o.pruef, daten:Object.assign({ges:o.ges, k:o.k, u:o.u}, o.daten||{}),
+    s1:{label:'Schritt 1: Stelle den passenden Satz für dieses Dreieck auf', kurz:'Satz', art:'wahl', wahl:gw.wahl, ans:gw.ans, ansText:gw.richtig, klasse:'lang'},
+    s2, pre:{ans:gw.ans, optionen:mischen([gw.wahl.find(w=>w[0]===gw.ans), falsch]), klasse:'lang'},
+    schritt:'Satz aufstellen', alleinText:'Ab der nächsten Aufgabe wählst du den Satz aus drei Gleichungen.',
+    why:o.why, steps:`${gw.richtig}; ${o.weg} ${o.u}`});
+}
+// Beschriftung im Bild: gegebene mit Wert (ohne Einheit, Einheit steht in der Angabe), gesuchte mit „?“
+const texte = (geg, ges) => { const t={}; for(const n of ['a','b','c','h','p','q']) t[n] = n===ges ? `${n} = ?` : geg[n] ? `${n} = ${T(geg[n])}` : n; return t; };
+
+/* ---------- X2-A02 Kathetensatz ---------- */
+function kathetensatz(ctx){
+  return versuche(()=>{
+    const u=pick(Py.LAENGEN), k=stelle(), seite=pick(['a','b']), ab=PARTNER[seite], c=zahl1(4,30,.5);
+    const farbe=!!(ctx&&(ctx.einstieg||ctx.leicht));
+    if(Math.random()<2/3){   // Kathete aus c und ihrem Abschnitt
+      const x=zahl1(1,dZahl(c)-1,.5); if(!abschnittOk(x,c)) return null;
+      const e=E(rMul(R(c),R(x)),true), cx=rMul(R(c),R(x)), y=rSub(R(c),R(x));
+      const pz=ab==='p'?dZahl(x):dZahl(c)-dZahl(x), [ka,kb]=kath(dZahl(c),pz), geg={c, [ab]:x};
+      const b0=o=>hoehenBild(ka,kb,Object.assign({},lage,{texte:texte(geg,seite)},o)), lage=bildO();
+      return rechenAufgabe({art:seite, ges:seite, e, k, u, ctx, pruef:'x2_kathetensatz', daten:{geg:{c:T(c), [ab]:T(x)}},
+        q:mitStelle(`c = ${W(c,u)}, ${ab} = ${W(x,u)}. Berechne die Kathete ${seite} mit dem Kathetensatz!`, k),
+        bild:b0({farbe}), loesungBild:b0({farbe:true}),
+        weg:`${seite}² = c · ${ab} = ${T(c)} · ${T(x)} = ${T(rRund(cx,4))}, ${seite} = √${T(rRund(cx,4))} ${zeig(e,k)}`,
+        fehler:[[E(rMul(R(c),y),true), `${seite} liegt bei ${ab}, nicht bei ${ANDERER[ab]}: ${seite}² = c · ${ab}.`], [E(cx,false), `Das ist ${seite}². Ziehe noch die Wurzel.`],
+          [E(rAdd(R(c),R(x)),true), `Im Kathetensatz steht c mal ${ab}, nicht plus.`]],
+        why:`${seite} liegt bei ${ab}: ${seite}² = c · ${ab}.`});
+    }
+    // Abschnitt aus c und der Kathete: p = a² : c
+    const lo=dZahl(c)*Math.sqrt(.15), hi=dZahl(c)*Math.sqrt(.85), s=zahl1(Math.max(1,lo),hi,.5); if(dZahl(s)<lo||dZahl(s)>hi) return null;
+    const e=E(rDiv(rMul(R(s),R(s)),R(c)),false), s2=rMul(R(s),R(s));
+    if(rZahl(e.X)<1||rZahl(e.X)>dZahl(c)-1) return null;
+    const pz=ab==='p'?rZahl(e.X):dZahl(c)-rZahl(e.X), [ka,kb]=kath(dZahl(c),pz), geg={c, [seite]:s}, lage=bildO();
+    const b0=o=>hoehenBild(ka,kb,Object.assign({},lage,{texte:texte(geg,ab)},o));
+    return rechenAufgabe({art:ab, ges:ab, e, k, u, ctx, pruef:'x2_kathetensatz', daten:{geg:{c:T(c), [seite]:T(s)}},
+      q:mitStelle(`c = ${W(c,u)}, ${seite} = ${W(s,u)}. Berechne den Abschnitt ${ab} mit dem Kathetensatz!`, k),
+      bild:b0({farbe}), loesungBild:b0({farbe:true}),
+      weg:`${seite}² = c · ${ab}, also ${ab} = ${seite}² : c = ${T(rRund(s2,4))} : ${T(c)} ${zeig(e,k)}`,
+      fehler:[[E(rDiv(rMul(R(c),R(c)),R(s)),false), `${ab} = ${seite}² : c, nicht c² : ${seite}.`], [E(rDiv(R(s),R(c)),false), `Quadriere zuerst ${seite}: ${ab} = ${seite}² : c.`],
+        [E(rSub(R(c),e.X),false), `Das ist der andere Abschnitt ${ANDERER[ab]}. ${ab} liegt bei ${seite}.`]],
+      why:`${seite} liegt bei ${ab}: ${seite}² = c · ${ab}, also ${ab} = ${seite}² : c.`});
+  });
+}
+
+/* ---------- X2-A03 Höhensatz ---------- */
+function hoehensatz(ctx){
+  return versuche(()=>{
+    const u=pick(Py.LAENGEN), k=stelle(), farbe=!!(ctx&&(ctx.einstieg||ctx.leicht)), lage=bildO();
+    if(Math.random()<2/3){
+      const p=zahl1(1,20,.5), q=zahl1(1,20,.5); if(!pqOk(p,q)) return null;
+      const pq=rMul(R(p),R(q)), e=E(pq,true), c=dZahl(p)+dZahl(q), [ka,kb]=kath(c,dZahl(p)), geg={p,q};
+      const b0=o=>hoehenBild(ka,kb,Object.assign({},lage,{texte:texte(geg,'h')},o));
+      return rechenAufgabe({art:'h', ges:'h', e, k, u, ctx, pruef:'x2_hoehensatz', daten:{geg:{p:T(p), q:T(q)}},
+        q:mitStelle(`p = ${W(p,u)}, q = ${W(q,u)}. Berechne die Höhe h mit dem Höhensatz!`, k), bild:b0({farbe}), loesungBild:b0({farbe:true}),
+        weg:`h² = p · q = ${T(p)} · ${T(q)} = ${T(rRund(pq,4))}, h = √${T(rRund(pq,4))} ${zeig(e,k)}`,
+        fehler:[[E(pq,false), 'Das ist h². Ziehe noch die Wurzel.'], [E(rAdd(R(p),R(q)),true), 'Im Höhensatz steht p mal q, nicht plus.'],
+          [E(rMul(rAdd(R(p),R(q)),R(p)),true), 'Das ist der Kathetensatz (c · p). Für die Höhe gilt h² = p · q.']],
+        why:'h² = p · q: Das Quadrat über der Höhe ist so groß wie das Rechteck aus den beiden Abschnitten.'});
+    }
+    const ges=pick(['p','q']), an=ANDERER[ges], h=zahl1(1,20,.5), y=zahl1(1,20,.5), e=E(rDiv(rMul(R(h),R(h)),R(y)),false), x=rZahl(e.X);
+    if(x<1||x>20){ return null; } { const v=x/dZahl(y); if(v<1/5.5||v>5.5) return null; }
+    const pz=ges==='p'?x:dZahl(y), qz=ges==='p'?dZahl(y):x, [ka,kb]=kath(pz+qz,pz), geg={h, [an]:y};
+    const b0=o=>hoehenBild(ka,kb,Object.assign({},lage,{texte:texte(geg,ges)},o));
+    return rechenAufgabe({art:'h'+ges, ges, e, k, u, ctx, pruef:'x2_hoehensatz', daten:{geg:{h:T(h), [an]:T(y)}},
+      q:mitStelle(`h = ${W(h,u)}, ${an} = ${W(y,u)}. Berechne den Abschnitt ${ges} mit dem Höhensatz!`, k), bild:b0({farbe}), loesungBild:b0({farbe:true}),
+      weg:`h² = p · q, also ${ges} = h² : ${an} = ${T(rRund(rMul(R(h),R(h)),4))} : ${T(y)} ${zeig(e,k)}`,
+      fehler:[[E(rDiv(R(h),R(y)),false), `Quadriere zuerst h: ${ges} = h² : ${an}.`], [E(rMul(rMul(R(h),R(h)),R(y)),false), `Dividiere durch ${an}: ${ges} = h² : ${an}.`]],
+      why:`h² = p · q. Gesucht ist ${ges}: ${ges} = h² : ${an}.`});
+  });
+}
+
+/* ---------- X2-A04 Alle fehlenden Längen ----------
+   Fälle: gegeben c und ein Abschnitt, beide Abschnitte, c und eine Kathete, eine Kathete und ihr Abschnitt.
+   Rechnung in der natürlichen Reihenfolge; aus gerundeten Zwischenwerten (auf Hundertstel) gerechnete Ergebnisse zählen auch. */
+const FAELLE = ['cp','cq','pq','ca','cb','ap','bq'];
+function spiegel(f){ return f==='cq'?'cp':f==='cb'?'ca':f==='bq'?'ap':f; }   // b-Fälle über a, Namen getauscht
+function alle(ctx){
+  return versuche(()=>{
+    const fall=pick(FAELLE), basis=spiegel(fall), tausch=fall!==basis, u=pick(Py.LAENGEN), k=2;
+    const N = n => tausch ? ({a:'b', b:'a', p:'q', q:'p'}[n]||n) : n;    // Name im Bild für den Grundfall
+    let g={};                                                            // gegebene Werte (D) im Grundfall
+    if(basis==='cp'){ g.c=zahl1(5,30,.5); g.p=zahl1(1,dZahl(g.c)-1,.5); if(!abschnittOk(g.p,g.c)) return null; }
+    if(basis==='pq'){ g.p=zahl1(1,20,.5); g.q=zahl1(1,20,.5); if(!pqOk(g.p,g.q)) return null; }
+    if(basis==='ca'){ g.c=zahl1(5,30,.5); const lo=dZahl(g.c)*Math.sqrt(.15), hi=dZahl(g.c)*Math.sqrt(.85); g.a=zahl1(Math.max(1,lo),hi,.5); if(dZahl(g.a)<lo||dZahl(g.a)>hi) return null; }
+    if(basis==='ap'){ g.a=zahl1(2,25,.5); const lo=dZahl(g.a)*Math.sqrt(.15), hi=dZahl(g.a)*Math.sqrt(.85); g.p=zahl1(Math.max(1,lo),hi,.5);
+      if(dZahl(g.p)<lo||dZahl(g.p)>hi||dZahl(g.a)**2/dZahl(g.p)>40) return null; }
+    // exakte Kette und Kette mit gerundeten Zwischenwerten; Formeln je Fall
+    const kette = rund => { const v={}; for(const [n,x] of Object.entries(g)) v[n]=R(x);
+      const r = e => rund ? R(wert(e,k)) : e.X;                         // gerundet weiterrechnen
+      const out = {};
+      const setz = (n, e) => { out[n]=e; v[n] = e.w ? (rund ? R(wert(e,k)) : null) : r(e); };
+      if(basis==='cp'){ setz('q',E(rSub(v.c,v.p))); setz('a',E(rMul(v.c,v.p),true)); setz('b',E(rMul(v.c,v.q),true)); setz('h',E(rMul(v.p,v.q),true)); }
+      if(basis==='pq'){ setz('c',E(rAdd(v.p,v.q))); setz('a',E(rMul(v.c,v.p),true)); setz('b',E(rMul(v.c,v.q),true)); setz('h',E(rMul(v.p,v.q),true)); }
+      if(basis==='ca'){ setz('p',E(rDiv(rMul(v.a,v.a),v.c))); setz('q',E(rSub(v.c,v.p))); setz('b',E(rMul(v.c,v.q),true)); setz('h',E(rMul(v.p,v.q),true)); }
+      if(basis==='ap'){ setz('c',E(rDiv(rMul(v.a,v.a),v.p))); setz('q',E(rSub(v.c,v.p))); setz('h',E(rMul(v.p,v.q),true)); setz('b',E(rMul(v.c,v.q),true)); }
+      return {out, v}; };
+    const ex=kette(false), gr=kette(true), namen=Object.keys(ex.out);
+    if(namen.some(n=>!ex.out[n].w && rZahl(ex.out[n].X)<=0)) return null;
+    // weitere Wege mit gerundeten Werten: b = √(c² − a²), h = a · b : c, h = √(a² − p²)
+    const V = n => g[n] ? R(g[n]) : R(wert(ex.out[n],k));
+    const weitere = {b:[E(rSub(rMul(V('c'),V('c')),rMul(V('a'),V('a'))),true)], h:[E(rDiv(rMul(V('a'),V('b')),V('c'))), E(rSub(rMul(V('a'),V('a')),rMul(V('p'),V('p'))),true)]};
+    const felder = namen.map(n=>{ const e=ex.out[n], v=wert(e,k), gl=glatt(e,k);
+      const auch=[...new Set([gr.out[n], ...(weitere[n]||[])].filter(x=>rZahl(x.X)>0).map(x=>dZahl(wert(x,k))))].filter(w=>Math.abs(w-dZahl(v))>1e-9);
+      return {label:`${N(n)} =`, ans:dZahl(v), stellen:k, einheit:u, auch, ansText:`${N(n)} ${gl?'=':'≈'} ${gl?T(v):dText(v,k)} ${u}`}; });
+    const gegeben = Object.keys(g).map(n=>`${N(n)} = ${W(g[n],u)}`).join(', ');
+    // Bild: p, q als Zahlen fürs Zeichnen (Grundfall: p bei a)
+    const cz=rZahl(g.c?R(g.c):ex.out.c.X), pz=rZahl(g.p?R(g.p):ex.out.p.X), [ka,kb]=kath(cz,tausch?cz-pz:pz);
+    const lage=bildO(), b0=o=>hoehenBild(ka,kb,Object.assign({},lage,o));
+    const geg=Object.fromEntries(Object.keys(g).map(n=>[N(n),g[n]]));
+    const formel = {q:'q = c − p', p:basis==='ca'?'p = a² : c':'p = c − q', c:basis==='pq'?'c = p + q':'c = a² : p', a:'a = √(c · p)', b:'b = √(c · q)', h:'h = √(p · q)'};
+    const nameT = s => tausch ? s.replace(/[abpq]/g, x=>N(x)) : s;
+    const weg = namen.map(n=>`${nameT(formel[n])} ${zeig(ex.out[n],k)} ${u}`).join('; ');
+    return Dr.aufg({kind:'zahlen', q:`Rechtwinkeliges Dreieck ABC mit γ = 90°: ${gegeben}. Berechne ${namen.map(N).join(', ')}! Runde auf Hundertstel!`, text:true,
+      lead:'Rechne Schritt für Schritt: erst die fehlende Länge auf der Hypotenuse (c = p + q), dann mit Kathetensatz und Höhensatz.',
+      pruef:'x2_alle', daten:{fall, geg:Object.fromEntries(Object.entries(geg).map(([n,v])=>[n,T(v)])), u},
+      bild:b0({texte:Object.fromEntries(['a','b','c','h','p','q'].map(n=>[n, geg[n]?`${n} = ${T(geg[n])}`:n]))}),
+      loesungBild:b0({farbe:true}), felder,
+      why:`p liegt bei a, q bei b, p + q = c. ${weg}.`, steps:weg});
+  });
+}
+
+/* ---------- X2-A01 Bezeichnungen h, p, q ---------- */
+const STRECKE = {p:'Hypotenusenabschnitt p', q:'Hypotenusenabschnitt q', h:'Höhe h', c:'Hypotenuse c', a:'Kathete a', b:'Kathete b'};
+const kathZufall = () => { const v=Math.tan(rnd(28,62)*Math.PI/180); return [1, v]; };
+function bezeichnung(ctx){
+  const leicht=!!(ctx&&ctx.leicht), [ka,kb]=kathZufall(), lage=bildO(), art=pick(['tipp','tipp','bei','name']);
+  const loes = hoehenBild(ka,kb,Object.assign({},lage,{farbe:true}));
+  const why='p ist der Teil der Hypotenuse, der an a anliegt, q der Teil bei b. Die Höhe h geht vom rechten Winkel senkrecht auf die Hypotenuse.';
+  const lead = leicht ? merk('Die Höhe h geht von C senkrecht auf c. Sie teilt c in p (bei a) und q (bei b).') : '';
+  if(art==='tipp'){
+    const ges=pick(['p','q','h']), opt=['p','q','h','a','b','c'].map(n=>[n,STRECKE[n]]);
+    return Dr.aufg({kind:'fragen', q:`Tippe ${ges==='h'?'die Höhe h':`den Hypotenusenabschnitt ${ges}`} an!`, text:true, lead, pruef:'x2_bez_tipp', daten:{ges},
+      bild:hoehenBild(ka,kb,Object.assign({},lage,{farbe:leicht, texte:{p:false, q:false, h:false}, tipp:'q0'})), loesungBild:loes,
+      gruppen:[{imBild:true, frage:'Tippe im Bild an!', optionen:opt, ans:ges}], why});
+  }
+  if(art==='bei'){
+    const s=pick(['a','b']), opt=mischen((leicht?['p','q','h']:['p','q','h','c']).map(n=>[n,STRECKE[n]]));
+    return Dr.aufg({kind:'fragen', q:`Welcher Abschnitt der Hypotenuse liegt bei der Kathete ${s}?`, text:true, lead, pruef:'x2_bez_bei', daten:{s},
+      bild:hoehenBild(ka,kb,Object.assign({},lage,{farbe:false, texte:{p:false, q:false}})), loesungBild:loes,
+      gruppen:[{frage:'Wähle!', optionen:opt, ans:PARTNER[s], klasse:'lang'}], why});
+  }
+  const m=pick(['p','q','h']), opt=mischen((leicht?['p','q','h']:['p','q','h','c']).map(n=>[n,STRECKE[n]]));
+  return Dr.aufg({kind:'fragen', q:'Wie heißt die markierte Strecke?', text:true, lead, pruef:'x2_bez_name', daten:{m},
+    bild:hoehenBild(ka,kb,Object.assign({},lage,{mark:m, texte:{p:false, q:false, h:false, [m]:'?'}})), loesungBild:loes,
+    gruppen:[{frage:'Wähle!', optionen:opt, ans:m, klasse:'lang'}], why});
+}
+
+/* ---------- X2-A05 Welcher Satz passt zum Bild? ---------- */
+const FALSCH_SATZ = {
+  a:['a² = c · q','a² = p · q','a = c · p','a² = c + p','a² = b · c','a² = c² · p'],
+  b:['b² = c · p','b² = p · q','b = c · q','b² = c + q','b² = a · c','b² = c² · q'],
+  h:['h² = p + q','h = p · q','h² = a · b','h² = c · p','h² = c · q','h² = p² + q²']
+};
+const RICHTIG_SATZ = {a:'a² = c · p', b:'b² = c · q', h:'h² = p · q'};
+function satzwahl(ctx){
+  const leicht=!!(ctx&&ctx.leicht), s=pick(['a','b','h']), [ka,kb]=kathZufall(), lage=bildO();
+  const l=mischen([RICHTIG_SATZ[s], ...mischen(FALSCH_SATZ[s]).slice(0,leicht?2:3)]).map((g,i)=>['g'+i,g]), ans=l.find(x=>x[1]===RICHTIG_SATZ[s])[0];
+  return Dr.aufg({kind:'fragen', q:'Welche Gleichung stimmt für dieses Dreieck?', text:true, pruef:'x2_satzwahl', daten:{s},
+    lead:leicht?merk(SATZ):'', bild:hoehenBild(ka,kb,Object.assign({},lage,{farbe:leicht})), loesungBild:hoehenBild(ka,kb,Object.assign({},lage,{farbe:true})),
+    gruppen:[{frage:'Wähle!', optionen:l, ans, klasse:'lang'}],
+    why:s==='h' ? 'Höhensatz: h² = p · q (die beiden Abschnitte mal einander).' : `Kathetensatz: ${RICHTIG_SATZ[s]}. ${s} liegt bei ${PARTNER[s]}.`});
+}
+
+/* ---------- X2-N03 Sachaufgaben ----------
+   Skizze in den Koordinaten des Grundbilds: A (0|0), B (c|0), C (q|h), Höhe senkrecht auf AB. */
+const boden = c => ({art:'l', pkte:[[-.12*c,0],[1.12*c,0]], cls:'sz-boden'});
+const SACHEN = [
+  {id:'giebel', u:'m', vor:'Der Querschnitt eines Dachs ist ein rechtwinkeliges Dreieck mit dem rechten Winkel am First C. Eine senkrechte Stütze h geht vom First auf den Dachboden AB.',
+    frage:{h:'Wie hoch ist der First über dem Dachboden (h)?', a:'Wie lang ist der Dachsparren a?', b:'Wie lang ist der Dachsparren b?'},
+    deko:c=>[{art:'poly', pkte:[[.02*c,0],[.98*c,0],[.98*c,-.4*c],[.02*c,-.4*c]], cls:'sz-wand'}]},
+  {id:'zelt', u:'dm', vor:'Ein Zelt hat im Querschnitt einen rechten Winkel an der Spitze C. Die Zeltstange h steht senkrecht auf dem Boden AB.',
+    frage:{h:'Wie lang ist die Zeltstange h?', a:'Wie lang ist die Zeltwand a?', b:'Wie lang ist die Zeltwand b?'}, deko:c=>[boden(c)]},
+  {id:'mast', u:'m', vor:'Ein Mast h steht senkrecht auf dem Boden. Zwei Spannseile a und b gehen von der Mastspitze C zu den Haken A und B am Boden und bilden oben einen rechten Winkel.',
+    frage:{h:'Wie hoch ist der Mast (h)?', a:'Wie lang ist das Seil a?', b:'Wie lang ist das Seil b?'}, deko:c=>[boden(c)]},
+  {id:'huegel', u:'m', vor:'Zwei gerade Wege führen von A und B auf einen Hügel und treffen sich am Gipfel C im rechten Winkel. h ist die Höhe des Gipfels über AB.',
+    frage:{h:'Wie hoch liegt der Gipfel über AB (h)?', a:'Wie lang ist der Weg a von B zum Gipfel?', b:'Wie lang ist der Weg b von A zum Gipfel?'}, deko:c=>[boden(c)]},
+  {id:'segel', u:'m', vor:'Ein Sonnensegel hat die Form eines rechtwinkeligen Dreiecks mit dem rechten Winkel bei C. Eine Naht h läuft von C senkrecht auf die lange Kante AB.',
+    frage:{h:'Wie lang ist die Naht h?', a:'Wie lang ist die Kante a?', b:'Wie lang ist die Kante b?'}, deko:c=>[]},
+  {id:'schaukel', u:'m', vor:'Die zwei schrägen Stangen a und b eines Schaukelgestells treffen sich oben bei C im rechten Winkel. h ist die Höhe von C über dem Boden AB.',
+    frage:{h:'Wie hoch ist der Punkt C über dem Boden (h)?', a:'Wie lang ist die Stange a?', b:'Wie lang ist die Stange b?'}, deko:c=>[boden(c)]}
+];
+function sache(ctx){
+  return versuche(()=>{
+    const S=pick(SACHEN), ges=pick(['h','h','a','b']), u=S.u, k=stelle(), farbe=!!(ctx&&(ctx.einstieg||ctx.leicht));
+    let geg, e, weg, fehler, art;
+    const mitC = ges!=='h' && Math.random()<.5;
+    if(mitC){ const ab=PARTNER[ges], c=zahl1(4,30,.5), x=zahl1(1,dZahl(c)-1,.5); if(!abschnittOk(x,c)) return null;
+      geg={c, [ab]:x}; const cx=rMul(R(c),R(x)); e=E(cx,true); art=ges;
+      weg=`${ges}² = c · ${ab} = ${T(c)} · ${T(x)} = ${T(rRund(cx,4))}, ${ges} = √${T(rRund(cx,4))} ${zeig(e,k)}`;
+      fehler=[[E(rMul(R(c),rSub(R(c),R(x))),true), `${ges} liegt bei ${ab}: ${ges}² = c · ${ab}.`], [E(cx,false), `Das ist ${ges}². Ziehe noch die Wurzel.`]]; }
+    else { const p=zahl1(1,20,.5), q=zahl1(1,20,.5); if(!pqOk(p,q)) return null; geg={p,q};
+      const c=rAdd(R(p),R(q));
+      if(ges==='h'){ const pq=rMul(R(p),R(q)); e=E(pq,true); art='h';
+        weg=`h² = p · q = ${T(p)} · ${T(q)} = ${T(rRund(pq,4))}, h = √${T(rRund(pq,4))} ${zeig(e,k)}`;
+        fehler=[[E(pq,false),'Das ist h². Ziehe noch die Wurzel.'], [E(rAdd(R(p),R(q)),true),'Im Höhensatz steht p mal q, nicht plus.'], [E(rMul(c,R(p)),true),'Für die Höhe gilt der Höhensatz h² = p · q.']]; }
+      else { const ab=PARTNER[ges], cx=rMul(c,R(geg[ab])); e=E(cx,true); art=ges;
+        weg=`c = p + q = ${T(rRund(c,2))}, ${ges}² = c · ${ab} = ${T(rRund(c,2))} · ${T(geg[ab])} = ${T(rRund(cx,4))}, ${ges} = √${T(rRund(cx,4))} ${zeig(e,k)}`;
+        fehler=[[E(rMul(c,R(geg[ANDERER[ab]])),true), `${ges} liegt bei ${ab}: ${ges}² = c · ${ab}.`], [E(rMul(R(p),R(q)),true), `Das ist die Höhe. Für ${ges} gilt der Kathetensatz ${ges}² = c · ${ab}.`],
+          [E(rMul(R(geg[ab]),R(geg[ab])),true), `Rechne zuerst c = p + q, dann ${ges}² = c · ${ab}.`]]; } }
+    const cz=geg.c?dZahl(geg.c):dZahl(geg.p)+dZahl(geg.q), pz=geg.p?dZahl(geg.p):cz-dZahl(geg.q), [ka,kb]=kath(cz,pz);
+    const qz=cz-pz, hz=Math.sqrt(pz*qz);
+    const gegT=Object.keys(geg).map(n=>`${n} = ${W(geg[n],u)}`).join(', ');
+    const b0 = f => hoehenBild(ka,kb,{texte:texte(geg,ges), farbe:f, deko:S.deko(cz,qz,hz), breite:300});
+    return rechenAufgabe({art, ges, e, k, u, ctx, pruef:'x2_sache', daten:{sache:S.id, geg:Object.fromEntries(Object.entries(geg).map(([n,v])=>[n,T(v)]))},
+      q:mitStelle(`${S.vor} Gegeben: ${gegT}. ${S.frage[ges]}`, k), bild:b0(farbe), loesungBild:b0(true), weg, fehler,
+      why:`In der Skizze: p liegt bei a, q bei b, p + q = c. ${ges==='h'?'Höhensatz: h² = p · q.':`Kathetensatz: ${ges}² = c · ${PARTNER[ges]}.`}`});
+  });
+}
+
+/* ---------- X2-N01 (Plus) Probe mit dem Satz des Pythagoras ---------- */
+function wahlFeld(label, optionen, richtig, schluessel){
+  const nr = {}; optionen.forEach(([v],i)=>nr[v]=i+1);
+  const text = v => { const o=optionen.find(x=>x[0]===v); return o ? o[1] : v; };
+  return {label, ans:nr[richtig], eingabe:richtig, ansText:text(richtig), ansHTML:text(richtig),
+    feldHTML:()=>`${UR.wahlFeld(schluessel)}${UR.wahlGruppe(schluessel, optionen, {klasse:'lang'})}`,
+    lesen:roh=>{ const s=String(roh??'').trim(); return s==='' ? null : (nr[s]||NaN); }, rohHTML:roh=>text(roh)};
+}
+const PASST = [['ja','passt (kleiner Unterschied vom Runden)'],['nein','passt nicht']];
+function probe(ctx){
+  return versuche(()=>{
+    const u=pick(['cm','m']), teil=Math.random()<.4, richtig=Math.random()<.6, wer=pick(Dr.NAMEN);
+    let x, y, z, nx, ny, nz, txt, xt, yt;
+    if(!teil){ const c=zahl1(5,30,.5), p=zahl1(1,dZahl(c)-1,.5); if(!abschnittOk(p,c)) return null;
+      const q=rSub(R(c),R(p)), a=wert(E(rMul(R(c),R(p)),true),2), b=richtig ? wert(E(rMul(R(c),q),true),2) : wert(E(rMul(R(p),q),true),2);   // falsch: b mit dem Höhensatz
+      x=a; y=b; z=c; nx='a'; ny='b'; nz='c'; xt=dText(a,2); yt=dText(b,2);
+      txt=`Im rechtwinkeligen Dreieck ABC (γ = 90°) ist c = ${W(c,u)} und p = ${W(p,u)}. ${wer} hat berechnet: a ≈ ${dText(a,2)} ${u}, b ≈ ${dText(b,2)} ${u}.`; }
+    else { const a=zahl1(3,25,.5), lo=dZahl(a)*Math.sqrt(.15), hi=dZahl(a)*Math.sqrt(.85), p=zahl1(Math.max(1,lo),hi,.5); if(dZahl(p)<lo||dZahl(p)>hi) return null;
+      const c=rDiv(rMul(R(a),R(a)),R(p)), q=rSub(c,R(p)), h=richtig ? wert(E(rMul(R(p),q),true),2) : wert(E(rMul(c,R(p)),true),2);   // falsch: h mit c · p
+      x=p; y=h; z=a; nx='p'; ny='h'; nz='a'; xt=T(p); yt=dText(h,2);
+      txt=`Im rechtwinkeligen Dreieck ABC (γ = 90°) ist a = ${W(a,u)} und p = ${W(p,u)}. ${wer} hat die Höhe berechnet: h ≈ ${dText(h,2)} ${u}. Prüfe im Teildreieck mit den Seiten p, h und a!`; }
+    const sum=rAdd(rMul(R(x),R(x)),rMul(R(y),R(y))), zz=rMul(R(z),R(z)), diff=Math.abs(rZahl(sum)-rZahl(zz));
+    const grenze=.01*(dZahl(x)+dZahl(y))+1e-4;
+    if(richtig ? diff>grenze : diff<Math.max(2,.05*rZahl(zz))) return null;
+    const sumT=T(rRund(sum,4)), zzT=T(rRund(zz,4));
+    const einzeln=dZahl(rRund(rAdd(R(rRund(rMul(R(x),R(x)),1)),R(rRund(rMul(R(y),R(y)),1))),1));   // Quadrate einzeln gerundet
+    const f1={label:`${nx}² + ${ny}² =`, ans:rZahl(sum), stellen:1, auch:[einzeln], ansText:`${nx}² + ${ny}² ≈ ${T(rRund(sum,1))}`};
+    const f2={label:`${nz}² =`, ans:rZahl(zz), exakt:true, ansText:`${nz}² = ${zzT}`};
+    const f3=wahlFeld('Passt das Ergebnis?', PASST, richtig?'ja':'nein', 'x2p');
+    return Dr.aufg({kind:'zahlen', q:`${txt} Prüfe mit dem Satz des Pythagoras! Rechne ${nx}² + ${ny}² auf eine Nachkommastelle.`, text:true,
+      lead:'Probe: Im rechtwinkeligen Dreieck gilt Kathete² + Kathete² = Hypotenuse². Durch das Runden darf ein kleiner Unterschied bleiben.',
+      pruef:'x2_probe', daten:{teil, richtig, u}, felder:[f1,f2,f3],
+      why:`${xt}² + ${yt}² ≈ ${T(rRund(sum,2))} und ${T(z)}² = ${zzT}. ${richtig?'Der kleine Unterschied kommt vom Runden: Es passt.':`Der Unterschied ist zu groß: ${teil?'h':'b'} ist falsch berechnet${teil?' (richtig: h² = p · q)':' (richtig: b² = c · q)'}.`}`,
+      steps:`${nx}² + ${ny}² ≈ ${sumT}, ${nz}² = ${zzT}`});
+  });
+}
+
+/* ---------- X2-N02 (Plus) Fehler finden ---------- */
+const FEHLER_TEXT = {pq:'p und q vertauscht', wurzel:'Wurzel vergessen', satzK:'Höhensatz statt Kathetensatz', satzH:'Kathetensatz statt Höhensatz', plus:'plus statt mal'};
+function fehler(ctx){
+  return versuche(()=>{
+    const u=pick(['cm','m']), wer=pick(Dr.NAMEN), k=2, hoehe=Math.random()<.4;
+    let geg, zeilen, f, ges, richtigE, kandidaten;
+    const fertig = (e) => e.w ? `${ges} = √${T(rRund(e.X,4))} ${zeig(e,k)} ${u}` : `${ges} = ${T(rRund(e.X,4))} ${u}`;
+    if(!hoehe){
+      const s=pick(['a','b']), ab=PARTNER[s], an=ANDERER[ab], c=zahl1(5,30,.5), x=zahl1(1,dZahl(c)-1,.5); if(!abschnittOk(x,c)) return null;
+      ges=s; geg={c, [ab]:x}; const y=rSub(R(c),R(x)), yT=T(rRund(y,2));
+      richtigE=E(rMul(R(c),R(x)),true);
+      kandidaten={pq:E(rMul(R(c),y),true), wurzel:E(rMul(R(c),R(x)),false), satzK:E(rMul(R(x),y),true), plus:E(rAdd(R(c),R(x)),true)};
+      f=pick(['pq','wurzel','satzK','plus']);
+      const L = {pq:[`${an} = c − ${ab} = ${yT} ${u}`, `${s}² = c · ${an} = ${T(c)} · ${yT} = ${T(rRund(kandidaten.pq.X,4))}`, fertig(kandidaten.pq)],
+        wurzel:[`${s}² = c · ${ab} = ${T(c)} · ${T(x)} = ${T(rRund(richtigE.X,4))}`, fertig(kandidaten.wurzel)],
+        satzK:[`${an} = c − ${ab} = ${yT} ${u}`, `${s}² = p · q = ${ab==='p'?`${T(x)} · ${yT}`:`${yT} · ${T(x)}`} = ${T(rRund(kandidaten.satzK.X,4))}`, fertig(kandidaten.satzK)],
+        plus:[`${s}² = c + ${ab} = ${T(c)} + ${T(x)} = ${T(rRund(kandidaten.plus.X,4))}`, fertig(kandidaten.plus)]};
+      zeilen=L[f];
+    } else {
+      const p=zahl1(1,20,.5), q=zahl1(1,20,.5); if(!pqOk(p,q)) return null;
+      ges='h'; geg={p,q}; const c=rAdd(R(p),R(q)), pq=rMul(R(p),R(q));
+      richtigE=E(pq,true);
+      kandidaten={wurzel:E(pq,false), satzH:E(rMul(c,R(p)),true), plus:E(rAdd(R(p),R(q)),true)};
+      f=pick(['wurzel','satzH','plus']);
+      const L = {wurzel:[`h² = p · q = ${T(p)} · ${T(q)} = ${T(rRund(pq,4))}`, fertig(kandidaten.wurzel)],
+        satzH:[`c = p + q = ${T(rRund(c,2))} ${u}`, `h² = c · p = ${T(rRund(c,2))} · ${T(p)} = ${T(rRund(kandidaten.satzH.X,4))}`, fertig(kandidaten.satzH)],
+        plus:[`h² = p + q = ${T(p)} + ${T(q)} = ${T(rRund(kandidaten.plus.X,4))}`, fertig(kandidaten.plus)]};
+      zeilen=L[f];
+    }
+    // alle Fehler müssen verschiedene Ergebnisse geben, keiner das richtige
+    const erg = e => dZahl(wert(e,k)), alleW=[erg(richtigE), ...Object.values(kandidaten).map(erg)];
+    if(new Set(alleW).size!==alleW.length) return null;
+    const opt=mischen(['pq','wurzel',hoehe?'satzH':'satzK','plus'].map(x=>[x,FEHLER_TEXT[x]]));
+    const gegT=Object.keys(geg).map(n=>`${n} = ${W(geg[n],u)}`).join(', ');
+    const richtigW = ges==='h' ? `h² = p · q = ${T(rRund(richtigE.X,4))}, h = √${T(rRund(richtigE.X,4))} ${zeig(richtigE,k)} ${u}`
+      : `${ges}² = c · ${PARTNER[ges]} = ${T(rRund(richtigE.X,4))}, ${ges} = √${T(rRund(richtigE.X,4))} ${zeig(richtigE,k)} ${u}`;
+    return Dr.aufg({kind:'fragen', q:`${gegT}. ${wer} hat ${ges} so berechnet (auf Hundertstel): ${zeilen.map((l,i)=>`(${i+1}) ${l}`).join('; ')}. Was hat ${wer} falsch gemacht?`,
+      qh:`${gegT}. ${wer} hat ${ges} so berechnet (auf Hundertstel):<ol class="kon-liste">${zeilen.map(l=>`<li>${l}</li>`).join('')}</ol>Was hat ${wer} falsch gemacht?`, text:true,
+      pruef:'x2_fehler', daten:{geg:Object.fromEntries(Object.entries(geg).map(([n,v])=>[n,T(v)])), ges, f, u, zeilen},
+      gruppen:[{frage:'Welcher Fehler?', optionen:opt, ans:f, klasse:'lang'}],
+      loesungBild:(()=>{ const cz=geg.c?dZahl(geg.c):dZahl(geg.p)+dZahl(geg.q), pz=geg.p?dZahl(geg.p):cz-dZahl(geg.q), [ka,kb]=kath(cz,pz); return hoehenBild(ka,kb,{farbe:true, texte:texte(geg,ges)}); })(),
+      why:`Richtig: ${richtigW}. p liegt bei a, q bei b.`});
+  });
+}
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // X2-A01 Bezeichnungen: h, p, q im Bild
+  bezeichnung(ctx){ return bezeichnung(ctx); },
+  // X2-A02 Kathetensatz anwenden
+  kathetensatz(ctx){ return kathetensatz(ctx); },
+  // X2-A03 Höhensatz anwenden
+  hoehensatz(ctx){ return hoehensatz(ctx); },
+  // X2-A04 Alle fehlenden Längen berechnen (wie LZK)
+  alle(ctx){ return alle(ctx); },
+  // X2-A05 Welcher Satz passt zum Bild?
+  satzwahl(ctx){ return satzwahl(ctx); },
+  // X2-N03 Sachaufgabe zu Höhen- und Kathetensatz
+  sache(ctx){ return sache(ctx); },
+  // X2-N01 (Plus) Probe mit dem Satz des Pythagoras
+  probe(ctx){ return probe(ctx); },
+  // X2-N02 (Plus) Fehler finden (p und q vertauscht …)
+  fehler(ctx){ return fehler(ctx); }
+};
+
+const stationen = [
+  {id:'S1', name:'Bezeichnungen h, p, q', hint:'p liegt bei a, q bei b', types:['bezeichnung','satzwahl']},
+  {id:'S2', name:'Kathetensatz', hint:'a² = c · p', types:['kathetensatz']},
+  {id:'S3', name:'Höhensatz', hint:'h² = p · q', types:['hoehensatz']},
+  {id:'S4', name:'Alle Längen berechnen', hint:'c = 12 cm, q = 8 cm → p, a, b, h', types:['alle']},
+  {id:'S5', name:'Sachaufgaben', hint:'Giebel: p = 4 m, q = 9 m → h = 6 m', types:['sache']}
+];
+const kern = ['bezeichnung','kathetensatz','hoehensatz','alle','satzwahl','sache'];
+const leicht = ['bezeichnung','satzwahl'];
+const plus = ['probe','fehler'];
+const plusHint = 'Probe mit dem Satz des Pythagoras · Fehler finden';
+
+/* ---------- Erklärung ---------- */
+const erklaerung = {
+  beispiele: ()=>({k:kathZufall(), lage:bildO()}),
+  neu(kind,E){ if(kind==='bild'){ E.k=kathZufall(); E.lage=bildO(); } },
+  html(E){
+    return `<section class="sheet"><h2>Höhensatz und Kathetensatz</h2>
+    <div class="rule"><h3>1. Die Höhe auf die Hypotenuse</h3><p>Im rechtwinkeligen Dreieck ABC (rechter Winkel bei C) geht die Höhe <b>h</b> von C senkrecht auf die Hypotenuse c.
+      Sie teilt c in zwei Abschnitte: <b>p</b> liegt bei a, <b>q</b> liegt bei b. Es gilt p + q = c.</p>
+      ${hoehenBild(E.k[0],E.k[1],Object.assign({},E.lage,{farbe:true}))}<button class="newex" data-newex="bild">Anderes Bild</button></div>
+    <div class="rule"><h3>2. Kathetensatz</h3><p class="ex">a² = c · p &nbsp;&nbsp; b² = c · q</p><p>Das Quadrat über einer Kathete ist so groß wie das Rechteck aus c und dem Abschnitt, der bei dieser Kathete liegt.</p></div>
+    <div class="rule"><h3>3. Höhensatz</h3><p class="ex">h² = p · q</p><p>Das Quadrat über der Höhe ist so groß wie das Rechteck aus den beiden Abschnitten.</p></div>
+    <div class="rule"><h3>Beispiel (wie in der LZK)</h3><p class="ex">c = 12 cm, q = 8 cm<br>p = 12 − 8 = 4 cm<br>a = √(12 · 4) = √48 ≈ 6,93 cm<br>b = √(12 · 8) = √96 ≈ 9,80 cm<br>h = √(4 · 8) = √32 ≈ 5,66 cm</p>
+      <p>Gesucht ein Abschnitt? Dann umstellen: p = a² : c bzw. p = h² : q. Runde erst am Schluss.</p></div>
+    <div class="rule"><h3>Probe</h3><p>Mit dem Satz des Pythagoras: a² + b² ≈ c² (6,93² + 9,80² ≈ 144,06, 12² = 144). Der kleine Unterschied kommt vom Runden.</p></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 1.3 Satz des Pythagoras.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`;
+  }
+};
+
+UR.kompetenzAnmelden({id:ID, typen, stationen, kern, leicht, plus, plusHint, erklaerung});
 })(window.UR = window.UR || {});
 </script>
 <script>
