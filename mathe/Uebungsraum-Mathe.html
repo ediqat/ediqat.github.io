@@ -1918,7 +1918,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-26.23","datum":"26.11.2026","pruefsumme":"f32d43f1c390bd9a"};
+UR.version = {"nummer":"2026-11-27.1","datum":"27.11.2026","pruefsumme":"89b578c818ca12ea"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -2672,13 +2672,15 @@ UR.bindungen.push(app=>{
   while((n=w.nextNode())) if(n.nodeValue.includes('/')&&!n.parentNode.closest('input, textarea, svg, a, .bruch')) knoten.push(n);
   for(const k of knoten){ const sp=document.createElement('span'); sp.innerHTML=bruchAnzeige(k.nodeValue); k.replaceWith(...sp.childNodes); }
 });
-// Eingabe: Zähler über dem Bruchstrich, Nenner darunter; das versteckte Feld enthält den Bruch als Text für die Bewertung
-const bruchFeld = (id, extra='') => `<div class="bfeld">${feld(id+'_z',`data-bteil="${id}" placeholder="Zähler" aria-label="Zähler"`)}<span class="bstrich" aria-hidden="true"></span>${feld(id+'_n',`data-bteil="${id}" placeholder="Nenner" aria-label="Nenner"`)}</div><input type="hidden" id="${id}" ${extra}>`;
+// Eingabe: Zähler über dem Bruchstrich, Nenner darunter; das versteckte Feld enthält den Bruch als Text für die Bewertung.
+// Eigenes Kennzeichen data-tbteil: data-bteil gehört den Zahlenbrüchen (rationale.js), deren Zusammensetzung ohne Klammern
+// würde sonst Termeingaben überschreiben ((7r − 7)/w wurde zu 7r − 7/w).
+const bruchFeld = (id, extra='') => `<div class="bfeld">${feld(id+'_z',`data-tbteil="${id}" placeholder="Zähler" aria-label="Zähler"`)}<span class="bstrich" aria-hidden="true"></span>${feld(id+'_n',`data-tbteil="${id}" placeholder="Nenner" aria-label="Nenner"`)}</div><input type="hidden" id="${id}" ${extra}>`;
 const klammerWennNoetig = x => /[+·:/ ]|.[−-]/.test(x) || /^[−-]/.test(x) ? `(${x})` : x;
 const bruchZusammen = (z,n) => { z=z.trim(); n=n.trim(); if(!n||n==='1') return z; return `${/[+·: ]|.[−-]/.test(z)?`(${z})`:z}/${klammerWennNoetig(n)}`; };
 UR.bindungen.push(app=>{
   if(!app.querySelectorAll) return;
-  const ids=[...new Set([...app.querySelectorAll('[data-bteil]')].map(e=>e.dataset.bteil))];
+  const ids=[...new Set([...app.querySelectorAll('[data-tbteil]')].map(e=>e.dataset.tbteil))];
   for(const id of ids){
     const z=document.getElementById(id+'_z'), n=document.getElementById(id+'_n'), h=document.getElementById(id);
     const sync=()=>{ h.value=bruchZusammen(z.value,n.value); };
