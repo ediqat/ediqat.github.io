@@ -646,6 +646,10 @@ polygon.tipp.sel{fill:var(--v);fill-opacity:.45}
 .gl-opfest{font-size:1.5rem;font-weight:800;color:var(--cop);min-width:1.2em;text-align:center}
 .gl-zahl{display:flex;gap:4px;align-items:stretch} .answer .gl-zahl input.zahl{width:6.5ch}
 .gl-menge{font-size:1.5rem;font-weight:800;align-self:center;white-space:nowrap}
+.gl-lm{display:inline-flex;align-items:center;gap:.4rem}
+.gl-lm .gl-lmein{min-width:9rem}
+.gl-lmtasten{display:flex;flex-wrap:wrap;gap:.35rem;width:100%;margin-top:.35rem}
+.gl-weiter{font-weight:700;margin:.5rem 0 .2rem}
 .gl-rech{display:grid;grid-template-columns:auto auto auto auto;gap:2px 6px;justify-content:center;align-items:center;font-weight:700;font-size:1.15rem;margin:8px 0}
 .gl-rech .gl-l{text-align:right} .gl-rech .gl-r{text-align:left} .gl-rech .gl-u{color:var(--cop);padding-left:4px;white-space:nowrap}
 .gl-rech-m{text-align:center;font-weight:800;font-size:1.15rem}
@@ -2018,7 +2022,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-28.28","datum":"28.11.2026","pruefsumme":"168d349c0c751538"};
+UR.version = {"nummer":"2026-11-28.32","datum":"28.11.2026","pruefsumme":"732d92b886044993"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -5244,7 +5248,7 @@ Object.assign(Py, {svgAus, nebenText, hoehenTeile, hoehenBild, hoehenLage, quadr
      lineare Gleichungen lösen.
    - Felder für die Form 'zahlen' (wie M-Pyth-V1 wahlFeld: eigenes feldHTML, lesen, eingabe, rohHTML; ohneEinheit):
      gleichungFeld (Term links und rechts vom =, Prüfung „gleiche Lösung, noch nicht gelöst“), formelFeld (x = …, jeder
-     gleichwertige Term), umformFeld („| + 5“ mit Rechenzeichen-Tasten), mengeFeld („𝕃 = { … }“), probeFelder (w. A. / f. A.),
+     gleichwertige Term), umformFeld („| + 5“ mit Rechenzeichen-Tasten), xFeld („x = …“), mengeFeld („𝕃 = …“ mit Tasten, erst nach dem Ergebnis), probeFelder (w. A. / f. A.),
      wahlFeld (Auswahl als Feld). Brüche beim Eintippen: Taste „Bruch“ (Zähler über Nenner, davor und danach Text).
    - Bilder: streckenBild (ganze Strecke oben, Teile darunter in Farben). Rechnung wie im MKH: rechnung (Zeilen mit „| + 5“).
    - Satzbausteine Text ↔ Gleichung (das Doppelte, die Hälfte, vermehrt um, Summe, Differenz …) mit Übersetzung Stück für Stück. */
@@ -5374,9 +5378,20 @@ const GRUND = {
   axb: 'Gefragt ist die Form a · x = b: auf einer Seite nur das Glied mit der Variablen, auf der anderen nur eine Zahl.',
   einSchritt: 'Die Zeile soll nur noch einen Schritt vor der Lösung sein, z. B. 5x = 510,3 (Form a · x = b).',
   axbZahl: 'Schreib in beide Felder eine Zahl.',
-  zahlMenge: 'In die Lösungsmenge gehört nur eine Zahl.',
+  zahlMenge: 'Als Ergebnis gehört hier nur eine Zahl her.',
   kuerzen: 'Der Wert stimmt. Kürze den Bruch vollständig.',
-  term: (v, f) => f.hinweisText || ''
+  term: (v, f) => f.hinweisText || '',
+  // Lösungsmenge (mengeFeld): Das Ergebnis stimmt schon, wenn 𝕃 erscheint
+  mLesen: 'Trenne die Zahlen in der Lösungsmenge mit einem Strichpunkt, z. B. 𝕃 = {−2; 5}. Das Komma gehört zur Dezimalzahl.',
+  mKlammer: 'Die Lösungsmenge schreibst du mit geschwungenen Klammern, z. B. 𝕃 = {4}. Tippe zuerst auf { }.',
+  mLeerKlammer: '{∅} ist nicht leer: Diese Menge enthält ein Element. Die leere Menge schreibst du als { } oder ∅.',
+  mRKlammer: 'Schreib 𝕃 = ℝ ohne geschwungene Klammern.',
+  mSollLeer: 'Es gibt keine Lösung. Dann ist die Lösungsmenge leer: 𝕃 = { }.',
+  mSollR: 'Jede Zahl ist eine Lösung. Dann ist 𝕃 = ℝ (alle reellen Zahlen).',
+  mSollZahl: 'Die Gleichung hat eine Lösung: Dein Ergebnis. Schreib es in die geschwungenen Klammern.',
+  mDoppelt: 'Jede Zahl steht in der Lösungsmenge nur einmal.',
+  mAnders: (v, f) => `Dein Ergebnis stimmt. In die Lösungsmenge kommt genau dieses Ergebnis: ${mengeText(f.soll)}.`,
+  mAusser: (v, f) => f.grundText || ''
 };
 /* Zwischenschritt als Gleichung prüfen (Themenregel: jede gleichwertige Zeile zählt, aber in der verlangten Form).
    o = {x: Lösung, v: Variable, art}: 'zusammen' (ohne Klammern, jede Seite höchstens ein Glied mit der Variablen und eine
@@ -5504,9 +5519,54 @@ const isoliert = S => !S ? null : istX(S[0])&&konst(S[1]) ? S[1][1] : istX(S[1])
 // (andere Seite 0 und −x + b: mit „+ x“ steht x rechts allein)
 const vorZiel = S => !!S && isoliert(S)===null && [[0,1],[1,0]].some(([i,j])=>konst(S[j]) && S[i][0][0] && (qg(S[i][0],[1,1]) || !S[i][1][0] || (qg(S[i][0],[-1,1]) && !S[j][1][0])));
 
-// Lösungsmenge „𝕃 = { … }“: nur die Zahl, exakt (reine Rechnung)
-const mengeFeld = (x, o={}) => ({label:o.label||'Lösungsmenge', ans:qz(x), exakt:true, eingabe:qein(x), ansText:`𝕃 = {${qt(x)}}`,
-  feldHTML: id => `<span class="gl-menge">𝕃 = {</span><button type="button" class="sign" data-vz="${id}" aria-label="${UR.TEXTE.minusSetzen}">${M}</button><input id="${id}" class="zahl" data-feld inputmode="decimal" placeholder="?"><span class="gl-menge">}</span>`});
+// Ergebnis „x = [ ]“ (Regel A–E im Leitfaden, Fachteil Mathe): nur die Zahl, exakt (reine Rechnung)
+const xFeld = (v, x, o={}) => ({label:o.label||'Ergebnis', ans:qz(x), exakt:true, eingabe:qein(x), ansText:`${v} = ${qt(x)}`, ansHTML:H(`${v} = ${qt(x)}`),
+  feldHTML: id => `<span class="gl-menge">${esc(v)} =</span><button type="button" class="sign" data-vz="${id}" aria-label="${UR.TEXTE.minusSetzen}">${M}</button><input id="${id}" class="zahl" data-feld inputmode="decimal" placeholder="?">`,
+  rohHTML: roh => esc(`${v} = ${String(roh).replace(/-/g,M)}`)});
+
+/* ---------- Lösungsmenge „𝕃 = …“ (Leitfaden, Fachteil Mathe, Regeln A und E) ----------
+   soll: Liste von Zahlen [q, …] (Reihenfolge egal, jede Zahl einmal), 'leer' (𝕃 = { }, auch ∅) oder 'R' (𝕃 = ℝ).
+   Eingabe als Text mit Tasten { }, ∅, ℝ, Strichpunkt, Minus (o.tasten: weitere wie ℕ ℤ ℚ | < ≤ > ≥).
+   o.nach = Feld davor (Ergebnis oder Auswahl): 𝕃 erscheint erst, wenn es richtig ist (o.pruefen, in Stationen)
+   bzw. ausgefüllt (im Check, ohne Rückmeldung). o.ausserhalb(q) → Hinweis wie „Prüfe D“, wenn q nicht erlaubt ist. */
+const MENGE_TASTEN = ['{ }','∅','ℝ',';',M];
+const mengeText = soll => soll==='leer' ? '𝕃 = { }' : soll==='R' ? '𝕃 = ℝ' : `𝕃 = {${soll.map(qt).join('; ')}}`;
+function mengeLesen(roh){
+  const s=String(roh??'').replace(/\s+/g,'').replace(/[−–]/g,'-');
+  if(!s) return null;
+  if(s==='∅'||s==='{}') return {leer:true};
+  if(s==='ℝ') return {R:true};
+  const m=s.match(/^\{(.*)\}$/);
+  if(!m){ const w=s.split(';').map(zahlQ); return w.every(Boolean) ? {ohneKlammer:true, werte:w} : {kaputt:true}; }
+  if(m[1]==='∅') return {leerInKlammer:true};
+  if(m[1]==='ℝ') return {RinKlammer:true};
+  const w=m[1].split(';').map(zahlQ); if(!w.every(Boolean)) return {kaputt:true};
+  return {werte:w};
+}
+const NACH = {};   // Feld-ID → {vor, pruefen} für die Bindung unten
+function mengeFeld(soll, o={}){
+  const f={label:o.label||'Lösungsmenge', ans:1, ohneEinheit:true, ansText:mengeText(soll), ansHTML:H(mengeText(soll)),
+    eingabe: soll==='leer' ? '{}' : soll==='R' ? 'ℝ' : `{${soll.map(qein).join(';')}}`,
+    feldHTML: id => { if(o.nach) NACH[id]={vor:o.nach, pruefen:!!o.pruefen};
+      const tasten=[...MENGE_TASTEN, ...(o.tasten||[])];
+      return `<span class="gl-lm"${o.nach?` data-glnach="${id}"`:''}><span class="gl-menge">𝕃 =</span><input id="${id}" class="zahl gl-lmein" data-feld inputmode="decimal" placeholder="?" autocomplete="off"></span><span class="tasten gl-tasten gl-lmtasten" role="group" aria-label="Zeichen für die Lösungsmenge">${tasten.map(k=>`<button type="button" class="taste" data-glins="${id}" data-z="${esc(k)}">${esc(k)}</button>`).join('')}</span>`; },
+    lesen: roh => { f.grund=''; const m=mengeLesen(roh); if(!m) return null;
+      if(m.kaputt){ f.grund='mLesen'; return NaN; }
+      if(m.leerInKlammer){ f.grund='mLeerKlammer'; return 0; }
+      if(m.RinKlammer){ f.grund='mRKlammer'; return 0; }
+      if(m.ohneKlammer){ f.grund='mKlammer'; return 0; }
+      if(soll==='leer'){ if(m.leer) return 1; f.grund='mSollLeer'; return 0; }
+      if(soll==='R'){ if(m.R) return 1; f.grund='mSollR'; return 0; }
+      if(m.leer||m.R){ f.grund='mSollZahl'; return 0; }
+      const w=m.werte;
+      if(w.some((a,i)=>w.some((b,j)=>j<i&&qg(a,b)))){ f.grund='mDoppelt'; return 0; }
+      if(o.ausserhalb){ for(const q of w) if(!soll.some(y=>qg(y,q))){ const h=o.ausserhalb(q); if(h){ f.grund='mAusser'; f.grundText=h; return 0; } } }
+      if(w.length===soll.length && soll.every(y=>w.some(q=>qg(q,y)))) return 1;
+      f.grund='mAnders'; return 0; },
+    rohHTML: roh => H(`𝕃 = ${String(roh).trim().replace(/-/g,M).replace(/;/g,'; ')}`)};
+  f.soll=soll;
+  return f;
+}
 // Auswahl als Feld (wie M-Pyth-V1): ans = Nummer der richtigen Wahl
 function wahlFeld(label, optionen, richtig, schluessel, o={}){
   const nr={}; optionen.forEach(([v],i)=>nr[v]=i+1);
@@ -5702,18 +5762,18 @@ function axbFeld(label, v, a, b){
     rohHTML: roh => { const [p='',q='']=String(roh??'').split(';'); return esc(`${p.trim()}${v} = ${q.trim()}`.replace(/-/g,M)); }};
   return f;
 }
-// Lösungsmenge mit Bruch (Taste „Bruch“): exakt, Bruch vollständig gekürzt
+// Ergebnis „x = …“ mit Bruch (Taste „Bruch“): exakt, Bruch vollständig gekürzt
 const bruchEin = q => abbrechend(q,6) ? qein(q) : `((${q[0]})/(${q[1]}))`;
-function mengeBruchFeld(x, o={}){
-  const f={label:o.label||'Lösungsmenge', ans:1, ohneEinheit:true, eingabe:bruchEin(x), ansText:`𝕃 = {${qt(x)}}`, ansHTML:H(`𝕃 = {${qt(x)}}`),
-    feldHTML: id => `<div class="gl-feld" data-glfeld="${id}"><div class="gl-zeile"><span class="gl-menge">𝕃 = {</span>${seiteHTML(id,'L','?','Lösung')}<span class="gl-menge">}</span></div><div class="tasten gl-tasten" role="group" aria-label="Bruch"><button type="button" class="taste gl-bruchtaste" data-glbruch="${id}">Bruch</button></div><input type="hidden" id="${id}" data-feld value=""></div>`,
+function xBruchFeld(v, x, o={}){
+  const f={label:o.label||'Ergebnis', ans:1, ohneEinheit:true, eingabe:bruchEin(x), ansText:`${v} = ${qt(x)}`, ansHTML:H(`${v} = ${qt(x)}`),
+    feldHTML: id => `<div class="gl-feld" data-glfeld="${id}"><div class="gl-zeile"><span class="gl-menge">${esc(v)} =</span>${seiteHTML(id,'L','?','Lösung')}</div><div class="tasten gl-tasten" role="group" aria-label="Bruch"><button type="button" class="taste gl-bruchtaste" data-glbruch="${id}">Bruch</button></div><input type="hidden" id="${id}" data-feld value=""></div>`,
     lesen: roh => { f.grund=''; const s=String(roh??'').trim(); if(!s) return null;
       const p=Tm.poly(s), k=p&&Object.keys(p).every(y=>y===''||!p[y][0]) ? (p['']||[0,1]) : null;
       if(!k){ f.grund='zahlMenge'; return NaN; }
       return qg(k,x) ? 1 : 0; },
     formOk: roh => { const ok=[...String(roh).matchAll(/\(\(\s*[-−]?(\d+)\s*\)\/\(\s*(\d+)\s*\)\)/g)].every(m=>Tm.Q(Number(m[1]),Number(m[2]))[1]===Number(m[2]));
       if(!ok) f.grund='kuerzen'; return ok; },
-    rohHTML: roh => H(`𝕃 = {${anzeige(roh)}}`)};
+    rohHTML: roh => H(`${v} = ${anzeige(roh)}`)};
   return f;
 }
 
@@ -5777,9 +5837,45 @@ UR.bindungen.push(app=>{
   });
 });
 
+/* ---------- Lösungsmenge: Tasten und „erst rechnen, dann 𝕃“ (Browser) ---------- */
+const lmHuelle = el => el && (el.closest('.answer')||el);
+// style statt hidden: .answer hat display:flex
+const lmZu = (el, b) => { if(!el) return; el.style.display=b?'none':''; el.dataset.glzu=b?'1':''; };
+const lmTeile = (fo, id) => [lmHuelle(fo.querySelector(`[data-glnach="${id}"]`)), fo.querySelector(`label[for="${id}"]`)];
+UR.bindungen.push(app=>{
+  if(!app.querySelectorAll||!app.querySelector) return;   // Testumgebung ohne DOM
+  app.querySelectorAll('[data-glins]').forEach(b=>b.addEventListener('click',()=>{
+    const inp=document.getElementById(b.dataset.glins); if(!inp) return;
+    const z=b.dataset.z==='{ }'?'{}':b.dataset.z===M?'-':b.dataset.z, p=inp.selectionStart??inp.value.length, q=inp.selectionEnd??p;
+    inp.value=inp.value.slice(0,p)+z+inp.value.slice(q); const c=p+(z==='{}'?1:z.length); inp.focus(); try{inp.setSelectionRange(c,c)}catch(e){} }));
+  const form=app.querySelector('#multiForm'); if(!form) return;
+  form.querySelectorAll('[data-glnach]').forEach(m=>{ const [a,l]=lmTeile(form, m.dataset.glnach); lmZu(a,true); lmZu(l,true); });
+  if(app.__glNach) return; app.__glNach=true;
+  // im Erfassen (vor dem Formular des Kerns): Ist 𝕃 noch verborgen, zuerst das Feld davor prüfen
+  app.addEventListener('submit', e=>{
+    const fo=e.target; if(!fo||fo.id!=='multiForm') return;
+    const m=[...fo.querySelectorAll('[data-glnach]')].find(x=>lmHuelle(x).dataset.glzu==='1'); if(!m) return;
+    const id=m.dataset.glnach, n=NACH[id]; if(!n) return;
+    const alle=[...fo.querySelectorAll('[data-feld]')], k=alle.findIndex(x=>x.id===id), vor=alle[k-1];
+    const roh=vor?String(vor.value||'').trim():'';
+    const halt = () => { e.preventDefault(); e.stopImmediatePropagation(); };
+    // leer oder (in Stationen) falsch: der Kern wertet aus, wie bei jeder Aufgabe (im Check kein Hängenbleiben)
+    if(!roh) return;
+    const ok=UR.zahlFelderBewerten([n.vor],[roh],{})[0].zahlOk;
+    if(n.pruefen&&!ok) return;
+    halt();
+    const [a,l]=lmTeile(fo, id);
+    let hinweis=fo.querySelector('.gl-weiter');
+    if(!hinweis){ hinweis=document.createElement('p'); hinweis.className='gl-weiter'; (l||a).before(hinweis); }
+    lmZu(a,false); lmZu(l,false);
+    hinweis.textContent = n.pruefen ? 'Richtig! Schreib jetzt die Lösungsmenge an.' : 'Schreib jetzt die Lösungsmenge an.';
+    const inp=document.getElementById(id); if(inp) setTimeout(()=>inp.focus(),20);
+  }, true);
+});
+
 UR.glei = {qa, qs, qm, qd, qg, qz, qneg, dez, qt, qein, zahlQ, stellen, abbrechend, X, Z, plus, minus, mal, teil, neg, wert, variablen, txt, gl, loesen,
-  pruefeGleichung, GRUND, anzeige, tastenHTML, gleichungFeld, formelFeld, umformFeld, umformLesen, umPasst, umNorm, umText, mengeFeld, wahlFeld, probeFelder, WA, hinweisAus,
-  lin, seitenVon, schritt, isoliert, vorZiel, H, pruefeZwischen, griech, gliedT, linT, glT, weg, axbFeld, mengeBruchFeld, bruchEin, rechtFigur, figurPunkte, pxLaenge, vieleckBild, personTabelle, seiteHTML, streckenBild, rechnung, merk, farbig, uebersetzung, zurueck, nomen, satz, vergleichSatz, viel, VIEL, TEL, OPS};
+  pruefeGleichung, GRUND, anzeige, tastenHTML, gleichungFeld, formelFeld, umformFeld, umformLesen, umPasst, umNorm, umText, mengeFeld, mengeLesen, mengeText, xFeld, wahlFeld, probeFelder, WA, hinweisAus,
+  lin, seitenVon, schritt, isoliert, vorZiel, H, pruefeZwischen, griech, gliedT, linT, glT, weg, axbFeld, xBruchFeld, bruchEin, rechtFigur, figurPunkte, pxLaenge, vieleckBild, personTabelle, seiteHTML, streckenBild, rechnung, merk, farbig, uebersetzung, zurueck, nomen, satz, vergleichSatz, viel, VIEL, TEL, OPS};
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -15810,7 +15906,7 @@ UR.glei.g1 = {gleichung, fehlerGleichungen, auswahl, glText, eingabe};
 /* Mathe/3.1 Gleichungen/M-Glei-G2.js */
 /* Baustein M-Glei-G2: „Ich kenne das Prinzip der Äquivalenzumformungen, kann sie durch Rechenregeln begründen und anwenden.“
    Steckbrief: M-Glei-G2.md, Auswahl und Themenregeln: AUSWAHL.md (27.11.2026). Schreibweise wie im MKH: Umformung rechts nach
-   dem Strich („| + 5“), am Ende 𝕃 = {17}. Lösungen exakt, höchstens 3 Nachkommastellen. Felder: UR.glei (gleichungen.js). */
+   dem Strich („| + 5“), am Ende das Ergebnis x = 17 (G: ohne Lösungsmenge, Leitfaden Fachteil Mathe). Lösungen exakt, höchstens 3 Nachkommastellen. Felder: UR.glei (gleichungen.js). */
 (function(UR){
 const {rnd, pick} = UR;
 const M = UR.M, esc = UR.esc;
@@ -15879,8 +15975,8 @@ function minusX(s){
   });
 }
 // richtige Rechnung als Zeilen
-const rechnung1 = e => rechnung([zeile(e.l, e.r, umText(e.u.op, e.u.z)), {l:e.v, r:qt(e.x)}], {menge:qt(e.x)});
-const rechnung2 = e => rechnung([zeile(e.l, e.r, umText(e.paare[0][0][0].op, e.paare[0][0][0].z)), zeile(e.mitte.l, e.mitte.r, umText('·',[-1,1])), {l:e.v, r:qt(e.x)}], {menge:qt(e.x)});
+const rechnung1 = e => rechnung([zeile(e.l, e.r, umText(e.u.op, e.u.z)), {l:e.v, r:qt(e.x)}]);
+const rechnung2 = e => rechnung([zeile(e.l, e.r, umText(e.paare[0][0][0].op, e.paare[0][0][0].z)), zeile(e.mitte.l, e.mitte.r, umText('·',[-1,1])), {l:e.v, r:qt(e.x)}]);
 const opWort = {'+':'+', [M]:M, '·':'·', ':':':'};
 // Hinweis, wenn dieselbe Rechenart statt der Gegenoperation gewählt wurde
 const gegenHinweis = (f, u) => { const g=f.gelesen; return g&&g.op&&g.op===GEGEN[u.op] ? `Das ist dieselbe Rechenart wie in der Gleichung. Nimm die Gegenoperation: ${umText(u.op,u.z)}.` : ''; };
@@ -15892,10 +15988,10 @@ function warum1(e){
 }
 function einUmformung(e, ctx){
   const leicht=ctx&&ctx.leicht;
-  const t = {kind:'zahlen', q:`Löse die Gleichung ${gl(e.l,e.r,{q:true})} durch eine Äquivalenzumformung und schreibe die Lösungsmenge an!`,
-    qh:glH(e.l,e.r), lead:`${leicht?MERK_GEGEN:''}Löse die Gleichung durch eine Äquivalenzumformung und schreibe die Lösungsmenge an!`,
+  const t = {kind:'zahlen', q:`Löse die Gleichung ${gl(e.l,e.r,{q:true})} durch eine Äquivalenzumformung und gib das Ergebnis an!`,
+    qh:glH(e.l,e.r), lead:`${leicht?MERK_GEGEN:''}Löse die Gleichung durch eine Äquivalenzumformung und gib das Ergebnis an!`,
     pruef:'eins', daten:e,
-    felder:[G.umformFeld('Umformung', [e.u], {fest:leicht, pruefe:zumZiel(e)}), G.mengeFeld(e.x)],
+    felder:[G.umformFeld('Umformung', [e.u], {fest:leicht, pruefe:zumZiel(e)}), G.xFeld(e.v, e.x)],
     why:warum1(e), stepsh:rechnung1(e)};
   t.hinweisNach = G.hinweisAus(t, erg => !erg[0].zahlOk ? gegenHinweis(t.felder[0], e.u) : '');
   return UR.dreiecke.aufg(t);
@@ -15964,9 +16060,9 @@ const typen = {
     // die 2. Umformung passt zur 1. (bei falscher 1. Umformung: zum üblichen ersten Schritt)
     const f2=G.umformFeld('2. Umformung', leicht?p1[1]:v2, {vor:leicht?glH(e.mitte.l,e.mitte.r):'…', fest:leicht,
       pruefe:g=>G.isoliert(G.schritt(G.schritt(start, f1.passt?f1.gelesen:p1[0][0], e.v), g, e.v))!==null});
-    const t = {kind:'zahlen', q:`Löse die Gleichung ${gl(e.l,e.r,{q:true})} und schreibe die Lösungsmenge an!`, qh:glH(e.l,e.r),
-      lead:`${leicht?merk(`Zuerst kommt ${esc(e.v)} mit Minus allein auf eine Seite: ${H(gl(e.mitte.l,e.mitte.r))}. Dann mal (−1) auf beiden Seiten.`):''}Löse die Gleichung mit zwei Umformungen und schreibe die Lösungsmenge an! Am Schluss soll ${esc(e.v)} ohne Minus allein stehen.`,
-      pruef:'minusx', daten:e, felder:[f1, f2, G.mengeFeld(e.x)],
+    const t = {kind:'zahlen', q:`Löse die Gleichung ${gl(e.l,e.r,{q:true})} und gib das Ergebnis an!`, qh:glH(e.l,e.r),
+      lead:`${leicht?merk(`Zuerst kommt ${esc(e.v)} mit Minus allein auf eine Seite: ${H(gl(e.mitte.l,e.mitte.r))}. Dann mal (−1) auf beiden Seiten.`):''}Löse die Gleichung mit zwei Umformungen und gib das Ergebnis an! Am Schluss soll ${esc(e.v)} ohne Minus allein stehen.`,
+      pruef:'minusx', daten:e, felder:[f1, f2, G.xFeld(e.v, e.x)],
       why:`${M}${esc(e.v)} = ${qt(e.mitte.r.q)} heißt: Die Gegenzahl von ${esc(e.v)} ist ${qt(e.mitte.r.q)}. Mal (${M}1) auf beiden Seiten: ${esc(e.v)} = ${qt(e.x)}.${e.art!=='bruch'?` Du kannst auch zuerst + ${esc(e.v)} rechnen.`:''}`,
       stepsh:rechnung2(e)};
     t.hinweisNach = G.hinweisAus(t);
@@ -16099,7 +16195,7 @@ const typen = {
       return UR.dreiecke.aufg({kind:'zahlen', q:`In der Rechnung steckt ein Fehler: ${zeilen.map(z=>`${z.l} = ${z.r}${z.u?` | ${z.u}`:''}`.replace(/\//g,' durch ')).join('; ')}. Tippe die falsche Zeile an und gib die richtige Lösung an!`,
         qh:`In der Rechnung steckt ein Fehler. Tippe die falsche Zeile an und gib die richtige Lösung an!${rechnung(zeilen)}`,
         pruef:'fehler', daten:{e, zeilen, falsch, art, zwei},
-        felder:[G.wahlFeld('Die falsche Zeile', opt, 'z'+falsch, 'fz', {klasse:'lang'}), G.mengeFeld(e.x, {label:'Richtige Lösungsmenge'})],
+        felder:[G.wahlFeld('Die falsche Zeile', opt, 'z'+falsch, 'fz', {klasse:'lang'}), G.xFeld(e.v, e.x, {label:'Richtiges Ergebnis'})],
         why:`${art==='op'?`Zeile 1: Die Gegenoperation ist ${umText(e.u.op,e.u.z)}.`:art==='rechnen'?'Zeile 2: Das Vorzeichen stimmt nicht.':art==='mitte'?'Zeile 2: Nach der ersten Umformung ist falsch gerechnet.':'Zeile 3: Mal (−1) ändert das Vorzeichen.'} Richtig gerechnet:`,
         stepsh:zwei?rechnung2(e):rechnung1(e)});
     });
@@ -16132,7 +16228,7 @@ const erklaerung = {
     <div class="rule"><h3>Mit der Gegenoperation wird die Variable allein</h3><p>Gegenoperationen: + und ${M}, · und :. Die Umformung steht rechts nach dem Strich.</p>
       ${rechnung1(p)}<p>${warum1(p)}</p><p class="small">Probe: ${zeilenProbe(p)}</p><button class="newex" data-newex="pm">Neues Beispiel</button>
       ${rechnung1(E.b)}<p>${warum1(E.b)}</p><p class="small">Probe: ${zeilenProbe(E.b)}</p><button class="newex" data-newex="md">Neues Beispiel</button></div>
-    <div class="rule"><h3>Minus vor der Variablen</h3>${rechnung([{l:'25 − y', r:'4', u:'− 25'}, {l:'−y', r:'−21', u:'· (−1)'}, {l:'y', r:'21'}], {menge:'21'})}
+    <div class="rule"><h3>Minus vor der Variablen</h3>${rechnung([{l:'25 − y', r:'4', u:'− 25'}, {l:'−y', r:'−21', u:'· (−1)'}, {l:'y', r:'21'}])}
       <p>${M}y = ${M}21 heißt: Die Gegenzahl von y ist ${M}21. Mal (${M}1) auf beiden Seiten macht daraus y = 21.</p></div>
     <div class="rule"><h3>Die Probe</h3><p>Setze die Lösung ein und rechne beide Seiten aus. Sind sie gleich, ist es eine wahre Aussage (w. A.), sonst eine falsche Aussage (f. A.).</p></div>
     <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 3.1 Gleichungen.</p>
@@ -16733,7 +16829,8 @@ function zwFeld(e, art, richtig, falsche, leicht, label){
 }
 const kopf = e => `<div class="ex">${H(gleichT(e))}</div>`;
 const fertig = (t, extra) => { t.hinweisNach = G.hinweisAus(t, extra); return UR.dreiecke.aufg(t); };
-const ZW_LEICHT = 'Wähle den richtigen Zwischenschritt und schreibe die Lösungsmenge an! Ab der nächsten Aufgabe schreibst du ihn selbst.';
+const MERK_SONDER = merk('Fällt die Variable weg, bleibt eine Zeile ohne Variable. 3 = 5 (wie 0 = 2) ist falsch: keine Lösung, 𝕃 = { }. 3 = 3 (wie 0 = 0) ist wahr: Jede Zahl passt, unendlich viele Lösungen, 𝕃 = ℝ.');
+const ZW_LEICHT = 'Wähle den richtigen Zwischenschritt und gib das Ergebnis an! Ab der nächsten Aufgabe schreibst du ihn selbst.';
 
 /* ---------- Generatoren ---------- */
 // V2-A01: a·x ± b = c, x/n ± b = c, a·x/n ± b = c
@@ -16861,12 +16958,12 @@ const typen = {
     else if(e.art==='teil') zeilen.push({l:tT, r:qt(e.rest), u:umText('·',[e.n,1])});
     else zeilen.push({l:tT, r:qt(e.rest), u:umText('·',[e.n,1])}, {l:gliedT([e.a,1],v), r:qt(qm(e.rest,[e.n,1])), u:umText(':',[e.a,1])});
     zeilen.push({l:v, r:qt(e.x)});
-    const t = {kind:'zahlen', q:`Löse die Gleichung mit zwei Umformungsschritten und schreibe die Lösungsmenge an! Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
-      lead: leicht ? `${REIHENFOLGE}${ZW_LEICHT}` : `Löse die Gleichung mit zwei Umformungsschritten! Schreib den Zwischenschritt an (z. B. 5x = 510,3) und dann die Lösungsmenge.`,
+    const t = {kind:'zahlen', q:`Löse die Gleichung mit zwei Umformungsschritten! Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
+      lead: leicht ? `${REIHENFOLGE}${ZW_LEICHT}` : `Löse die Gleichung mit zwei Umformungsschritten! Schreib den Zwischenschritt an (z. B. 5x = 510,3) und dann das Ergebnis.`,
       pruef:'zwei', daten:e,
-      felder:[zwFeld(e, 'einSchritt', zw, [f1, f2], leicht, 'Zwischenschritt'), G.mengeFeld(e.x)],
+      felder:[zwFeld(e, 'einSchritt', zw, [f1, f2], leicht, 'Zwischenschritt'), G.xFeld(v, e.x)],
       why:`Zuerst ${op1} ${qt(e.b)} auf beiden Seiten: ${H(zw)}. Dann ${e.art==='mal'?`durch ${e.a} dividieren`:e.art==='teil'?`mal ${e.n}`:`mal ${e.n} und durch ${e.a} dividieren`}. ${probe(e.S, e.x, v)}`,
-      stepsh:rechnung(zeilen, {menge:qt(e.x)})};
+      stepsh:rechnung(zeilen)};
     return fertig(t);
   },
   // V2-A02 Variable auf beiden Seiten
@@ -16885,9 +16982,9 @@ const typen = {
     if(zt[0]!==zeilen[0].l||zt[1]!==zeilen[0].r) zeilen.push(...weg(S,v)); else zeilen.splice(0,1,...weg(S,v));
     const t = {kind:'zahlen', q:`Bringe alle Glieder mit der Variablen auf eine Seite und löse die Gleichung! Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
       lead: leicht ? `${REIHENFOLGE}${ZW_LEICHT}` : 'Bringe alle Glieder mit der Variablen auf eine Seite und löse die Gleichung!',
-      pruef:'beide', daten:e, felder:[feld, G.mengeFeld(e.x)],
+      pruef:'beide', daten:e, felder:[feld, G.xFeld(v, e.x)],
       why:`Zuerst jede Seite zusammenfassen: ${H(glT(S,v))}. Dann alle Glieder mit ${esc(v)} auf eine Seite, alle Zahlen auf die andere: ${H(zw)}. ${probe(S, e.x, v)}`,
-      stepsh:rechnung(zeilen, {menge:qt(e.x)})};
+      stepsh:rechnung(zeilen)};
     return fertig(t, erg => !erg[0].zahlOk && t.felder[0].grund==='anders' ? 'Diese Zeile ist nicht gleichwertig zur Angabe. Tipp: Fasse zuerst jede Seite zusammen, dann bring alle Glieder mit der Variablen auf eine Seite.' : '');
   },
   // V2-A04 Klammern zuerst auflösen
@@ -16898,8 +16995,8 @@ const typen = {
       if(leicht&&!f) return null;
       return fertig({kind:'zahlen', q:`Löse zuerst die Klammern auf und löse dann die Gleichung! Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
         lead: leicht ? `${REIHENFOLGE}${ZW_LEICHT}` : 'Löse zuerst die Klammern auf und fasse jede Seite zusammen. Löse dann die Gleichung!',
-        pruef:'klammern', daten:e, felder:[zwFeld(e,'zusammen',zw,f,leicht,'Ohne Klammern, jede Seite zusammengefasst'), G.mengeFeld(e.x)],
-        why:`${KLAMMER_REGEL} Ohne Klammern und zusammengefasst: ${H(zw)}. ${probe(S, e.x, v)}`, stepsh:rechnung(zeilenKlammer(e), {menge:qt(e.x)})});
+        pruef:'klammern', daten:e, felder:[zwFeld(e,'zusammen',zw,f,leicht,'Ohne Klammern, jede Seite zusammengefasst'), G.xFeld(v, e.x)],
+        why:`${KLAMMER_REGEL} Ohne Klammern und zusammengefasst: ${H(zw)}. ${probe(S, e.x, v)}`, stepsh:rechnung(zeilenKlammer(e))});
     });
   },
   // V2-A06 Gleichungen mit Brüchen
@@ -16918,8 +17015,8 @@ const typen = {
       zeilen.push(...weg(SN,v));
       return fertig({kind:'zahlen', q:`Löse die Gleichung! Beachte die Brüche. Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
         lead: leicht ? `${merk(`Multipliziere alle Glieder auf beiden Seiten mit ${N}: Dann fallen die Brüche weg.`)}${ZW_LEICHT}` : 'Löse die Gleichung! Schreib zuerst die Gleichung ohne Bruch an.',
-        pruef:'brueche', daten:e, felder:[zwFeld(e,'ohneBruch',zw,f,leicht,'Gleichung ohne Bruch'), G.mengeFeld(e.x)],
-        why:`Alle Glieder auf beiden Seiten mal ${N}: Die Brüche fallen weg. ${H(zw)}. ${probe(S, e.x, v)}`, stepsh:rechnung(zeilen, {menge:qt(e.x)})});
+        pruef:'brueche', daten:e, felder:[zwFeld(e,'ohneBruch',zw,f,leicht,'Gleichung ohne Bruch'), G.xFeld(v, e.x)],
+        why:`Alle Glieder auf beiden Seiten mal ${N}: Die Brüche fallen weg. ${H(zw)}. ${probe(S, e.x, v)}`, stepsh:rechnung(zeilen)});
     });
   },
   // V2-A07 LZK-Niveau: Klammern, Brüche und Dezimalzahlen
@@ -16928,11 +17025,12 @@ const typen = {
     return versuche(()=>{
       const e=lzkGl(), {v,S}=e, zw=glT(S,v), f=falscheZus(e,S);
       if(leicht&&!f) return null;
+      const xF=G.xFeld(v, e.x), lF=G.mengeFeld([e.x], {nach:xF, pruefen:!!ctx&&ctx.modus!=='check'});
       return fertig({kind:'zahlen', q:`Löse die Gleichung und schreibe die Lösungsmenge an! Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
-        lead: leicht ? `${REIHENFOLGE}${ZW_LEICHT}` : 'Löse die Gleichung in drei Schritten und schreibe die Lösungsmenge an! Den Taschenrechner darfst du verwenden.',
+        lead: leicht ? `${REIHENFOLGE}${ZW_LEICHT} Danach schreibst du die Lösungsmenge an.` : 'Löse die Gleichung in drei Schritten, gib das Ergebnis an und dann die Lösungsmenge! Den Taschenrechner darfst du verwenden.',
         pruef:'lzk', daten:e,
         felder:[zwFeld(e,'zusammen',zw,f,leicht,'Schritt 1: ohne Klammern, jede Seite zusammengefasst'),
-          G.axbFeld('Schritt 2: alle Glieder mit der Variablen links, alle Zahlen rechts', v, e.A, e.B), G.mengeFeld(e.x)],
+          G.axbFeld('Schritt 2: alle Glieder mit der Variablen links, alle Zahlen rechts', v, e.A, e.B), xF, lF],
         why:`${KLAMMER_REGEL} ${H(zw)}, dann ${H(`${gliedT(e.A,v)} = ${qt(e.B)}`)}. ${probe(S, e.x, v)}`, stepsh:rechnung(zeilenKlammer(e), {menge:qt(e.x)})});
     });
   },
@@ -16975,8 +17073,8 @@ const typen = {
       if(leicht&&!f) return null;
       return fertig({kind:'zahlen', q:`Löse die Gleichung! Löse die Klammern von innen nach außen auf. Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
         lead: leicht ? `${merk('Zuerst die runde Klammer innen auflösen, dann die eckige Klammer außen.')}${ZW_LEICHT}` : 'Löse die Klammern von innen nach außen auf und fasse jede Seite zusammen. Löse dann die Gleichung!',
-        pruef:'verschachtelt', daten:e, felder:[zwFeld(e,'zusammen',zw,f,leicht,'Ohne Klammern, jede Seite zusammengefasst'), G.mengeFeld(e.x)],
-        why:`Innerste Klammer zuerst. ${KLAMMER_REGEL} ${H(zw)}. ${probe(S, e.x, v)}`, stepsh:rechnung(zeilenKlammer(e), {menge:qt(e.x)})});
+        pruef:'verschachtelt', daten:e, felder:[zwFeld(e,'zusammen',zw,f,leicht,'Ohne Klammern, jede Seite zusammengefasst'), G.xFeld(v, e.x)],
+        why:`Innerste Klammer zuerst. ${KLAMMER_REGEL} ${H(zw)}. ${probe(S, e.x, v)}`, stepsh:rechnung(zeilenKlammer(e))});
     });
   },
   // V2-A08 (Plus) Quadratische Glieder fallen weg
@@ -16994,14 +17092,14 @@ const typen = {
       const PL=Tm.poly(l), PR=Tm.poly(rr), key=v+'2', sq=x=>x[key]||[0,1];
       if(!PL||!PR||!qg(sq(PL),sq(PR))||!sq(PL)[0]) return null;
       const lin = P => [P[v+'1']||[0,1], P['']||[0,1]], S=[lin(PL), lin(PR)], x=loes(S);
-      if(!x||x[1]>20||Math.abs(qz(x))>50||G.isoliert(S)!==null) return null;
+      if(!x||!x[0]||x[1]>20||Math.abs(qz(x))>50||G.isoliert(S)!==null) return null;   // x = 0: Zwischenschritt wäre schon gelöst
       const zw=glT(S,v), auf=[Tm.text(l.replace(/−/g,'-')), Tm.text(rr.replace(/−/g,'-'))];
       const zeilen=[{l, r:rr}, {l:auf[0], r:auf[1], u:umText(M, null, `${Tm.text(`${sq(PL)[0]}/${sq(PL)[1]}*${v}^2`)}`)}, ...weg(S,v)];
       const t={kind:'zahlen', q:`Löse die Gleichung! Achtung, die quadratischen Glieder fallen weg. Gleichung: ${l} = ${rr}`, qh:`<div class="ex">${H(`${l} = ${rr}`)}</div>`,
         lead:'Multipliziere aus. Die quadratischen Glieder fallen weg. Ist die Lösung ein Bruch, schreib ihn gekürzt an.', pruef:'quadrat', daten:{l, r:rr, v, S, x},
-        felder:[G.gleichungFeld('Gleichung ohne Klammern und ohne Quadrat', {x, v, vars:[v], ans:zw.replace(/−/g,'-'), art:'zusammen'}), G.mengeBruchFeld(x)],
+        felder:[G.gleichungFeld('Gleichung ohne Klammern und ohne Quadrat', {x, v, vars:[v], ans:zw.replace(/−/g,'-'), art:'zusammen'}), G.xBruchFeld(v, x)],
         why:`Ausmultipliziert: ${H(`${auf[0]} = ${auf[1]}`)}. Auf beiden Seiten steht dasselbe quadratische Glied, es fällt weg: ${H(zw)}.`,
-        stepsh:rechnung(zeilen, {menge:qt(x)})};
+        stepsh:rechnung(zeilen)};
       return fertig(t);
     });
   },
@@ -17040,37 +17138,40 @@ const typen = {
       const opt=zeilen.map((z,i)=>['z'+i, `Zeile ${i+1}: ${H(txt(z))}`]);
       return fertig({kind:'zahlen', q:`In einer Zeile steckt ein Fehler: ${qT(zeilen.map(txt).join('; '))}. Tippe sie an und gib die richtige Lösung an!`,
         qh:`In einer Zeile steckt ein Fehler. Tippe sie an und gib die richtige Lösung an!${rechnung(zeilen)}`, pruef:'fehler', daten:{e, zeilen, falsch},
-        felder:[G.wahlFeld('Die falsche Zeile', opt, 'z'+falsch, 'fz', {klasse:'lang'}), G.mengeFeld(e.x, {label:'Richtige Lösungsmenge'})],
+        felder:[G.wahlFeld('Die falsche Zeile', opt, 'z'+falsch, 'fz', {klasse:'lang'}), G.xFeld(v, e.x, {label:'Richtiges Ergebnis'})],
         why:`Zeile ${falsch+1} ist nicht gleichwertig zu Zeile ${falsch}: ${a.f==='vz'?'Minus vor der Klammer ändert alle Vorzeichen in der Klammer.':a.f==='mal'?'Die Zahl vor der Klammer multipliziert jedes Glied in der Klammer.':a.f==='um'?'Auf beiden Seiten muss dasselbe gerechnet werden.':'Dividiert wird die Zahl durch die Zahl vor der Variablen.'} Richtig gerechnet:`,
-        stepsh:rechnung(richtig, {menge:qt(e.x)})});
+        stepsh:rechnung(richtig)});
     });
   },
-  // V2-N02 (Plus) Keine Lösung oder jede Zahl
+  // V2-N02 Sonderfall erkennen (keine Lösung oder unendlich viele), angekündigt, eigene Station
   anzahl(ctx){
-    const fall=pick(['eine','keine','jede']);      // außerhalb der Schleife: jede Art etwa ein Drittel
+    const leicht=ctx&&ctx.leicht, fall=pick(['keine','unendlich']);   // außerhalb der Schleife: je etwa die Hälfte
     return versuche(()=>{
-      const v=pick(VARS), dez1=Math.random()<.3;
-      const k = () => dez1 ? dez(nz(-50,50),1) : [nz(-9,9),1], z = () => dez1 ? dez(nz(-99,99),1) : [nz(-30,30),1];
-      const a=k(), b=z(), a2 = fall==='eine' ? k() : a, b2 = fall==='jede' ? b : z();
-      if(fall==='eine'&&qg(a,a2)) return null; if(fall==='keine'&&qg(b,b2)) return null;
-      // jede Seite in 2 bis 4 Glieder zerlegen
-      const zerlege = (A, B) => { const l=[]; const ta=rnd(1,2), tb=rnd(1,2); let ra=A, rb=B;
-        for(let i=1;i<ta;i++){ const t=k(); l.push(mo(t)); ra=qs(ra,t); } if(ra[0]) l.push(mo(ra));
-        for(let i=1;i<tb;i++){ const t=z(); l.push(zz(t)); rb=qs(rb,t); } if(rb[0]) l.push(zz(rb));
-        return mischen(l); };
-      const L=zerlege(a,b), R=zerlege(a2,b2); if(!L.length||!R.length||L.length+R.length<4) return null;
-      const S=[linI(L), linI(R)], x=loes(S);
-      if(fall==='eine'&&(!x||!abbrechend(x,2)||Math.abs(qz(x))>100)) return null;
-      const e={L, R, v};
-      const opt=[['eine','genau eine Lösung'],['keine','keine Lösung: 𝕃 = { }'],['jede','jede Zahl ist eine Lösung']];
-      const loesFeld = {label:'Die Lösung (nur bei genau einer Lösung, sonst leer lassen)', ans:1, ohneEinheit:true, eingabe:fall==='eine'?G.qein(x):'',
-        ansText:fall==='eine'?`${v} = ${qt(x)}`:'(leer)',
-        feldHTML:id=>`<span class="gl-menge">${esc(v)} =</span><button type="button" class="sign" data-vz="${id}" aria-label="${UR.TEXTE.minusSetzen}">${M}</button><input id="${id}" class="zahl" data-feld inputmode="decimal" placeholder="–">`,
-        lesen:roh=>{ const s=String(roh??'').trim(); if(fall!=='eine') return s?0:1; if(!s) return null; const y=G.zahlQ(s); return y ? (qg(y,x)?1:0) : NaN; }};
-      const ohne = fall==='eine' ? '' : `Zusammengefasst: ${H(glT(S,v))}. Auf beiden Seiten steht ${esc(gliedT(S[0][0],v))}. Fällt es auf beiden Seiten weg, bleibt ${qt(S[0][1])} = ${qt(S[1][1])}, ${fall==='jede'?'eine wahre Aussage: Jede Zahl ist eine Lösung.':'eine falsche Aussage: Es gibt keine Lösung, 𝕃 = { }.'}`;
-      return fertig({kind:'zahlen', q:`Löse die Gleichung! Wie viele Lösungen hat sie? Gleichung: ${qT(gleichT(e))}`, qh:kopf(e), pruef:'anzahl', daten:{e, fall, S, x},
-        lead:'Fasse zuerst jede Seite zusammen.', felder:[G.wahlFeld('Wie viele Lösungen?', opt, fall, 'anz', {klasse:'lang'}), loesFeld],
-        why: fall==='eine' ? `Zusammengefasst: ${H(glT(S,v))}. Die Glieder mit ${esc(v)} sind verschieden, also gibt es genau eine Lösung: ${esc(v)} = ${qt(x)}.` : ohne});
+      const v=pick(VARS), art=pick(leicht?['gleich','tausch']:['gleich','tausch','klammer','extra']);
+      const a=nz(-9,9), b=nz(-20,20), c = fall==='unendlich' ? b : nz(-20,20);
+      let L, R;
+      if(art==='gleich'){ L=[mo(a), zz(b)]; R=[mo(a), zz(c)]; }
+      else if(art==='tausch'){ L=[mo(a), zz(b)]; R=[zz(c), mo(a)]; }
+      else if(art==='klammer'){ const k=rnd(2,5), p=nz(-4,4), q=nz(-9,9), r = fall==='unendlich' ? k*q : k*q+nz(-6,6); if(!r) return null;
+        L=[kl([k,1],[mo(p), zz(q)])]; R=Math.random()<.5 ? [mo(k*p), zz(r)] : [zz(r), mo(k*p)]; }
+      else { const d=nz(-5,5); if(!(a+d)) return null; L=[mo(a), zz(b), mo(d)]; R=[mo(a+d), zz(c)]; }
+      const S=[linI(L), linI(R)];
+      if(!qg(S[0][0],S[1][0])||!S[0][0][0]) return null;
+      if((fall==='unendlich')!==qg(S[0][1],S[1][1])) return null;
+      const e={L, R, v}, A=S[0][0];
+      const zeilen=[{l:seiteT(L,v), r:seiteT(R,v)}], zt=[linT(S[0],v), linT(S[1],v)];
+      if(zt[0]!==zeilen[0].l||zt[1]!==zeilen[0].r) zeilen.push({l:zt[0], r:zt[1]});
+      zeilen[zeilen.length-1].u=umText(A[0]>0?M:'+', null, gliedT(absQ(A),v));
+      zeilen.push({l:qt(S[0][1]), r:qt(S[1][1])});
+      const letzte=`${qt(S[0][1])} = ${qt(S[1][1])}`;
+      const wahl=G.wahlFeld('Nach dem Umformen: Wie viele Lösungen hat die Gleichung?', [['keine','keine Lösung'],['unendlich','unendlich viele Lösungen']], fall, 'anz', {klasse:'lang'});
+      const lF=G.mengeFeld(fall==='keine'?'leer':'R', {nach:wahl, pruefen:!!ctx&&ctx.modus!=='check'});
+      return fertig({kind:'zahlen', q:`Sonderfall: Forme die Gleichung um. Wie viele Lösungen hat sie? Gib dann die Lösungsmenge an! Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
+        lead:`${leicht?MERK_SONDER:''}Forme um, bis die Variable wegfällt. Wähle dann, wie viele Lösungen es gibt, und gib die Lösungsmenge an.`,
+        pruef:'anzahl', daten:{e, fall, S}, felder:[wahl, lF],
+        why:`Auf beiden Seiten steht ${esc(gliedT(A,v))}. Es fällt weg, und es bleibt ${letzte}: ${fall==='unendlich'?'eine wahre Aussage. Jede Zahl ist eine Lösung, es gibt unendlich viele: 𝕃 = ℝ.':'eine falsche Aussage. Keine Zahl ist eine Lösung: 𝕃 = { }.'}`,
+        stepsh:rechnung(zeilen)},
+        erg => !erg[0].zahlOk && erg[0].roh ? `Schau dir die letzte Zeile der Umformung an: ${letzte}. Ist sie falsch (wie 3 = 5), gibt es keine Lösung. Ist sie wahr (wie 3 = 3), gibt es unendlich viele.` : '');
     });
   }
 };
@@ -17081,13 +17182,14 @@ const stationen = [
   {id:'S2', name:'Variable auf beiden Seiten', hint:'7a − 7 = 3a + 5 → 4a = 12', types:['beide']},
   {id:'S3', name:'Klammern zuerst', hint:'6 − (x − 3) = x + (1 − 3x)', types:['klammern','verschachtelt']},
   {id:'S4', name:'Brüche in der Gleichung', hint:'(3x − 5)/4 = 4 | · 4', types:['brueche']},
-  {id:'S5', name:'LZK-Niveau', hint:'−3 · (2x − 2/9) = 2,5x − (−1,5x + 10/3)', types:['lzk']}
+  {id:'S5', name:'LZK-Niveau', hint:'−3 · (2x − 2/9) = 2,5x − (−1,5x + 10/3)', types:['lzk']},
+  {id:'S6', name:'Sonderfälle', hint:'2x + 3 = 2x + 5 → 3 = 5: keine Lösung', types:['anzahl']}
 ];
-const kern = ['zwei','beide','klammern','brueche','lzk','schritte','verschachtelt'];
-const leicht = ['zwei','beide','klammern','brueche','lzk','schritte','verschachtelt'];
-const plusTypen = ['quadrat','fehler','anzahl'];
-const plusHint = 'x² fällt weg · Fehler finden · keine oder jede Zahl';
-const lzk = {aufwand:{zwei:2, beide:2, klammern:3, brueche:3, lzk:3, schritte:2, verschachtelt:3}};
+const kern = ['zwei','beide','klammern','brueche','lzk','schritte','verschachtelt','anzahl'];
+const leicht = ['zwei','beide','klammern','brueche','lzk','schritte','verschachtelt','anzahl'];
+const plusTypen = ['quadrat','fehler'];
+const plusHint = 'x² fällt weg · Fehler finden';
+const lzk = {aufwand:{zwei:2, beide:2, klammern:3, brueche:3, lzk:3, schritte:2, verschachtelt:3, anzahl:2}};
 
 /* ---------- Erklärung ---------- */
 const erklaerung = {
@@ -17099,12 +17201,15 @@ const erklaerung = {
     return `<section class="sheet"><h2>Lineare Gleichungen lösen</h2>
     <div class="rule"><h3>Die Reihenfolge</h3><ol><li>Brüche weg: alle Glieder mal den (gemeinsamen) Nenner.</li><li>Klammern auflösen.</li>
       <li>Jede Seite zusammenfassen.</li><li>Alle Glieder mit der Variablen auf eine Seite, alle Zahlen auf die andere.</li>
-      <li>Durch die Zahl vor der Variablen dividieren.</li><li>Lösungsmenge anschreiben und die Probe machen.</li></ol></div>
+      <li>Durch die Zahl vor der Variablen dividieren: Das ist das Ergebnis.</li><li>Probe machen. Wo es verlangt ist, die Lösungsmenge anschreiben: 𝕃 = {Ergebnis}.</li></ol></div>
     <div class="rule"><h3>Mit Klammern</h3><p>${KLAMMER_REGEL}</p>${rechnung(zeilenKlammer(k), {menge:qt(k.x)})}<p class="small">${probe(k.S,k.x,k.v)}</p>
       <button class="newex" data-newex="kl">Neues Beispiel</button></div>
     <div class="rule"><h3>Mit Brüchen</h3><p>Multipliziere jedes Glied auf beiden Seiten mit ${b.N}. Dann fallen die Brüche weg.</p>${rechnung(bz, {menge:qt(b.x)})}
       <button class="newex" data-newex="br">Neues Beispiel</button></div>
     <div class="rule"><h3>Wie im Mathe Know How</h3>${rechnung([{l:'5x/9 − 31,7', r:'25', u:'+ 31,7'}, {l:'5x/9', r:'56,7', u:'· 9'}, {l:'5x', r:'510,3', u:': 5'}, {l:'x', r:'102,06'}], {menge:'102,06'})}</div>
+    <div class="rule"><h3>Sonderfälle: keine Lösung oder unendlich viele</h3><p>Manchmal fällt die Variable beim Umformen weg. Dann bleibt eine Zeile ohne Variable:</p>
+      ${rechnung([{l:'2x + 3', r:'2x + 5', u:'− 2x'}, {l:'3', r:'5'}])}<p><b>3 = 5 ist falsch</b> (wie 0 = 2): Keine Zahl passt. Es gibt <b>keine Lösung</b>, 𝕃 = { } (leere Menge, auch ∅).</p>
+      ${rechnung([{l:'3x − 1', r:'3x − 1', u:'− 3x'}, {l:'−1', r:'−1'}])}<p><b>−1 = −1 ist wahr</b> (wie 0 = 0): Jede Zahl passt. Es gibt <b>unendlich viele Lösungen</b>, 𝕃 = ℝ.</p></div>
     <p class="small muted">Als Zwischenschritt zählt jede gleichwertige Zeile in der verlangten Form, z. B. auch 14x = −28 statt −14x = 28.</p>
     <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 3.1 Gleichungen.</p>
     <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`;
