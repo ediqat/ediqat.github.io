@@ -2055,7 +2055,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-28.43","datum":"28.11.2026","pruefsumme":"66eb734386f7d59c"};
+UR.version = {"nummer":"2026-11-28.44","datum":"28.11.2026","pruefsumme":"e3c4de43ec9323c1"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -7209,7 +7209,7 @@ const typen = {
       if(art==='strich'){
         // nur Fälle, bei denen man nicht rechnen muss: beide Schritte in dieselbe Richtung
         const pos=Math.random()<.5, muster=pick(pos?[['+',1,'+',1],['+',1,M,-1]]:[[M,-1,M,1],[M,-1,'+',-1]]);
-        const z1=zahl(), z2=zahl(); if(Math.sign(z1.v)!==muster[1]||Math.sign(z2.v)!==(muster[2]==='+'?muster[3]:-muster[3])) return null;
+        const z1=zahl(), z2=zahl(); if(Math.sign(z1.v)!==muster[1]||Math.sign(z2.v)!==muster[3]) return null;   // muster: [Zeichen 1, Vorzeichen 1, Rechenzeichen, Vorzeichen 2]
         l=[z1,z2]; ops=[muster[2]]; v=z1.v+(muster[2]==='+'?1:-1)*z2.v;
       } else {
         l=Array.from({length:art==='mal3'?3:2}, zahl); ops=l.slice(1).map(()=>art==='durch'?':':'·');
