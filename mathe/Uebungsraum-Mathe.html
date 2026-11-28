@@ -660,6 +660,20 @@ svg.gl-figur{max-width:220px}
 .gl-fig{fill:var(--ink-soft);stroke:var(--text);stroke-width:1.5}
 .gl-balken,.gl-faden,.gl-schale{stroke:var(--text);stroke-width:2.5} .gl-faden{stroke-width:1.2} .gl-staender{fill:var(--line)}
 .gl-dose{fill:var(--v-soft);stroke:var(--v);stroke-width:1.5} .gl-kugel{fill:var(--ink-soft);stroke:var(--ink);stroke-width:1.5}
+/* Gleichungen V1/V2 (Paket 2, 28.11.2026): Figuren mit Term-Seiten, Teilflächen, Feld a · x = b, Tabelle Person – Term */
+svg.gl-rfig{width:100%;max-width:300px;height:auto;display:block;margin:0 auto}
+.gl-rfig .gl-fig{fill:var(--paper);stroke:var(--text);stroke-width:2}
+.gl-kante{stroke:var(--text);stroke-width:2} .gl-kw{stroke:var(--x)} .gl-ks{stroke:var(--v)}
+.gl-kante.gl-mark{stroke:var(--cop);stroke-width:3.5} .gl-st.gl-mark{fill:var(--cop)}
+.gl-teil{stroke:none} .gl-teil-voll.gl-tf0{fill:var(--x-soft)} .gl-teil-voll.gl-tf1{fill:var(--v-soft)}
+.gl-teil-rand{fill:var(--x-soft);fill-opacity:.55;stroke:var(--x);stroke-width:1.5;stroke-dasharray:5 4}
+.gl-teil-weg{fill:var(--v-soft);stroke:var(--v);stroke-width:1.5;stroke-dasharray:5 4}
+.gl-tn{fill:var(--text);font-size:15px;font-weight:800;font-style:italic}
+.gl-rw{fill:none;stroke:var(--text);stroke-width:1.5}
+.gl-axb{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px}
+.gl-v{font-size:1.5rem;font-weight:800}
+.gl-pers{max-width:340px;margin:6px auto} .gl-pers th{text-align:left;padding:4px 6px;border-bottom:2px solid var(--line)}
+.gl-axb{flex-wrap:nowrap;gap:4px} .answer .gl-axb .gl-zahl input.zahl{width:4.6ch;padding-left:2px;padding-right:2px} .gl-axb .sign{min-width:34px;padding:0 4px}
 </style>
 </head>
 <body>
@@ -2004,7 +2018,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-28.15","datum":"28.11.2026","pruefsumme":"f1d642c94478c288"};
+UR.version = {"nummer":"2026-11-28.28","datum":"28.11.2026","pruefsumme":"168d349c0c751538"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -5319,8 +5333,11 @@ function loesen(l, r){
 const norm = s => String(s??'').replace(/[−–]/g,'-').replace(/\s+/g,'');
 // Gleichung „L = R“: ok, wenn sie linear in einer Variablen ist, dieselbe Lösung hat und noch nicht gelöst ist.
 // o = {x: Lösung, v: Variable (nur diese zählt; ohne v jeder Buchstabe)}. Ergebnis {ok, grund}.
+// griechische Buchstaben (Winkel α, β, γ) liest der Term-Rechner als Großbuchstaben
+const GRIECH = {'α':'A', 'β':'B', 'γ':'C', 'δ':'D', 'ε':'E'};
+const griech = s => String(s??'').replace(/[αβγδε]/g, c=>GRIECH[c]);
 function pruefeGleichung(roh, o){
-  const s=String(roh??'').trim(); if(!s) return {ok:false, grund:'leer'};
+  const s=griech(roh).trim(); if(!s) return {ok:false, grund:'leer'};
   const seiten=s.split('=');
   if(seiten.length!==2||!seiten[0].trim()||!seiten[1].trim()) return {ok:false, grund:'form'};
   const p=Tm.poly(`(${seiten[0]})-(${seiten[1]})`);
@@ -5329,11 +5346,13 @@ function pruefeGleichung(roh, o){
   if(!mitV.length) return {ok:false, grund:'ohneVar'};
   if(mitV.length>1||!/^[A-Za-z]1$/.test(mitV[0])) return {ok:false, grund:'andere'};
   const v=mitV[0][0];
-  if(o.v && v!==o.v) return {ok:false, grund:'variable'};
+  if(o.v && v!==griech(o.v)) return {ok:false, grund:'variable'};
   const x=qneg(qd(p['']||[0,1], p[mitV[0]]));
   if(!qg(x, o.x)) return {ok:false, grund:'loesung'};
   const a=norm(seiten[0]), b=norm(seiten[1]), zahl=/^[-+]?\d+(?:[.,]\d+)?$/, nurV=/^\+?[A-Za-z]$/;
-  if((nurV.test(a)&&zahl.test(b))||(nurV.test(b)&&zahl.test(a))) return {ok:false, grund:'geloest'};
+  // auch „x = 3/2“ (Bruch aus der Bruch-Taste) ist schon gelöst
+  const bruchZ=/^[-+]?(\(\([-+]?\d+(?:[.,]\d+)?\)\/\(\d+(?:[.,]\d+)?\)\)|\d+(?:[.,]\d+)?\/\d+(?:[.,]\d+)?)$/, zl = s2 => zahl.test(s2)||bruchZ.test(s2);
+  if((nurV.test(a)&&zl(b))||(nurV.test(b)&&zl(a))) return {ok:false, grund:'geloest'};
   return {ok:true};
 }
 const GRUND = {
@@ -5345,40 +5364,83 @@ const GRUND = {
   loesung: 'Diese Gleichung passt nicht zum Text: Sie hat eine andere Lösung.',
   geloest: 'Du hast die Gleichung schon gelöst. Gefragt ist die Gleichung, die zum Text passt.',
   gleich: 'Schreib nur, was rechts vom = steht.',
-  zeichen: 'Wähle ein Rechenzeichen und schreib die Zahl dazu.'
+  zeichen: 'Wähle ein Rechenzeichen und schreib die Zahl dazu.',
+  // Zwischenschritte (V2, X1, X2)
+  anders: 'Diese Zeile ist nicht gleichwertig zur Angabe: Sie hat eine andere Lösung. Rechne den Schritt noch einmal nach.',
+  geloestZw: 'Das ist schon die Lösung. Schreib hier die Zeile davor.',
+  klammer: 'Löse zuerst alle Klammern auf.',
+  zusammen: 'Fasse jede Seite zusammen: auf jeder Seite höchstens ein Glied mit der Variablen und eine Zahl.',
+  bruch: 'In der Zeile steht noch ein Bruch. Multipliziere beide Seiten mit dem Nenner (bei mehreren Brüchen mit dem gemeinsamen Nenner).',
+  axb: 'Gefragt ist die Form a · x = b: auf einer Seite nur das Glied mit der Variablen, auf der anderen nur eine Zahl.',
+  einSchritt: 'Die Zeile soll nur noch einen Schritt vor der Lösung sein, z. B. 5x = 510,3 (Form a · x = b).',
+  axbZahl: 'Schreib in beide Felder eine Zahl.',
+  zahlMenge: 'In die Lösungsmenge gehört nur eine Zahl.',
+  kuerzen: 'Der Wert stimmt. Kürze den Bruch vollständig.',
+  term: (v, f) => f.hinweisText || ''
 };
+/* Zwischenschritt als Gleichung prüfen (Themenregel: jede gleichwertige Zeile zählt, aber in der verlangten Form).
+   o = {x: Lösung, v: Variable, art}: 'zusammen' (ohne Klammern, jede Seite höchstens ein Glied mit der Variablen und eine
+   Zahl, kein x²), 'ohneBruch' (kein Bruch, kein „:“), 'axb' (a · x = b), 'einSchritt' (zusammengefasst und nur noch eine
+   Umformung bis zur Lösung, z. B. 5x = 510,3 oder x + 21 = 40,8). Noch nicht gelöst (x = 3 zählt nicht). */
+const ohneHuellen = s => s.replace(/\(\(([-+]?[A-Za-z0-9,.]*)\)\/\(([-+]?[A-Za-z0-9,.]+)\)\)/g, '$1/$2');
+const mitBuchst = g => /[A-Za-z]/.test(g);
+function pruefeZwischen(roh, o){
+  const e=pruefeGleichung(roh, o);
+  if(!e.ok) return {ok:false, grund: e.grund==='loesung' ? 'anders' : e.grund==='geloest' ? 'geloestZw' : e.grund};
+  const roh2=griech(roh).split('=').map(norm), seiten=roh2.map(ohneHuellen);
+  const klammer = seiten.some(x=>/[()[\]{}]/.test(x));
+  const gl = seiten.map(x=>Tm.glieder(x));
+  const zus = gl.every(l=>l.filter(mitBuchst).length<=1 && l.filter(g=>!mitBuchst(g)).length<=1);
+  const polys = roh2.map(x=>Tm.poly(x));
+  const quadrat = polys.some(p=>!p || Object.keys(p).some(k=>k&&p[k][0]&&!/^[A-Za-z]1$/.test(k)));
+  const lin2 = p => { const k=Object.keys(p).find(x=>x&&p[x][0]); return [k?p[k]:[0,1], p['']||[0,1]]; };
+  switch(o.art){
+    case 'zusammen': if(klammer) return {ok:false, grund:'klammer'}; if(!zus||quadrat) return {ok:false, grund:'zusammen'}; break;
+    case 'ohneBruch': if(/[/:]/.test(roh2.join(''))) return {ok:false, grund:'bruch'}; break;
+    case 'axb': {
+      const passt = [0,1].some(i=>gl[i].length===1&&mitBuchst(gl[i][0])&&gl[1-i].length===1&&!mitBuchst(gl[1-i][0]));
+      if(!passt||klammer||quadrat) return {ok:false, grund:'axb'}; break; }
+    case 'einSchritt': if(klammer||!zus||quadrat||!vorZiel(polys.map(lin2))) return {ok:false, grund:'einSchritt'}; break;
+  }
+  return {ok:true};
+}
 // Eingabe zum Anzeigen: Bruchteile „((z)/(n))“ aus der Bruch-Taste wieder als „z/n“ (die Anzeige stellt sie waagrecht dar)
 const einfach = s => /^[A-Za-z0-9,.]+$/.test(s.trim()) ? s.trim() : `(${s.trim()})`;
 const anzeige = roh => String(roh??'').replace(/\(\(([^()]*)\)\/\(([^()]*)\)\)/g, (m,z,n)=>`${einfach(z)}/${einfach(n)}`)
-  .replace(/\(\(([^()]*)\)\)/g,'($1)').replace(/-/g,M).replace(/\*/g,'·').replace(/\s*([=+−·:])\s*/g,' $1 ').replace(/^ (−) /,'$1').replace(/\s+/g,' ').trim();
+  .replace(/\(\(([^()]*)\)\)/g,'($1)').replace(/-/g,M).replace(/\*/g,'·').replace(/\s*([=+−·:])\s*/g,' $1 ').replace(/^ (−) /,'$1').replace(/\s+/g,' ').replace(/([=(]) − /g,'$1 −').replace(/\( −/g,'(−').trim();
 
 /* ---------- Felder für die Form 'zahlen' ---------- */
 // Eine Seite: Term-Feld; mit der Taste „Bruch“ kommt ein Bruch (Zähler über Nenner) und danach noch ein Term-Feld dazu.
-const seiteHTML = (id, s, ph) => `<span class="gl-seite" data-glseite="${id}_${s}">
-  <input class="term gl-t" data-glteil="a" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${ph||'?'}" aria-label="${s==='L'?'linke Seite':'rechte Seite'}">
+const seiteHTML = (id, s, ph, aria) => `<span class="gl-seite" data-glseite="${id}_${s}">
+  <input class="term gl-t" data-glteil="a" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${ph||'?'}" aria-label="${aria||(s==='L'?'linke Seite':'rechte Seite')}">
   <span class="gl-br" hidden><span class="bfeld"><input class="term" data-glteil="z" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Zähler" aria-label="Zähler"><span class="bstrich" aria-hidden="true"></span><input class="term" data-glteil="n" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Nenner" aria-label="Nenner"></span></span>
   <input class="term gl-t" data-glteil="b" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" hidden placeholder="…" aria-label="nach dem Bruch"></span>`;
 const tastenHTML = (id, vars) => `<div class="tasten gl-tasten" role="group" aria-label="Zeichen einfügen">${[...vars, '·', ':', '(', ')'].map(x=>`<button type="button" class="taste" data-tk="${esc(x)}">${esc(x)}</button>`).join('')}<button type="button" class="taste gl-bruchtaste" data-glbruch="${id}">Bruch</button></div>`;
 // Gleichung eintippen. o = {x: Lösung, v: Variable (Pflicht) | vars: Tasten, ans: Musterlösung (Text), ansText}
+// o.art: Zwischenschritt in dieser Form (pruefeZwischen) statt „aufgestellte Gleichung“
 function gleichungFeld(label, o){
-  const vars=o.vars||[o.v||'x'];
+  const vars=o.vars||[o.v||'x'], pruef=o.art?pruefeZwischen:pruefeGleichung;
   const f={label, ans:1, v:o.v, ohneEinheit:true, eingabe:o.ans, ansText:anzeige(o.ans), ansHTML:H(anzeige(o.ans)),
     feldHTML: id => `<div class="gl-feld" data-glfeld="${id}"><div class="gl-zeile">${seiteHTML(id,'L')}<span class="gl-gl">=</span>${seiteHTML(id,'R')}</div>${tastenHTML(id,vars)}<input type="hidden" id="${id}" data-feld value=""></div>`,
-    lesen: roh => { const s=String(roh??'').trim(); if(!s){ f.grund=''; return null; } const e=pruefeGleichung(s,o); f.grund=e.grund||''; return e.ok?1:0; },
+    lesen: roh => { const s=String(roh??'').trim(); if(!s){ f.grund=''; return null; } const e=pruef(s,o); f.grund=e.grund||''; return e.ok?1:0; },
     rohHTML: roh => H(anzeige(roh))};
   return f;
 }
 // Formel bzw. Term rechts: „links = …“; jeder gleichwertige Term zählt (Variablen wie in soll). o.vars: Tasten,
 // o.ohneTasten: keine eigene Tastenreihe (mehrere Felder: eine gemeinsame Reihe tastenHTML('', vars) in t.nachFeldern)
+// o.zeichen: ':' statt „=“ (Tabelle Person – Term: „Leon: …“), o.modus: Bewertung wie bei Terme (UR.terme.bewerte,
+// z. B. 'genau' = zusammengefasst und geordnet), o.ansText: Lösung so anzeigen
 function formelFeld(label, links, soll, o={}){
-  const vars=o.vars||[...new Set((soll.match(/[A-Za-z]/g)||[]))];
-  const f={label, ans:1, ohneEinheit:true, eingabe:soll, ansText:`${links} = ${anzeige(soll)}`, ansHTML:H(`${links} = ${anzeige(soll)}`),
-    feldHTML: id => `<div class="gl-feld" data-glfeld="${id}"><div class="gl-zeile"><span class="gl-gl">${esc(links)}&nbsp;=</span>${seiteHTML(id,'R')}</div>${o.ohneTasten?'':tastenHTML(id,vars)}<input type="hidden" id="${id}" data-feld value=""></div>`,
-    lesen: roh => { const s=String(roh??'').trim(); if(!s){ f.grund=''; return null; }
+  const vars=o.vars||[...new Set((soll.match(/[A-Za-z]/g)||[]))], z=o.zeichen||'=', vorn=z===':'?`${links}:`:`${links} =`;
+  const f={label, ans:1, ohneEinheit:true, eingabe:soll, ansText:`${vorn} ${o.ansText||anzeige(soll)}`, ansHTML:H(`${vorn} ${o.ansText||anzeige(soll)}`),
+    feldHTML: id => `<div class="gl-feld" data-glfeld="${id}"><div class="gl-zeile"><span class="gl-gl">${esc(links)}${z===':'?':':'&nbsp;='}</span>${seiteHTML(id,'R')}</div>${o.ohneTasten?'':tastenHTML(id,vars)}<input type="hidden" id="${id}" data-feld value=""></div>`,
+    lesen: roh => { const s=String(roh??'').trim(); f.hinweisText=''; if(!s){ f.grund=''; return null; }
       if(s.includes('=')){ f.grund='gleich'; return 0; }
       if(!Tm.lies(s)){ f.grund='lesen'; return NaN; }
-      f.grund=''; return Tm.gleichwertig(s, soll) ? 1 : 0; },
-    rohHTML: roh => H(`${links} = ${anzeige(roh)}`)};
+      f.grund='';
+      if(o.modus){ const b=Tm.bewerte(o.modus, s, soll); if(!b.ok&&b.hinweis){ f.grund='term'; f.hinweisText=b.hinweis; } return b.ok ? 1 : 0; }
+      return Tm.gleichwertig(s, soll) ? 1 : 0; },
+    rohHTML: roh => H(`${vorn} ${anzeige(roh)}`)};
   return f;
 }
 // Umformung „| + 5“: Rechenzeichen-Tasten und Zahl. richtig = [{op:'+'|'−'|'·'|':', z:Bruchzahl}] (jede davon zählt).
@@ -5462,7 +5524,7 @@ const probeFelder = (o) => [
 // Hinweis aus den Feldern (grund) für t.hinweisNach
 const hinweisAus = (t, extra) => erg => {
   if(extra){ const h=extra(erg); if(h) return h; }
-  for(let i=0;i<t.felder.length;i++){ const f=t.felder[i], g=f.grund; if(!erg[i].zahlOk && g){ const h=GRUND[g]; return typeof h==='function' ? h(f.v||'x') : h; } }
+  for(let i=0;i<t.felder.length;i++){ const f=t.felder[i], g=f.grund; if(!erg[i].zahlOk && g){ const h=GRUND[g]; return typeof h==='function' ? h(f.v||'x', f) : h; } }
   return '';
 };
 
@@ -5597,9 +5659,127 @@ function vergleichSatz(v, c, k, gr, o={}){
     stuecke:[[z,v],['ist','='],[`um ${qt(k)} ${gr?'größer':'kleiner'} als ${qt(c)}`,`${qt(c)} ${gr?'+':M} ${qt(k)}`]], klammer:''};
 }
 
+/* ---------- Seit Paket 2 (V1, V2) ---------- */
+// Glied c·v als Text: 3x, −x, 0,5x; o.bruch oder nicht abbrechend: 2x/3, x/4 (Variable im Zähler)
+function gliedT(c, v, o={}){
+  c=Q(c[0],c[1]); if(!v) return qt(c);
+  const vz=c[0]<0?M:'', a=[Math.abs(c[0]),c[1]];
+  if(a[1]===1 || (!o.bruch && abbrechend(a,3))){ const z=qt(a); return vz+(z==='1'?'':z)+v; }
+  return `${vz}${a[0]===1?'':a[0]}${v}/${a[1]}`;
+}
+// Seite a·v + b (zusammengefasst) als Text; o.zahlZuerst: „21 + x“, o.bruch wie gliedT
+function linT(S, v, o={}){
+  const [a,b]=S, l=[];
+  if(a[0]) l.push(gliedT(a,v,o));
+  if(b[0]||!l.length) l.push(qt(b));
+  if(o.zahlZuerst) l.reverse();
+  return Tm.summe(l);
+}
+const glT = (S, v, o) => `${linT(S[0],v,o)} = ${linT(S[1],v,o)}`;
+// Rechenweg ab einer zusammengefassten Gleichung S (Seiten a·v + b): Zeilen mit Umformungen bis v = Lösung
+function weg(S, v){
+  const z=[]; let s=S.map(x=>[x[0],x[1]]);
+  const X = qz(qs(s[0][0], s[1][0]))>=0 || !s[1][0][0] ? 0 : 1, O=1-X;   // Variable dorthin, wo sie mehr ist
+  const um = (u, e) => { z.push({l:linT(s[0],v), r:linT(s[1],v), u}); s=schritt(s, e, v); };
+  if(s[O][0][0]){ const a=s[O][0], term=gliedT([Math.abs(a[0]),a[1]], v); um(umText(a[0]>0?M:'+', null, term), {op:a[0]>0?M:'+', term:term.replace(M,'-')}); }
+  if(s[X][1][0]){ const b=s[X][1]; um(umText(b[0]>0?M:'+', [Math.abs(b[0]),b[1]]), {op:b[0]>0?M:'+', z:[Math.abs(b[0]),b[1]]}); }
+  const a=s[X][0];
+  if(!qg(a,[1,1])) um(umText(':', a), {op:':', z:a});
+  z.push({l:X===0?v:qt(s[0][1]), r:X===0?qt(s[1][1]):v});
+  return z;
+}
+// Zwischenschritt „a · x = b“ aus zwei Zahlfeldern; richtig ist jedes a, b mit b : a = x (auch mal −1), nicht a = 1
+function axbFeld(label, v, a, b){
+  const x=qd(b,a), vor=gliedT(a,v);
+  const f={label, ans:1, ohneEinheit:true, eingabe:`${qein(a)};${qein(b)}`, ansText:`${vor} = ${qt(b)}`, ansHTML:H(`${vor} = ${qt(b)}`),
+    feldHTML: id => `<span class="gl-axb" data-glaxb="${id}"><span class="gl-zahl"><button type="button" class="sign" data-vz="${id}_a" aria-label="${UR.TEXTE.minusSetzen}">${M}</button><input id="${id}_a" class="zahl" inputmode="decimal" placeholder="?" aria-label="Zahl vor ${esc(v)}"></span><span class="gl-v">${esc(v)}</span><span class="gl-gl">=</span><span class="gl-zahl"><button type="button" class="sign" data-vz="${id}_b" aria-label="${UR.TEXTE.minusSetzen}">${M}</button><input id="${id}_b" class="zahl" inputmode="decimal" placeholder="?" aria-label="Zahl rechts"></span><input type="hidden" id="${id}" data-feld value=""></span>`,
+    lesen: roh => { f.grund=''; const s=String(roh??'').trim(); if(!s||s===';') return null;
+      const [p='',q='']=s.split(';'), A=zahlQ(p), B=zahlQ(q);
+      if(!A||!B){ f.grund='axbZahl'; return NaN; }
+      if(!A[0]||!qg(qd(B,A),x)){ f.grund='anders'; return 0; }
+      if(qg(A,[1,1])){ f.grund='geloestZw'; return 0; }
+      return 1; },
+    rohHTML: roh => { const [p='',q='']=String(roh??'').split(';'); return esc(`${p.trim()}${v} = ${q.trim()}`.replace(/-/g,M)); }};
+  return f;
+}
+// Lösungsmenge mit Bruch (Taste „Bruch“): exakt, Bruch vollständig gekürzt
+const bruchEin = q => abbrechend(q,6) ? qein(q) : `((${q[0]})/(${q[1]}))`;
+function mengeBruchFeld(x, o={}){
+  const f={label:o.label||'Lösungsmenge', ans:1, ohneEinheit:true, eingabe:bruchEin(x), ansText:`𝕃 = {${qt(x)}}`, ansHTML:H(`𝕃 = {${qt(x)}}`),
+    feldHTML: id => `<div class="gl-feld" data-glfeld="${id}"><div class="gl-zeile"><span class="gl-menge">𝕃 = {</span>${seiteHTML(id,'L','?','Lösung')}<span class="gl-menge">}</span></div><div class="tasten gl-tasten" role="group" aria-label="Bruch"><button type="button" class="taste gl-bruchtaste" data-glbruch="${id}">Bruch</button></div><input type="hidden" id="${id}" data-feld value=""></div>`,
+    lesen: roh => { f.grund=''; const s=String(roh??'').trim(); if(!s) return null;
+      const p=Tm.poly(s), k=p&&Object.keys(p).every(y=>y===''||!p[y][0]) ? (p['']||[0,1]) : null;
+      if(!k){ f.grund='zahlMenge'; return NaN; }
+      return qg(k,x) ? 1 : 0; },
+    formOk: roh => { const ok=[...String(roh).matchAll(/\(\(\s*[-−]?(\d+)\s*\)\/\(\s*(\d+)\s*\)\)/g)].every(m=>Tm.Q(Number(m[1]),Number(m[2]))[1]===Number(m[2]));
+      if(!ok) f.grund='kuerzen'; return ok; },
+    rohHTML: roh => H(`𝕃 = {${anzeige(roh)}}`)};
+  return f;
+}
+
+/* ---------- Rechtwinkelige Figuren mit Term-Seiten (V1) ----------
+   kanten [{d:'r'|'u'|'l'|'d' (rechts, hinauf, links, hinunter), p:{x:2, y:1} Länge als Polynom, t:'2x + y' Beschriftung, '' = ohne}],
+   gegen den Uhrzeigersinn ab der Ecke links unten. o.einheit {x: px, y: px}, o.teile [{name:'A₁', x:[i,j], y:[i,j], art:'voll'|'weg'|'rand'}]
+   (Rechteck zwischen den x-Werten der Ecken i, j und den y-Werten der Ecken i, j), o.farbe: Seiten in Farben,
+   o.mark: Nummern der Seiten, die hervorgehoben werden. Jede Beschriftung trägt data-kante (Nummer der Seite). */
+const DIR = {r:[1,0], u:[0,-1], l:[-1,0], d:[0,1]};
+const pxLaenge = (p, e) => Object.keys(p).reduce((s,k)=>s+(p[k]||0)*(e[k]||0), 0);
+function figurPunkte(kanten, e){
+  const P=[[0,0]];
+  kanten.forEach(k=>{ const [dx,dy]=DIR[k.d], L=pxLaenge(k.p,e), q=P[P.length-1]; P.push([q[0]+dx*L, q[1]+dy*L]); });
+  return P.slice(0,-1);
+}
+function rechtFigur(kanten, o={}){
+  const e=o.einheit, P0=figurPunkte(kanten,e), xs=P0.map(p=>p[0]), ys=P0.map(p=>p[1]);
+  const pad=34, x0=Math.min(...xs)-pad-10, y0=Math.min(...ys)-pad+6, W=Math.max(...xs)-Math.min(...xs)+2*pad+20, Hh=Math.max(...ys)-Math.min(...ys)+2*pad-12;
+  const P=P0.map(([x,y])=>[x-x0, y-y0]), f1=n=>n.toFixed(1);
+  let teile='';
+  for(const t of o.teile||[]){
+    const xa=P[t.x[0]][0], xb=P[t.x[1]][0], ya=P[t.y[0]][1], yb=P[t.y[1]][1];
+    const r={x:Math.min(xa,xb), y:Math.min(ya,yb), w:Math.abs(xb-xa), h:Math.abs(yb-ya)};
+    teile+=`<rect class="gl-teil gl-teil-${t.art||'voll'}${t.farbe!==undefined?` gl-tf${t.farbe}`:''}" data-name="${esc(t.name)}" x="${f1(r.x)}" y="${f1(r.y)}" width="${f1(r.w)}" height="${f1(r.h)}"/>`;
+    const lx = t.lx!==undefined ? P[t.lx[0]][0]+(P[t.lx[1]][0]-P[t.lx[0]][0])/2 : r.x+r.w/2, ly = t.ly!==undefined ? P[t.ly[0]][1]+(P[t.ly[1]][1]-P[t.ly[0]][1])/2 : r.y+r.h/2;
+    if(t.name) teile+=`<text class="gl-tn" x="${f1(lx)}" y="${f1(ly+6)}" text-anchor="middle">${esc(t.name)}</text>`;
+  }
+  let seiten='', texte='';
+  kanten.forEach((k,i)=>{
+    const a=P[i], b=P[(i+1)%P.length], mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2, mk=(o.mark||[]).includes(i);
+    seiten+=`<line class="gl-kante${o.farbe?` gl-k${k.d==='r'||k.d==='l'?'w':'s'}`:''}${mk?' gl-mark':''}" x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}"/>`;
+    if(!k.t) return;
+    const [tx,ty,an] = k.d==='r' ? [mx, my+19, 'middle'] : k.d==='l' ? [mx, my-8, 'middle'] : k.d==='u' ? [mx+6, my+5, 'start'] : [mx-6, my+5, 'end'];
+    texte+=`<text class="gl-st${mk?' gl-mark':''}" data-kante="${i}" x="${f1(tx)}" y="${f1(ty)}" text-anchor="${an}">${esc(k.t)}</text>`;
+  });
+  return `<svg class="gl-rfig" viewBox="0 0 ${f1(W)} ${f1(Hh)}" role="img" aria-label="Figur mit den Seiten ${esc(kanten.map(k=>k.t||'?').join(', '))}"><polygon class="gl-fig" points="${P.map(p=>p.map(f1).join(',')).join(' ')}"/>${teile}${seiten}${texte}</svg>`;
+}
+// Vieleck mit beschrifteten Seiten (Punkte in Bildpunkten, gegen den Uhrzeigersinn im Bild), Beschriftung außen an der Seitenmitte
+function vieleckBild(P, texte, o={}){
+  const xs=P.map(p=>p[0]), ys=P.map(p=>p[1]), pad=30, x0=Math.min(...xs)-pad-8, y0=Math.min(...ys)-pad, W=Math.max(...xs)-x0+pad+8, Hh=Math.max(...ys)-y0+pad;
+  const Q2=P.map(([x,y])=>[x-x0,y-y0]), f1=n=>n.toFixed(1);
+  const cx=Q2.reduce((s,p)=>s+p[0],0)/Q2.length, cy=Q2.reduce((s,p)=>s+p[1],0)/Q2.length;
+  let t='';
+  texte.forEach((s,i)=>{ if(!s) return; const a=Q2[i], b=Q2[(i+1)%Q2.length], mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2;
+    let nx=-(b[1]-a[1]), ny=b[0]-a[0]; const L=Math.hypot(nx,ny)||1; nx/=L; ny/=L; if(nx*(mx-cx)+ny*(my-cy)<0){ nx=-nx; ny=-ny; }
+    const an = nx>0.4 ? 'start' : nx<-0.4 ? 'end' : 'middle';
+    t+=`<text class="gl-st" data-kante="${i}" x="${f1(mx+nx*10)}" y="${f1(my+ny*12+5)}" text-anchor="${an}">${esc(s)}</text>`; });
+  return `<svg class="gl-rfig" viewBox="0 0 ${f1(W)} ${f1(Hh)}" role="img" aria-label="Figur mit den Seiten ${esc(texte.join(', '))}"><polygon class="gl-fig" points="${Q2.map(p=>p.map(f1).join(',')).join(' ')}"/>${o.extra?o.extra(Q2):''}${t}</svg>`;
+}
+// Tabelle „Person – Term“ (V1): zeilen [[Name, Term-Text | null (Feld)]]
+const personTabelle = zeilen => `<table class="gl-tab gl-pers"><tr><th>Person</th><th>Term</th></tr>${zeilen.map(([n,t])=>`<tr><td>${esc(n)}</td><td>${t===null?'<i>?</i>':H(t)}</td></tr>`).join('')}</table>`;
+
+UR.bindungen.push(app=>{
+  if(!app.querySelectorAll) return;
+  app.querySelectorAll('[data-glaxb]').forEach(box=>{
+    const h=box.querySelector('input[type=hidden][data-feld]'), [a,b]=box.querySelectorAll('input.zahl');
+    const sync = () => { h.value = a.value.trim()||b.value.trim() ? `${a.value.trim()};${b.value.trim()}` : ''; };
+    a.addEventListener('input',sync); b.addEventListener('input',sync);
+    box.querySelectorAll('[data-vz]').forEach(k=>k.addEventListener('click',()=>setTimeout(sync,0)));
+    if(h.form) h.form.addEventListener('submit',sync,true);
+  });
+});
+
 UR.glei = {qa, qs, qm, qd, qg, qz, qneg, dez, qt, qein, zahlQ, stellen, abbrechend, X, Z, plus, minus, mal, teil, neg, wert, variablen, txt, gl, loesen,
   pruefeGleichung, GRUND, anzeige, tastenHTML, gleichungFeld, formelFeld, umformFeld, umformLesen, umPasst, umNorm, umText, mengeFeld, wahlFeld, probeFelder, WA, hinweisAus,
-  lin, seitenVon, schritt, isoliert, vorZiel, H, streckenBild, rechnung, merk, farbig, uebersetzung, zurueck, nomen, satz, vergleichSatz, viel, VIEL, TEL, OPS};
+  lin, seitenVon, schritt, isoliert, vorZiel, H, pruefeZwischen, griech, gliedT, linT, glT, weg, axbFeld, mengeBruchFeld, bruchEin, rechtFigur, figurPunkte, pxLaenge, vieleckBild, personTabelle, seiteHTML, streckenBild, rechnung, merk, farbig, uebersetzung, zurueck, nomen, satz, vergleichSatz, viel, VIEL, TEL, OPS};
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -15838,6 +16018,8 @@ const typen = {
       if(fall==='seite') erg=e.b;
       if(fall==='rechnen') erg=qneg(e.x);
       if(fall!=='ok'&&qg(erg,e.x)) return null;
+      // falsch gerechnet darf keine Zahl der Angabe ergeben (sonst passt auch „nur auf einer Seite“)
+      if(fall==='rechnen'&&[e.a,e.b,e.k].some(z=>z&&qg(erg,z))) return null;
       if(!abbrechend(erg,3)) return null;
       const GR = {ok:'Auf beiden Seiten wurde die Gegenoperation gerechnet, und es ist richtig gerechnet.', gegen:'Das ist nicht die Gegenoperation.',
         seite:'Es wurde nur auf einer Seite gerechnet.', rechnen:'Die Umformung passt, aber es wurde falsch gerechnet.'};
@@ -15960,6 +16142,977 @@ const erklaerung = {
 
 UR.kompetenzAnmelden({id:'M-Glei-G2', typen, stationen, kern, leicht, plus:plusTypen, plusHint, erklaerung, lzk});
 UR.glei.g2 = {plusMinus, malDurch, minusX, FORMELN, GEGEN};
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/3.1 Gleichungen/M-Glei-V1.js */
+/* Baustein M-Glei-V1: „Ich kann Gleichungen und Formeln für Problemstellungen in Sachsituationen und in der Geometrie aufstellen.“
+   Steckbrief: M-Glei-V1.md, Auswahl und Themenregeln: AUSWAHL.md (27.11.2026). Nur aufstellen, nicht lösen (wie die LZK):
+   richtig ist jede Gleichung mit derselben Lösung, die noch nicht gelöst ist (UR.glei.gleichungFeld); Formeln: jede
+   gleichwertige Formel (formelFeld), der zusammengefasste Flächeninhalt geordnet (modus 'genau'). Figuren: UR.glei.rechtFigur. */
+(function(UR){
+const {rnd, pick} = UR;
+const M = UR.M, esc = UR.esc;
+const G = UR.glei, Tm = UR.terme, {mischen, versuche} = Tm;
+const {H, qt, qg, qz, merk, uebersetzung} = G;
+
+const NAMEN = ['Leon','Luca','Simone','Sabine','Renate','Hans','Fabian','Mia','Emma','Jonas','Lena','Paul','Sophie','Elias','Anna','Noah','Lea','David','Lara','Felix','Hannah','Tobias','Nina','Jakob'];
+const VIEL = {1:'', 2:'Doppelte', 3:'Dreifache', 4:'Vierfache', 5:'Fünffache', 6:'Sechsfache', 10:'Zehnfache'};
+const VIELK = [2,3,4,5,6,10];
+const MAL = {2:'doppelt', 3:'dreimal', 4:'viermal', 5:'fünfmal', 6:'sechsmal', 8:'achtmal', 9:'neunmal'};
+const TEIL = {2:['der Hälfte','die Hälfte'], 3:['dem Drittel','ein Drittel'], 4:['dem Viertel','ein Viertel'], 5:['dem Fünftel','ein Fünftel'], 6:['dem Sechstel','ein Sechstel']};
+const nz = (a,b) => { let n=0; while(!n) n=rnd(a,b); return n; };
+const ggT = (a,b) => { a=Math.abs(a); b=Math.abs(b); while(b) [a,b]=[b,a%b]; return a; };
+const tausend = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const euro = c => { const s=String(Math.abs(c)).padStart(3,'0'); return `${c<0?M:''}${s.slice(0,-2)},${s.slice(-2)}`; };   // Cent → „2,61“
+const eingabeVon = s => String(s).replace(/−/g,'-');
+const wertVon = s => Tm.wertVon(eingabeVon(s));
+const liste = l => l.length<2 ? l.join('') : `${l.slice(0,-1).join(', ')} und ${l[l.length-1]}`;
+const gk = s => s[0].toUpperCase()+s.slice(1);
+const kurz = s => Tm.text(eingabeVon(s));              // zusammengefasst und geordnet (Terme)
+// Term in x zusammengefasst, Brüche als x/2 (nicht 0,5x)
+const kurzX = s => { const p=Tm.poly(eingabeVon(s)); return G.linT([p.x1||[0,1], p['']||[0,1]], 'x', {bruch:true}); };
+// Kontrolle: Lösung eingesetzt, beide Seiten
+function kontrolle(L, R, v, x){
+  const ein = s => Tm.einsetzen(s, v, x), l=wertVon(ein(L)), r=wertVon(ein(R));
+  return `Zur Kontrolle: ${esc(v)} = ${H(qt(x))}. Links ${H(ein(L))} = ${H(qt(l))}, rechts ${H(ein(R))} = ${H(qt(r))}.`;
+}
+const fertig = t => { t.hinweisNach = G.hinweisAus(t); return UR.dreiecke.aufg(t); };
+const glFeld = (e, label='Gleichung') => G.gleichungFeld(label, {x:e.x, v:e.benannt?e.v:undefined, vars:[e.v], ans:eingabeVon(`${e.L} = ${e.R}`)});
+
+/* ---------- V1-A01 Zahlenrätsel ---------- */
+const vielT = (k, v) => k===1 ? v : `${k}${v}`;
+function raetsel(o={}){
+  return versuche(()=>{
+    const x=nz(-100,100), art=pick(o.arten||['vergleich','vergleich','teile','minusKl','gleich','gleich','addiert']);
+    let text, L, R, st;
+    if(art==='vergleich'){
+      const k=pick(VIELK), m=pick(VIELK), b=rnd(2,60), p=Math.random()<.5; if(k===m) return null;
+      const lw=k*x+(p?b:-b), dd=lw-m*x, d=Math.abs(dd); if(!d||d>200) return null;
+      text=`Das ${VIEL[k]} einer Zahl, um ${b} ${p?'vermehrt':'vermindert'}, ergibt gleich viel wie das um ${d} ${dd>0?'vermehrte':'verminderte'} ${VIEL[m]} dieser Zahl.`;
+      L=`${vielT(k,'x')} ${p?'+':M} ${b}`; R=`${vielT(m,'x')} ${dd>0?'+':M} ${d}`;
+      st=[[`das ${VIEL[k]} einer Zahl`, vielT(k,'x')], [`um ${b} ${p?'vermehrt':'vermindert'}`, `${p?'+':M} ${b}`], ['ergibt gleich viel wie','='], [`das um ${d} ${dd>0?'vermehrte':'verminderte'} ${VIEL[m]}`, R]];
+    } else if(art==='teile'){
+      const ns=mischen([2,3,4,5,6]).slice(0, pick([2,3])).sort((a,b)=>a-b), kg=ns.reduce((a,b)=>a/ggT(a,b)*b,1);
+      if(kg>60) return null;
+      const y=nz(-Math.floor(100/kg), Math.floor(100/kg))*kg, sum=ns.reduce((s,n)=>s+y/n,0), dd=sum-y; if(!dd||Math.abs(dd)>200) return null;
+      text=`Die Summe aus ${liste(ns.map(n=>TEIL[n][0]))} einer Zahl ist um ${Math.abs(dd)} ${dd>0?'größer':'kleiner'} als die Zahl selbst.`;
+      L=ns.map(n=>`x/${n}`).join(' + '); R=`x ${dd>0?'+':M} ${Math.abs(dd)}`;
+      st=[[`die Summe aus ${liste(ns.map(n=>TEIL[n][0]))} einer Zahl`, L], ['ist','='], [`um ${Math.abs(dd)} ${dd>0?'größer':'kleiner'} als die Zahl selbst`, R]];
+      return {text, L, R, v:'x', x:[y,1], st, art};
+    } else if(art==='minusKl'){
+      const k=pick(VIELK), b=rnd(2,40), p=Math.random()<.5, c=k*x-(x+(p?b:-b));
+      text=`Subtrahiert man vom ${VIEL[k]}n einer Zahl die um ${b} ${p?'vergrößerte':'verkleinerte'} Zahl, so erhält man ${qt([c,1])}.`;
+      L=`${vielT(k,'x')} ${M} (x ${p?'+':M} ${b})`; R=qt([c,1]);
+      st=[[`vom ${VIEL[k]}n einer Zahl`, vielT(k,'x')], [`subtrahiert die um ${b} ${p?'vergrößerte':'verkleinerte'} Zahl`, `${M} (x ${p?'+':M} ${b})`], ['so erhält man','='], [R,R]];
+    } else if(art==='gleich'){
+      const k=pick([1,...VIELK]), m=pick(VIELK); if(k===m) return null;
+      const dd=(k-m)*x, b=Math.abs(dd); if(!b||b>200) return null;
+      text=`${k===1?'Eine Zahl':`Das ${VIEL[k]} einer Zahl`} ist genauso groß wie das um ${b} ${dd>0?'vermehrte':'verminderte'} ${VIEL[m]} dieser Zahl.`;
+      L=vielT(k,'x'); R=`${vielT(m,'x')} ${dd>0?'+':M} ${b}`;
+      st=[[k===1?'eine Zahl':`das ${VIEL[k]} einer Zahl`, L], ['ist genauso groß wie','='], [`das um ${b} ${dd>0?'vermehrte':'verminderte'} ${VIEL[m]} dieser Zahl`, R]];
+    } else {
+      const k=pick([1,...VIELK]), m=pick(VIELK); if(k===m) return null;
+      const b=(m-k)*x; if(!b||Math.abs(b)>200) return null;
+      const vor = k===1 ? (b>0?'zu einer Zahl':'von einer Zahl') : `${b>0?'zum':'vom'} ${VIEL[k]}n einer Zahl`;
+      text=`${b>0?'Addiert':'Subtrahiert'} man ${vor} ${Math.abs(b)}, so erhält man das ${VIEL[m]} der Zahl.`;
+      L=`${vielT(k,'x')} ${b>0?'+':M} ${Math.abs(b)}`; R=vielT(m,'x');
+      st=[[vor.replace(/^(zu|zum|von|vom) /,''), vielT(k,'x')], [`${b>0?'addiert':'subtrahiert'} ${Math.abs(b)}`, `${b>0?'+':M} ${Math.abs(b)}`], ['so erhält man','='], [`das ${VIEL[m]} der Zahl`, R]];
+    }
+    return {text, L, R, v:'x', x:[x,1], st, art};
+  });
+}
+
+/* ---------- V1-A02 Personen und Anteile ---------- */
+function personen(o={}){
+  return versuche(()=>{
+    const n=o.n||pick([2,3,3]), art=pick(['alter','alter','geld','erbe']), namen=mischen(NAMEN).slice(0,n);
+    const gross=art==='erbe';
+    const x = art==='alter' ? rnd(6,60) : gross ? rnd(10,150)*100 : rnd(5,60);
+    const werte=[x], terme=['x'], saetze=[];
+    for(let i=1;i<n;i++){
+      const ref = i===1 ? 0 : pick([0,i-1]), rn=namen[ref], rw=werte[ref], rt=terme[ref];
+      const typ=pick(['mehr','weniger','mehr','weniger','mal','halb']);
+      const k = gross ? rnd(1,40)*100 : rnd(2,20), z=pick([2,3]), N=namen[i];
+      let w, term, s;
+      if(typ==='mehr'){ w=rw+k; term=kurzX(`${rt}+${k}`); s = art==='alter' ? `${N} ist um ${k} Jahre älter als ${rn}.` : `${N} bekommt um ${tausend(k)} € mehr als ${rn}.`; }
+      else if(typ==='weniger'){ w=rw-k; term=kurzX(`${rt}-${k}`); s = art==='alter' ? `${N} ist um ${k} Jahre jünger als ${rn}.` : `${N} bekommt um ${tausend(k)} € weniger als ${rn}.`; }
+      else if(typ==='mal'){ w=rw*z; term=kurzX(`${z}*(${rt})`); s = art==='alter' ? `${N} ist ${MAL[z]} so alt wie ${rn}.` : `${N} bekommt ${MAL[z]} so viel wie ${rn}.`; }
+      else { if(rw%2) return null; w=rw/2; term=kurzX(`(${rt})/2`); s = art==='alter' ? `${N} ist halb so alt wie ${rn}.` : `${N} bekommt halb so viel wie ${rn}.`; }
+      if(w<=0||(art==='alter'&&w>95)) return null;
+      werte.push(w); terme.push(term); saetze.push(s);
+    }
+    const reihe=mischen(namen.map((_,i)=>i)), S=werte.reduce((a,b)=>a+b,0);
+    const kopf = art==='alter' ? `${liste(reihe.map(i=>namen[i]))} sind zusammen ${S} Jahre alt.`
+      : art==='geld' ? `${liste(reihe.map(i=>namen[i]))} bekommen zusammen ${S} € Taschengeld.` : `${liste(reihe.map(i=>namen[i]))} teilen sich ${tausend(S)} €.`;
+    const L=reihe.map(i=>terme[i]).join(' + ');
+    return {text:`${kopf} ${saetze.join(' ')} (${namen[0]}: x)`, namen, terme, werte, reihe, S, L, R:String(S), v:'x', x:[x,1], benannt:true, art};
+  });
+}
+
+/* ---------- Figuren (V1-A03, A04, A05) ---------- */
+const polyT = p => { const l=Object.keys(p).filter(k=>p[k]).map(k=>`${p[k]}*${k}`); return l.length ? Tm.text(l.join('+').replace(/\+-/g,'-')) : '0'; };
+const addP = (a,b,s=1) => { const r={...a}; for(const k in b) r[k]=(r[k]||0)+s*b[k]; for(const k in r) if(!r[k]) delete r[k]; return r; };
+function rechtFig(o={}){
+  return versuche(()=>{
+    const form=o.form||pick(['L','L','treppe','T','U']);
+    const [hv, vv] = o.vars || pick([['x','x'],['x','y'],['x','y'],['a','b'],['y','x']]);
+    const k = () => rnd(1,o.max||4), Hp = c => ({[hv]:c}), Vp = c => ({[vv]:c});
+    let kanten;
+    if(form==='L'){ const w1=k(), w2=k(), h1=k(), h2=k(); kanten=[['r',Hp(w1+w2)],['u',Vp(h1)],['l',Hp(w2)],['u',Vp(h2)],['l',Hp(w1)],['d',Vp(h1+h2)]]; }
+    else if(form==='treppe'){ const w=[k(),k(),k()], h=[k(),k(),k()]; kanten=[['r',Hp(w[0]+w[1]+w[2])],['u',Vp(h[0])],['l',Hp(w[2])],['u',Vp(h[1])],['l',Hp(w[1])],['u',Vp(h[2])],['l',Hp(w[0])],['d',Vp(h[0]+h[1]+h[2])]]; }
+    else if(form==='T'){ const s=k(), o1=k(), o2=k(), h1=k(), h2=k(); kanten=[['r',Hp(s)],['u',Vp(h2)],['r',Hp(o2)],['u',Vp(h1)],['l',Hp(o1+s+o2)],['d',Vp(h1)],['r',Hp(o1)],['d',Vp(h2)]]; }
+    else { const w1=k(), w2=k(), w3=k(), Hh=k()+2, d=rnd(1,Hh-1); kanten=[['r',Hp(w1+w2+w3)],['u',Vp(Hh)],['l',Hp(w3)],['d',Vp(d)],['l',Hp(w2)],['u',Vp(d)],['l',Hp(w1)],['d',Vp(Hh)]]; }
+    kanten=kanten.map(([d,p])=>({d, p, t:polyT(p)}));
+    const bw=kanten.filter(e=>e.d==='r').reduce((s,e)=>s+Object.values(e.p)[0],0), bh=kanten.filter(e=>e.d==='u').reduce((s,e)=>s+Object.values(e.p)[0],0);
+    let ux=Math.min(30, 230/bw), uy=Math.min(30, 150/bh); if(hv===vv){ ux=uy=Math.min(ux,uy); }
+    const ein={[hv]:ux}; ein[vv]=hv===vv?ux:uy;
+    if(kanten.some(e=>G.pxLaenge(e.p,ein)<18)) return null;
+    // ohne Beschriftung: höchstens eine waagrechte und eine senkrechte Seite (ergeben sich aus den anderen)
+    const versteckt=[];
+    if(!o.alle){ const n=pick([1,2,2]);
+      const w=kanten.map((e,i)=>i).filter(i=>'rl'.includes(kanten[i].d)), s=kanten.map((e,i)=>i).filter(i=>'ud'.includes(kanten[i].d));
+      versteckt.push(pick(w)); if(n===2) versteckt.push(pick(s)); }
+    const u=kanten.reduce((s,e)=>addP(s,e.p),{});
+    return {form, hv, vv, kanten, ein, versteckt, u, uT:polyT(u)};
+  });
+}
+const sichtbar = f => f.kanten.map((e,i)=>({...e, t:f.versteckt.includes(i)?'':e.t}));
+// Begründung für eine versteckte Seite: gleich lang wie die Seiten gegenüber minus die anderen in derselben Richtung
+function lueckeText(f, i){
+  const e=f.kanten[i], gegen={r:'l', l:'r', u:'d', d:'u'}[e.d];
+  const gg=f.kanten.filter(x=>x.d===gegen).map(x=>x.t), gl=f.kanten.filter((x,j)=>x.d===e.d&&j!==i).map(x=>x.t);
+  const ort={r:'unten', l:'oben', u:'rechts', d:'links'}[e.d];
+  return `Die Seite ${ort} ohne Beschriftung: ${gg.join(' + ')}${gl.length?` ${M} ${gl.join(` ${M} `)}`:''} = ${e.t}.`;
+}
+const varsVon = f => [...new Set([f.hv, f.vv])];
+const umfangBild = (f, alle) => G.rechtFigur(alle ? f.kanten : sichtbar(f), {einheit:f.ein, farbe:alle, mark:alle?f.versteckt:[]});
+const werteFuer = f => { const w={}; for(const v of varsVon(f)) w[v] = Math.random()<.6 ? [rnd(1,9),1] : G.dez(rnd(11,99),1); return w; };
+const wertU = (f, w) => Object.keys(f.u).reduce((s,k)=>G.qa(s, G.qm([f.u[k],1], w[k])), [0,1]);
+
+/* ---------- V1-A04 Flächeninhalt ---------- */
+function flaecheFig(o={}){
+  return versuche(()=>{
+    const [hv, vv] = pick([['x','y'],['x','y'],['a','b'],['m','n']]), art=pick(['waagrecht','senkrecht','ergaenzen','quadrat']);
+    const k = () => rnd(1,5), Hp = c => ({[hv]:c}), Vp = c => ({[vv]:c});
+    let kanten, teile, A1, A2, plus=true;
+    if(art==='quadrat'){
+      const a=rnd(2,6), b=rnd(2,5), c=rnd(1,b-1);
+      kanten=[['r',Hp(a)],['u',Vp(b-c)],['l',Vp(c)],['u',Vp(c)],['l',{[hv]:a,[vv]:-c}],['d',Vp(b)]];
+      teile=[{name:'A₁', x:[0,1], y:[0,5], art:'rand', lx:[0,1], ly:[0,2]}, {name:'A₂', x:[3,1], y:[2,5], art:'weg'}];
+      A1=`${a}${hv}·${b}${vv}`; A2=`${c}${vv}·${c}${vv}`; plus=false;
+    } else {
+      const w1=k(), w2=k(), h1=k(), h2=k();
+      kanten=[['r',Hp(w1+w2)],['u',Vp(h1)],['l',Hp(w2)],['u',Vp(h2)],['l',Hp(w1)],['d',Vp(h1+h2)]];
+      const T = p => polyT(p);
+      if(art==='waagrecht'){ teile=[{name:'A₁', x:[0,1], y:[0,2], farbe:0}, {name:'A₂', x:[0,3], y:[3,4], farbe:1}]; A1=`${T(Hp(w1+w2))}·${T(Vp(h1))}`; A2=`${T(Hp(w1))}·${T(Vp(h2))}`; }
+      else if(art==='senkrecht'){ teile=[{name:'A₁', x:[0,3], y:[0,5], farbe:0}, {name:'A₂', x:[3,1], y:[0,2], farbe:1}]; A1=`${T(Hp(w1))}·${T(Vp(h1+h2))}`; A2=`${T(Hp(w2))}·${T(Vp(h1))}`; }
+      else { teile=[{name:'A₁', x:[0,1], y:[0,5], art:'rand', lx:[0,1], ly:[0,2]}, {name:'A₂', x:[3,1], y:[2,5], art:'weg'}]; A1=`${T(Hp(w1+w2))}·${T(Vp(h1+h2))}`; A2=`${T(Hp(w2))}·${T(Vp(h2))}`; plus=false; }
+    }
+    kanten=kanten.map(([d,p])=>({d, p, t:polyT(p)}));
+    const bw=Object.values(kanten[0].p).reduce((s,c)=>s+c,0), bh=Object.values(kanten[5].p)[0];
+    const ux=Math.min(32, 220/bw), uy=Math.min(30, 150/bh), ein={[hv]:ux, [vv]:uy};
+    if(kanten.some(e=>G.pxLaenge(e.p,ein)<20)) return null;
+    const a1=kurz(A1), a2=kurz(A2), A=kurz(`${A1}${plus?'+':'-'}(${A2})`);
+    if(A.includes('/')) return null;
+    // ohne Beschriftung: eine Seite, die sich ergibt (nicht im Einstieg)
+    const versteckt = o.alle ? [] : [pick(art==='quadrat'?[4]:[0,2,4,1,3,5])];
+    return {art, hv, vv, kanten, teile, ein, A1:a1, A2:a2, A, plus, versteckt};
+  });
+}
+const flaecheBild = (f, alle) => G.rechtFigur(alle ? f.kanten : f.kanten.map((e,i)=>({...e, t:f.versteckt.includes(i)?'':e.t})), {einheit:f.ein, teile:f.teile, mark:alle?f.versteckt:[]});
+
+/* ---------- V1-A06 Winkel und Seiten ---------- */
+function winkelGl(){
+  return versuche(()=>{
+    const art=pick(['rechtMal','rechtUm','dreieck','gegeben','rechteckMal','rechteckUm','basis','schenkel','basiswinkel']);
+    let text, L, R, v, x, bild;
+    if(art==='rechtMal'){ const k=pick([2,3,4,5,8,9]); v='α'; x=Tm.Q(90,k+1);
+      text=`In einem rechtwinkeligen Dreieck ist der eine spitze Winkel ${MAL[k]} so groß wie der andere. Stelle eine Gleichung für den kleineren spitzen Winkel α auf!`;
+      L=`α + ${k}α + 90`; R='180'; bild=dreieckBild(['α', `${k}α`, '90°'], true); }
+    else if(art==='rechtUm'){ const d=rnd(2,80); v='α'; x=Tm.Q(90-d,2);
+      text=`In einem rechtwinkeligen Dreieck ist der eine spitze Winkel um ${d}° größer als der andere. Stelle eine Gleichung für den kleineren spitzen Winkel α auf!`;
+      L=`α + α + ${d} + 90`; R='180'; bild=dreieckBild(['α', `α + ${d}`, '90°'], true); }
+    else if(art==='dreieck'){ const a=rnd(10,50), k=rnd(2,4), d=180-(k+2)*a; if(!d||a+d<=0||Math.abs(d)>90) return null; v='α'; x=[a,1];
+      text=`In einem Dreieck ist β ${MAL[k]} so groß wie α, und γ ist um ${Math.abs(d)}° ${d>0?'größer':'kleiner'} als α. Stelle eine Gleichung für α auf!`;
+      L=`α + ${k}α + α ${d>0?'+':M} ${Math.abs(d)}`; R='180'; bild=dreieckBild(['α', `${k}α`, `α ${d>0?'+':M} ${Math.abs(d)}`]); }
+    else if(art==='gegeben'){ const a=rnd(15,60), k=rnd(2,3); if(a*(1+k)>=170) return null; v='γ'; x=[180-a*(1+k),1];
+      text=`In einem Dreieck ist α = ${a}°, β ist ${MAL[k]} so groß wie α. Stelle eine Gleichung für γ auf!`;
+      L=`${a} + ${k} · ${a} + γ`; R='180'; bild=dreieckBild([`${a}°`, `${k} · ${a}°`, 'γ']); }
+    else if(art==='rechteckMal'){ const k=rnd(2,5), b=Math.random()<.7?[rnd(2,30),1]:G.dez(rnd(2,30)*10+5,1), U=qz(G.qm(b,[2*k+2,1])); v='b'; x=b;
+      if(!Number.isInteger(U)) return null;
+      text=`Ein Rechteck hat einen Umfang von ${U} cm. Die Seite a ist ${MAL[k]} so lang wie die Seite b. Stelle eine Gleichung für b auf!`;
+      L=`2 · ${k}b + 2b`; R=String(U); bild=rechteckBild(`${k}b`, 'b'); }
+    else if(art==='rechteckUm'){ const d=rnd(1,20), b=rnd(2,40), U=4*b+2*d; v='b'; x=[b,1];
+      text=`Ein Rechteck hat einen Umfang von ${U} cm. Die Seite a ist um ${d} cm länger als die Seite b. Stelle eine Gleichung für b auf!`;
+      L=`2 · (b + ${d}) + 2b`; R=String(U); bild=rechteckBild(`b + ${d}`, 'b'); }
+    else if(art==='basis'){ const s=rnd(10,60), c=rnd(5,2*s-2), U=2*s+c; v='c'; x=[c,1];
+      text=`Ein gleichschenkeliges Dreieck hat einen Umfang von ${U} mm. Jeder Schenkel ist ${s} mm lang. Stelle eine Gleichung für die Basis c auf!`;
+      L=`2 · ${s} + c`; R=String(U); bild=gleichschenkelBild(`${s} mm`, 'c'); }
+    else if(art==='schenkel'){ const c=rnd(5,60), U=c+rnd(c+2,160); if((U-c)/2<=c/2) return null; v='a'; x=Tm.Q(U-c,2);
+      text=`Ein gleichschenkeliges Dreieck hat einen Umfang von ${U} mm. Die Basis c ist ${c} mm lang. Stelle eine Gleichung für die Schenkellänge a auf!`;
+      L=`2a + ${c}`; R=String(U); bild=gleichschenkelBild('a', `${c} mm`); }
+    else { const g=rnd(10,160); v='α'; x=Tm.Q(180-g,2);
+      text=`In einem gleichschenkeligen Dreieck ist der Winkel an der Spitze γ = ${g}°. Die beiden Basiswinkel α sind gleich groß. Stelle eine Gleichung für α auf!`;
+      L=`2α + ${g}`; R='180'; bild=gleichschenkelBild('', '', ['α','α',`${g}°`]); }
+    if(!G.abbrechend(x,1)) return null;
+    return {art, text, L, R, v, x, benannt:true, bild};
+  });
+}
+// einfache Bilder: Dreieck mit Winkeln (ecken: Texte bei A, B, C), Rechteck mit Seiten, gleichschenkeliges Dreieck
+function dreieckBild(ecken, recht){
+  const A=[20,130], B=[240,130], C=recht?[20,30]:[150,22];
+  const T=(p,s,dx,dy)=>s?`<text class="gl-st" x="${p[0]+dx}" y="${p[1]+dy}" text-anchor="middle">${esc(s)}</text>`:'';
+  const rw = recht ? `<polyline class="gl-rw" points="20,112 38,112 38,130"/>` : '';
+  return `<svg class="gl-rfig" viewBox="0 0 270 150" role="img" aria-label="Dreieck mit den Winkeln ${esc(ecken.join(', '))}"><polygon class="gl-fig" points="${[A,B,C].map(p=>p.join(',')).join(' ')}"/>${rw}${
+    recht ? T(B,ecken[0],-42,-6)+T(C,ecken[1],22,34)+T(A,ecken[2],32,-24) : T(A,ecken[0],30,-8)+T(B,ecken[1],-36,-8)+T(C,ecken[2],0,30)}</svg>`;
+}
+const rechteckBild = (a, b) => `<svg class="gl-rfig" viewBox="0 0 260 130" role="img" aria-label="Rechteck mit den Seiten ${esc(a)} und ${esc(b)}"><rect class="gl-fig" x="40" y="25" width="180" height="80"/><text class="gl-st" x="130" y="18" text-anchor="middle">a = ${esc(a)}</text><text class="gl-st" x="130" y="124" text-anchor="middle">${esc(a)}</text><text class="gl-st" x="34" y="70" text-anchor="end">${esc(b)}</text><text class="gl-st" x="226" y="70">${esc(b)}</text></svg>`;
+function gleichschenkelBild(s, c, w){
+  const T=(x,y,t,an='middle')=>t?`<text class="gl-st" x="${x}" y="${y}" text-anchor="${an}">${esc(t)}</text>`:'';
+  return `<svg class="gl-rfig" viewBox="0 0 260 150" role="img" aria-label="gleichschenkeliges Dreieck"><polygon class="gl-fig" points="40,125 220,125 130,20"/>${T(78,70,s,'end')}${T(182,70,s,'start')}${T(130,144,c)}${w?T(72,118,w[0])+T(188,118,w[1])+T(130,52,w[2]):''}</svg>`;
+}
+
+/* ---------- V1-N01 Welche Gleichung passt? ---------- */
+const PYTH = [[3,4,5],[5,12,13],[8,15,17],[7,24,25],[20,21,29]];
+function situation(){
+  return versuche(()=>{
+    const art=pick(['personen','personen','flaeche','umfang','winkel','pyth','preise']);
+    let e, falsch, v;
+    if(art==='personen'){
+      e=personen({n:3}); v='x';
+      const T=e.terme, i=pick([1,2]), alt=[];
+      alt.push(T.map((t,j)=>j===i ? kurzX(`2*x-(${t})`) : t));                       // Vorzeichen verdreht
+      alt.push(T.map((t,j)=>j===2 ? kurzX(`${T[2]}-(${T[1]})+x`) : t));              // Bezug vergessen (auf x statt auf die andere Person)
+      alt.push(T.slice(0,2));                                                       // eine Person vergessen
+      falsch=alt.map(l=>`${e.reihe.filter(j=>j<l.length).map(j=>l[j]).join(' + ')} = ${e.S}`);
+    } else if(art==='flaeche'||art==='umfang'){
+      const b=rnd(2,30), k=rnd(1,20); v='b';
+      if(art==='flaeche'){ const A=(b+k)*b;
+        e={text:`Ein Rechteck hat einen Flächeninhalt von ${A} cm². Die Seite a ist um ${k} cm länger als die Seite b. (Seite b: b)`, L:`(b + ${k}) · b`, R:String(A), x:[b,1]};
+        falsch=[`2 · (b + ${k}) + 2b = ${A}`, `b + ${k} · b = ${A}`, `b + ${k} + b = ${A}`]; }
+      else { const U=4*b+2*k;
+        e={text:`Ein Rechteck hat einen Umfang von ${U} cm. Die Seite a ist um ${k} cm länger als die Seite b. (Seite b: b)`, L:`2 · (b + ${k}) + 2b`, R:String(U), x:[b,1]};
+        falsch=[`(b + ${k}) · b = ${U}`, `b + ${k} + b = ${U}`, `2b + ${k} + 2b = ${U}`]; }
+    } else if(art==='winkel'){
+      e=versuche(()=>{ const w=winkelGl(); return ['rechtMal','rechtUm','dreieck','basiswinkel'].includes(w.art) ? w : null; }); v=e.v;
+      e={...e, text:e.text.replace(/ Stelle eine Gleichung für .*$/, ` (${e.art==='dreieck'?'α':e.art==='basiswinkel'?'Basiswinkel: α':'kleinerer spitzer Winkel: α'})`)};
+      falsch=[`${e.L} = 360`, `${e.L.replace(/ \+ 90$/,'')} = 180`, `${e.L.replace(/^α \+ /,'')} = 180`].filter(s=>s!==`${e.L} = ${e.R}`);
+    } else if(art==='pyth'){
+      const [a,b,c]=pick(PYTH), f=rnd(1,Math.floor(60/c)||1), p=(c-a)*f, q=(c-b)*f; v='c';
+      e={text:`Die Hypotenuse eines rechtwinkeligen Dreiecks ist um ${p} cm länger als die eine Kathete und um ${q} cm länger als die andere. (Hypotenuse: c)`,
+        L:`(c ${M} ${p})² + (c ${M} ${q})²`, R:'c²', x:[c*f,1]};
+      falsch=[`(c + ${p})² + (c + ${q})² = c²`, `c ${M} ${p} + c ${M} ${q} = c`, `(c ${M} ${p})² + (c ${M} ${q})² = (c + ${p})²`, `(c ${M} ${p}) + (c ${M} ${q})² = c²`];
+    } else { e=preise(); v='x'; falsch=preisFehler(e); }
+    // Ablenker: bei der Lösung falsch, untereinander verschieden
+    const wahr = s => { const [l,r]=s.split(' = '); try{ return qg(wertVon(Tm.einsetzen(l,v,e.x)), wertVon(Tm.einsetzen(r,v,e.x))); }catch(err){ return true; } };
+    const richtig=`${e.L} = ${e.R}`; if(!wahr(richtig)) return null;
+    const f=[...new Set(falsch)].filter(s=>s!==richtig&&!wahr(s));
+    if(f.length<2) return null;
+    return {art, text:e.text, richtig, falsch:mischen(f).slice(0,2), v, x:e.x, e};
+  });
+}
+
+/* ---------- V1-A07 Preise ---------- */
+const WAREN = [['eine Hose','die Hose'],['einen Pullover','der Pullover'],['einen Gürtel','der Gürtel'],['eine Jacke','die Jacke'],['ein T-Shirt','das T-Shirt'],
+  ['eine Mütze','die Mütze'],['einen Rucksack','der Rucksack'],['ein Buch','das Buch'],['ein Heft','das Heft'],['eine Tasche','die Tasche']];
+const STUECK = [['ein Schwarzbrot','das Schwarzbrot','Semmeln','eine Semmel'],['eine Torte','die Torte','Muffins','ein Muffin'],['einen Füller','der Füller','Bleistifte','ein Bleistift'],
+  ['eine Pizza','die Pizza','Getränke','ein Getränk'],['einen Ball','der Ball','Pfeifen','eine Pfeife']];
+const KARTEN = [['Eintrittskarten','Eintrittskarte'],['Kinokarten','Kinokarte'],['Busfahrscheine','Busfahrschein'],['Kugeln Eis','Kugel Eis'],['Zeitschriften','Zeitschrift']];
+const zahlW = n => ({2:'zwei',3:'drei',4:'vier',5:'fünf',6:'sechs',7:'sieben',8:'acht'}[n]||String(n));
+function preise(){
+  return versuche(()=>{
+    const art=pick(['drei','stueck','schein']), N=pick(NAMEN);
+    if(art==='drei'){
+      const [A,B,C]=mischen(WAREN).slice(0,3), k=rnd(2,5), m=rnd(2,4), c=rnd(2,40)*(Math.random()<.5?100:50), T=c*(1+k+k*m);
+      if(T>99999) return null;
+      return {art, text:`${N} kauft ${A[0]}, ${B[0]} und ${C[0]} um ${euro(T)} €. ${gk(B[1])} ist ${MAL[k]} so teuer wie ${C[1]}, ${A[1]} ist ${MAL[m]} so teuer wie ${B[1]}. (Preis des billigsten Teils: x)`,
+        L:`x + ${k}x + ${k*m}x`, R:euro(T), x:Tm.Q(c,100), v:'x', benannt:true, k, m, waren:[A,B,C]};
+    }
+    if(art==='stueck'){
+      const W=pick(STUECK), k=rnd(2,6), n=rnd(2,8), c=rnd(15,250), T=c*(k+n);
+      return {art, text:`${N} kauft ${W[0]} und ${zahlW(n)} ${W[2]} um ${euro(T)} €. ${gk(W[1])} kostet ${MAL[k]} so viel wie ${W[3]}. (Preis des billigsten Teils: x)`,
+        L:`${k}x + ${n}x`, R:euro(T), x:Tm.Q(c,100), v:'x', benannt:true, k, n};
+    }
+    const K=pick(KARTEN), n=rnd(2,6), S=pick([5,10,20,50]), f=rnd(1,9)*10+(Math.random()<.5?5:0), fehlt=Math.random()<.5, T=S*100+(fehlt?f:-f);
+    if(T%n) return null;
+    return {art, text:`${N} zahlt für ${zahlW(n)} ${K[0]} mit einem ${S}-€-Schein. ${fehlt?`„Da fehlen noch ${f} Cent.“`:`„Du bekommst ${f} Cent zurück.“`} (Preis einer ${K[1]}: x)`.replace('einer Busfahrschein','eines Busfahrscheins').replace('einer Zeitschrift','einer Zeitschrift'),
+      L:`${n}x`, R:`${S} ${fehlt?'+':M} ${euro(f)}`, x:Tm.Q(T/n,100), v:'x', benannt:true, n, S, f, fehlt};
+  });
+}
+function preisFehler(e){
+  if(e.art==='drei') return [`x + ${e.k}x + ${e.m}x = ${e.R}`, `x + ${e.k}x + ${e.k+e.m}x = ${e.R}`, `${e.k*e.m}x = ${e.R}`];
+  if(e.art==='stueck') return [`${e.k}x + x = ${e.R}`, `x + ${e.n}x = ${e.R}`, `${e.k*e.n}x = ${e.R}`];
+  return [`${e.n}x = ${e.S} ${e.fehlt?M:'+'} ${euro(e.f)}`, `x = ${e.S} ${e.fehlt?'+':M} ${euro(e.f)}`, `${e.n}x = ${e.S}`];
+}
+
+/* ---------- V1-A08 Umfangsformel auflösen ---------- */
+function vieleck(){
+  return versuche(()=>{
+    const art=pick(['drachen','dreieck','rechteck','parallelogramm','trapez']), k=rnd(2,4), m=rnd(1,4), n=rnd(1,4);
+    const g = c => c===1 ? 'a' : `${c}a`;
+    let P, T;
+    if(art==='drachen'){ if(k===1) return null; P=[[100,0],[40,55],[100,70+k*45],[160,55]]; T=[g(1),g(k),g(k),g(1)]; }
+    else if(art==='dreieck'){ if(2*k<=m) return null; P=[[100,0],[100-m*25,20+k*40],[100+m*25,20+k*40]]; T=[g(k),g(m),g(k)]; }
+    else if(art==='rechteck'){ if(k===m) return null; P=[[0,0],[0,m*40],[k*45,m*40],[k*45,0]]; T=[g(m),g(k),g(m),g(k)]; }
+    else if(art==='parallelogramm'){ if(k===m) return null; P=[[30,0],[0,m*40],[k*45,m*40],[k*45+30,0]]; T=[g(m),g(k),g(m),g(k)]; }
+    else { if(n>=k) return null; const w=k*45, o=(k-n)*45/2; P=[[o,0],[0,70],[w,70],[w-o,0]]; T=[g(m),g(k),g(m),g(n)]; }
+    const K=T.reduce((s,t)=>s+(t==='a'?1:Number(t.slice(0,-1))),0);
+    const name={drachen:'Drachenviereck', dreieck:'gleichschenkelige Dreieck', rechteck:'Rechteck', parallelogramm:'Parallelogramm', trapez:'gleichschenkelige Trapez'}[art];
+    return {art, P, T, K, name};
+  });
+}
+
+/* ---------- V1-N02 Schwierige Sachaufgaben ---------- */
+function schwer(){
+  return versuche(()=>{
+    const art=pick(['beine','beine','zug']);
+    if(art==='beine'){
+      const [ort, zwei, vier] = pick([['Beim Hundetraining','Betreuer','Hunde'],['Auf einem Bauernhof','Hühner','Hasen'],['Auf einer Wiese','Gänse','Schafe'],['Im Stall','Enten','Ziegen']]);
+      const N=rnd(10,60), a=rnd(1,N-1), B=2*a+4*(N-a), zweiX=Math.random()<.6, v='x';
+      const L = zweiX ? `2x + 4 · (${N} ${M} x)` : `4x + 2 · (${N} ${M} x)`;
+      return {art, text:`${ort} sind ${N} ${zwei} und ${vier}, zusammen haben sie ${B} Beine. (Anzahl der ${zweiX?zwei:vier}: x)`, L, R:String(B), v, x:[zweiX?a:N-a,1],
+        falsch:[zweiX?`4x + 2 · (${N} ${M} x) = ${B}`:`2x + 4 · (${N} ${M} x) = ${B}`, `2x + 4x = ${B}`, `${zweiX?2:4}x + ${zweiX?4:2} · (x ${M} ${N}) = ${B}`, `${zweiX?2:4}x + ${zweiX?4:2} · ${N} ${M} x = ${B}`]};
+    }
+    const v1=rnd(5,15)*6, v2=v1+rnd(1,6)*6, dm=pick([15,30,45,60,90,12,6,24,36,48]), d=Tm.Q(dm,60), t=G.qd(G.qm([v1,1],d),[v2-v1,1]), tm=qz(t)*60;
+    if(!Number.isInteger(Math.round(tm*1e9)/1e9)||tm>600) return null;
+    const h1=rnd(6,9), m1=rnd(0,5)*10, ab2=h1*60+m1+dm, zeit = m => `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}`;
+    const dT=qt(d);
+    return {art, text:`Ein Zug fährt um ${zeit(h1*60+m1)} mit ${v1} km pro Stunde ab. Um ${zeit(ab2)} fährt ein Eilzug mit ${v2} km pro Stunde auf derselben Strecke nach. Wann holt er den Zug ein? (Fahrzeit des Eilzugs in Stunden: t)`,
+      L:`${v1} · (t + ${dT})`, R:`${v2}t`, v:'t', x:t,
+      falsch:[`${v1}t = ${v2} · (t + ${dT})`, `${v1} · (t ${M} ${dT}) = ${v2}t`, `${v1} + t = ${v2} + t + ${dT}`]};
+  });
+}
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // V1-A01 Zahlenrätsel (aufstellen)
+  raetsel(ctx){
+    const leicht=ctx&&ctx.leicht, e=raetsel(leicht?{arten:['vergleich','gleich','addiert']}:{});
+    return fertig({kind:'zahlen', q:e.text, text:true, lead:leicht?merk(`Die Zahl: x. Stück für Stück übersetzt:<br>${uebersetzung(e.st.slice(0,2))}<br>…`):'Stelle eine Gleichung auf! Du musst sie nicht lösen.',
+      pruef:'raetsel', daten:e, felder:[glFeld(e)],
+      why:`Stück für Stück übersetzt:<br>${uebersetzung(e.st)}<br>Die Gleichung: ${H(`${e.L} = ${e.R}`)}. ${kontrolle(e.L, e.R, 'x', e.x)}`});
+  },
+  // V1-A02 Personen und Anteile (Alter, Geld aufteilen)
+  personen(ctx){
+    const leicht=ctx&&ctx.leicht, e=personen(leicht?{}:{n:pick([2,3,3])});
+    const vorgabe = leicht && e.namen.length===3 ? 1 : -1;      // Einstieg: eine Zeile schon ausgefüllt
+    const felder=[];
+    e.namen.forEach((n,i)=>{ if(i>0&&i!==vorgabe) felder.push(G.formelFeld(felder.length?'':'Person – Term', n, eingabeVon(e.terme[i]), {zeichen:':', vars:['x'], ohneTasten:true})); });
+    felder.push(glFeld(e, 'Gleichung'));
+    const tab=G.personTabelle(e.namen.map((n,i)=>[n, i===0||i===vorgabe ? e.terme[i] : null]));
+    const kontrolleT = `Zur Kontrolle: x = ${e.x[0]} → ${e.reihe.map(i=>tausend(e.werte[i])).join(' + ')} = ${tausend(e.S)} ✓`;
+    return fertig({kind:'zahlen', q:e.text, text:true, qh:`${esc(e.text)}`,
+      lead: leicht ? `${merk('1. x ist festgelegt. 2. Drück jede andere Person mit x aus. 3. Alle zusammen ergeben die Summe.')}${tab}` : 'Drücke jede Person mit der Variablen aus und stelle eine Gleichung auf!',
+      pruef:'personen', daten:{...e, vorgabe}, felder,
+      why:`${G.personTabelle(e.namen.map((n,i)=>[n, `${e.terme[i]} = ${tausend(e.werte[i])}`]))}Die Gleichung: ${H(`${e.L} = ${e.R}`)}. ${kontrolleT}`});
+  },
+  // V1-A03 Umfang einer Figur als Formel
+  umfang(ctx){
+    const leicht=ctx&&ctx.leicht, f=rechtFig({alle:leicht}), mitWert=!leicht&&Math.random()<.25;
+    const felder=[G.formelFeld('Formel', 'u', f.uT.replace(/−/g,'-'), {vars:varsVon(f)})];
+    let w, ein='';
+    if(mitWert){ w=werteFuer(f); ein=pick(['cm','m']); felder.push({label:`u für ${varsVon(f).map(v=>`${v} = ${qt(w[v])} ${ein}`).join(', ')}`, ans:qz(wertU(f,w)), exakt:true, einheit:ein, ansText:`${qt(wertU(f,w))} ${ein}`}); }
+    const luecken=f.versteckt.map(i=>lueckeText(f,i)).join(' ');
+    return fertig({kind:'zahlen', q:`Stelle eine Formel zur Berechnung des Umfangs u der Figur auf! Seiten: ${sichtbar(f).map(k=>k.t||'?').join(', ')}${mitWert?`; berechne u für ${varsVon(f).map(v=>`${v} = ${qt(w[v])} ${ein}`).join(', ')}`:''}.`,
+      qh:`Stelle eine Formel zur Berechnung des Umfangs u der Figur auf!${mitWert?' Berechne dann u für die angegebenen Werte.':''}`, text:true,
+      lead:leicht?merk('Der Umfang ist die Summe aller Seiten. Zähle jede Seite genau einmal.'):'', pruef:'umfang', daten:{f, w, ein},
+      bild:umfangBild(f, false), loesungBild:umfangBild(f, true), felder,
+      why:`${luecken} Alle Seiten zusammen: u = ${H(f.kanten.map(k=>k.t).join(' + '))} = ${H(f.uT)}. Jede gleichwertige Formel zählt.${mitWert?` Eingesetzt: u = ${qt(wertU(f,w))} ${ein}.`:''}`});
+  },
+  // V1-A04 Flächeninhalt einer zusammengesetzten Figur als Formel
+  flaeche(ctx){
+    const leicht=ctx&&ctx.leicht, f=flaecheFig({alle:leicht}), vars=[f.hv, f.vv, '²'];
+    const felder=[G.formelFeld('A₁', 'A₁', eingabeVon(f.A1), {ohneTasten:true}), G.formelFeld('A₂', 'A₂', eingabeVon(f.A2), {ohneTasten:true}),
+      G.formelFeld('A (zusammengefasst)', 'A', eingabeVon(f.A), {ohneTasten:true, modus:'genau'})];
+    const rech = `A = A₁ ${f.plus?'+':M} A₂`;
+    return fertig({kind:'zahlen', q:`Stelle eine Formel für den Flächeninhalt A der Figur auf! Seiten: ${f.kanten.map((k,i)=>f.versteckt.includes(i)?'?':k.t).join(', ')}; ${f.plus?'zerlegt in A₁ und A₂':'A₁ ist das ganze Rechteck, A₂ fehlt'}.`,
+      qh:`Stelle eine Formel für den Flächeninhalt A der Figur auf! ${f.plus?'Die Figur ist in A₁ und A₂ zerlegt.':'A₁ ist das ganze Rechteck (gestrichelt), A₂ fehlt.'}`, text:true,
+      lead:leicht?merk(`Rechteck: Länge mal Breite. Hier gilt ${rech}. Fasse am Schluss zusammen.`):'Fasse A am Schluss zusammen und ordne (wie bei Terme).',
+      pruef:'flaeche', daten:f, bild:flaecheBild(f,false), loesungBild:flaecheBild(f,true), felder, nachFeldern:G.tastenHTML('', vars),
+      why:`A₁ = ${H(f.A1)}, A₂ = ${H(f.A2)}. ${rech} = ${H(f.A)}.`});
+  },
+  // V1-A06 Winkel und Seiten mit einer Gleichung
+  winkel(ctx){
+    const e=winkelGl();
+    return fertig({kind:'zahlen', q:e.text, text:true, lead:ctx&&ctx.leicht?merk(/Winkel|α|γ/.test(e.text)&&!/Umfang/.test(e.text)?'Die Winkelsumme im Dreieck ist 180°. Schreib jeden Winkel mit der Variablen an.':'Der Umfang ist die Summe aller Seiten.'):'Stelle eine Gleichung auf! Einheiten stehen nicht in der Gleichung.',
+      pruef:'winkel', daten:e, bild:e.bild, felder:[glFeld(e)],
+      why:`${/180/.test(e.R)?'Alle drei Winkel zusammen ergeben 180°':'Alle Seiten zusammen ergeben den Umfang'}: ${H(`${e.L} = ${e.R}`)}. ${kontrolle(e.L, e.R, e.v, e.x)}`});
+  },
+  // V1-N01 Welche Gleichung passt zur Situation?
+  passt(ctx){
+    const leicht=ctx&&ctx.leicht, s=situation();
+    const opt=mischen([s.richtig, ...s.falsch].map((g,i)=>['o'+i, H(g)]));
+    const hilfe = s.art==='personen' ? G.personTabelle(s.e.namen.map((n,i)=>[n, s.e.terme[i]])) : '';
+    return UR.dreiecke.aufg({kind:'fragen', q:s.text, text:true, lead:leicht?`${merk('Drück zuerst jede Größe mit der Variablen aus, dann vergleiche mit den Gleichungen.')}${hilfe}`:'Welche Gleichung beschreibt die Situation?',
+      pruef:'passt', daten:s, gruppen:[{optionen:opt, ans:'o0', klasse:'lang'}],
+      why:`${s.art==='personen'?G.personTabelle(s.e.namen.map((n,i)=>[n, s.e.terme[i]])):''}Richtig: ${H(s.richtig)}. ${kontrolle(...s.richtig.split(' = '), s.v, s.x)}`});
+  },
+  // V1-A05 (Plus) Formel aufstellen und einsetzen
+  einsetzen(ctx){
+    const f=rechtFig({alle:Math.random()<.5}), w=werteFuer(f), ein=pick(['cm','m']), U=wertU(f,w);
+    const wt=varsVon(f).map(v=>`${v} = ${qt(w[v])} ${ein}`).join(', ');
+    return fertig({kind:'zahlen', q:`Stelle eine Formel für den Umfang auf und berechne ihn für ${wt}! Seiten: ${sichtbar(f).map(k=>k.t||'?').join(', ')}.`,
+      qh:`Stelle eine Formel für den Umfang auf und berechne ihn für ${esc(wt)}!`, text:true, pruef:'einsetzen', daten:{f, w, ein},
+      bild:umfangBild(f,false), loesungBild:umfangBild(f,true),
+      felder:[G.formelFeld('Formel', 'u', f.uT.replace(/−/g,'-'), {vars:varsVon(f)}), {label:'Umfang', ans:qz(U), exakt:true, einheit:ein, ansText:`u = ${qt(U)} ${ein}`}],
+      why:`${f.versteckt.map(i=>lueckeText(f,i)).join(' ')} u = ${H(f.uT)}. Eingesetzt: u = ${H(Tm.einsetzen(f.uT, f.hv, w[f.hv]).replace(new RegExp(f.vv,'g'), f.vv===f.hv?f.vv:`(${qt(w[f.vv])})`))} = ${qt(U)} ${ein}.`});
+  },
+  // V1-A07 (Plus) Preise und Einkauf
+  preise(ctx){
+    const e=preise();
+    return fertig({kind:'zahlen', q:e.text, text:true, lead:'Stelle eine Gleichung auf! Du musst sie nicht lösen.', pruef:'preise', daten:e, felder:[glFeld(e)],
+      why:`${e.art==='drei'?`Der billigste Teil kostet x, der nächste ${e.k}x, der teuerste ${e.k} · ${e.m}x = ${e.k*e.m}x.`:e.art==='stueck'?`Ein Stück kostet x, das teure ${e.k}x, die ${e.n} Stück zusammen ${e.n}x.`:`${e.n} Karten kosten ${e.n}x. ${e.fehlt?'Es fehlt Geld: Sie kosten mehr als der Schein.':'Sie bekommt Geld zurück: Sie kosten weniger als der Schein.'}`} ${H(`${e.L} = ${e.R}`)}. Zur Kontrolle: x = ${euro(Math.round(qz(e.x)*100))} €.`});
+  },
+  // V1-A08 (Plus) Umfangsformel nach einer Seite auflösen
+  aufloesen(ctx){
+    const f=vieleck(), zahl=Math.random()<.5, ein=pick(['mm','cm']);
+    const felder=[G.formelFeld('Formel für den Umfang', 'u', `${f.K}a`, {vars:['a']})];
+    let U, a;
+    if(zahl){ a=Math.random()<.6?[rnd(3,60),1]:G.dez(rnd(25,400)*2+1,1); U=G.qm(a,[f.K,1]); if(!Number.isInteger(qz(U))||qz(U)<20||qz(U)>500) return typen.aufloesen(ctx);
+      felder.push({label:`a für u = ${qt(U)} ${ein}`, ans:qz(a), exakt:true, einheit:ein, ansText:`a = ${qt(a)} ${ein}`}); }
+    else felder.push(G.formelFeld('a ausgedrückt', 'a', `u/${f.K}`, {vars:['u']}));
+    return fertig({kind:'zahlen', q:`Stelle für das ${f.name} eine Formel für den Umfang auf und ${zahl?`berechne a für u = ${qt(U)} ${ein}`:'drücke a aus'}! Seiten: ${f.T.join(', ')}.`,
+      qh:`Stelle eine Formel für den Umfang auf und ${zahl?`berechne a für u = ${qt(U)} ${ein}`:'drücke a durch u aus'}!`, text:true, pruef:'aufloesen', daten:{...f, zahl, U, ein},
+      bild:G.vieleckBild(f.P, f.T), felder,
+      why:`u = ${H(f.T.join(' + '))} = ${f.K}a, also a = u : ${f.K}${zahl?` = ${qt(U)} : ${f.K} = ${qt(a)} ${ein}`:` (als Bruch ${H(`u/${f.K}`)})`}.`});
+  },
+  // V1-N02 (Plus) Schwierige Sachaufgaben (Bewegung, Beine zählen)
+  schwer(ctx){
+    return versuche(()=>{
+      const e=schwer(), richtig=`${e.L} = ${e.R}`;
+      const wahr = s => { const [l,r]=s.split(' = '); return qg(wertVon(Tm.einsetzen(l,e.v,e.x)), wertVon(Tm.einsetzen(r,e.v,e.x))); };
+      if(!wahr(richtig)) return null;
+      const f=mischen(e.falsch.filter(s=>!wahr(s))).slice(0,2); if(f.length<2) return null;
+      const opt=mischen([richtig,...f].map((g,i)=>['o'+i, H(g)]));
+      return UR.dreiecke.aufg({kind:'fragen', q:e.text, text:true, lead:'Welche Gleichung beschreibt die Situation?', pruef:'schwer', daten:e,
+        gruppen:[{optionen:opt, ans:'o0', klasse:'lang'}],
+        why:`${e.art==='beine'?'Die Tiere bzw. Menschen mit 2 Beinen und die mit 4 Beinen sind zusammen so viele wie angegeben. Wer nicht x ist, ist der Rest.':'Der Zug fährt um die Zeit des Vorsprungs länger. Beim Einholen sind beide gleich weit gefahren (Weg = Geschwindigkeit · Zeit).'} ${H(richtig)}. ${kontrolle(e.L, e.R, e.v, e.x)}`});
+    });
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Welche Gleichung passt?', hint:'Leon, Luca und Simone', types:['passt']},
+  {id:'S2', name:'Zahlenrätsel', hint:'3x + 5 = 2x + 6', types:['raetsel']},
+  {id:'S3', name:'Personen und Anteile', hint:'Luca: x, Leon: x − 4, Simone: x − 10', types:['personen']},
+  {id:'S4', name:'Formeln für Figuren', hint:'u = 18x, A = 14xy', types:['umfang','flaeche']},
+  {id:'S5', name:'Winkel und Seiten', hint:'α + 3α + 90 = 180', types:['winkel']}
+];
+const kern = ['raetsel','personen','umfang','flaeche','winkel','passt'];
+const leicht = ['raetsel','personen','umfang','flaeche','winkel','passt'];
+const plusTypen = ['einsetzen','preise','aufloesen','schwer'];
+const plusHint = 'Formel und einsetzen · Preise · Formel auflösen · schwierige Sachaufgaben';
+const lzk = {aufwand:{raetsel:2, personen:3, umfang:2, flaeche:3, winkel:2, passt:2}};
+
+/* ---------- Erklärung ---------- */
+const erklaerung = {
+  beispiele: () => ({p:personen({n:3}), f:rechtFig({alle:true, form:'treppe', vars:['x','x']})}),
+  neu(kind,E){ if(kind==='p') E.p=personen({n:3}); if(kind==='f') E.f=rechtFig({alle:true}); },
+  html(E){
+    const p=E.p, f=E.f;
+    return `<section class="sheet"><h2>Gleichungen und Formeln aufstellen</h2>
+    <div class="rule"><h3>So stellst du eine Gleichung auf</h3><ol><li>Leg fest, wofür x steht (meist die Größe, mit der die anderen verglichen werden).</li>
+      <li>Drück jede andere Größe als Term mit x aus.</li><li>Stell die Gleichung auf.</li></ol>
+      <p class="ex">${esc(p.text)}</p>${G.personTabelle(p.namen.map((n,i)=>[n, p.terme[i]]))}<p class="ex">${H(`${p.L} = ${p.R}`)}</p>
+      <p class="small">Gelöst wird erst in V2. Hier genügt die Gleichung.</p><button class="newex" data-newex="p">Neues Beispiel</button></div>
+    <div class="rule"><h3>Formeln für Figuren</h3><p>Beschrifte alle Seiten. Fehlende Seiten ergeben sich aus den anderen: Zusammen sind die Seiten unten so lang wie die oben, rechts so lang wie links.</p>
+      ${G.rechtFigur(f.kanten, {einheit:f.ein, farbe:true})}<p class="ex">u = ${H(f.kanten.map(k=>k.t).join(' + '))} = ${H(f.uT)}</p>
+      <button class="newex" data-newex="f">Neues Beispiel</button>
+      <p>Flächeninhalt: Zerlege die Figur in Rechtecke (oder ergänze zu einem großen Rechteck und zieh das fehlende ab). Rechteck: A = Länge · Breite, z. B. 5x · 2y = 10xy.</p></div>
+    <div class="rule"><h3>Winkel und Seiten</h3><p>Winkelsumme im Dreieck: α + β + γ = 180°. Der Umfang ist die Summe aller Seiten. Einheiten schreibst du in der Gleichung nicht an.</p>
+      <p class="ex">α + 3α + 90 = 180</p></div>
+    <p class="small muted">Jede Gleichung mit derselben Lösung ist richtig, auch umgestellt, z. B. 34 = x − 4 + x + x − 10.</p>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 3.1 Gleichungen.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`;
+  }
+};
+
+UR.kompetenzAnmelden({id:'M-Glei-V1', typen, stationen, kern, leicht, plus:plusTypen, plusHint, erklaerung, lzk});
+UR.glei.v1 = {raetsel, personen, rechtFig, flaecheFig, winkelGl, situation, preise, vieleck, schwer, polyT, euro, tausend};
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/3.1 Gleichungen/M-Glei-V2.js */
+/* Baustein M-Glei-V2: „Ich kann lineare Gleichungen mit einer Unbekannten lösen.“
+   Steckbrief: M-Glei-V2.md, Auswahl und Themenregeln: AUSWAHL.md (27.11.2026). Zwischenschritte als Gleichung: jede
+   gleichwertige Zeile in der verlangten Form zählt (UR.glei.pruefeZwischen: zusammengefasst, ohne Bruch, a · x = b,
+   ein Schritt vor der Lösung). Richtig nur, wenn Zwischenschritt und Lösung stimmen. Lösungen der Kern-Typen brechen ab
+   (höchstens 3 Nachkommastellen). Einstieg: Zwischenschritt aus drei Zeilen wählen (wie bei Terme). */
+(function(UR){
+const {rnd, pick} = UR;
+const M = UR.M, esc = UR.esc;
+const G = UR.glei, Tm = UR.terme, {mischen, versuche} = Tm;
+const {H, qt, qg, qz, qa, qs, qm, qd, dez, abbrechend, merk, rechnung, umText, gliedT, linT, glT, weg} = G;
+
+const VARS = ['x','x','x','x','a','b','y','z','m','t','e'];
+const nz = (a,b) => { let n=0; while(!n) n=rnd(a,b); return n; };
+const Qn = c => Array.isArray(c) ? Tm.Q(c[0],c[1]) : [c,1];
+const ggT = (a,b) => { a=Math.abs(a); b=Math.abs(b); while(b) [a,b]=[b,a%b]; return a; };
+const kgV = (a,b) => a/ggT(a,b)*b;
+
+/* ---------- Seiten aus Gliedern ----------
+   mo(c): c · Variable, zz(c): Zahl, kl(f, [..], eck): f · (…) bzw. − (…), eckig [ … ], br([..], n, s): (…)/n, s = −1: Minus davor */
+const mo = c => ({k:'m', c:Qn(c)}), zz = c => ({k:'z', c:Qn(c)});
+const kl = (f, inner, eck) => ({k:'kl', f:Qn(f), inner, eck:!!eck});
+const br = (inner, n, s=1) => ({k:'br', inner:Array.isArray(inner)?inner:[inner], n, s});
+const sg = it => it.k==='kl' ? Math.sign(it.f[0]) : it.k==='br' ? it.s : (Math.sign(it.c[0])||1);
+const absQ = q => [Math.abs(q[0]), q[1]];
+function absT(it, v){
+  switch(it.k){
+    case 'm': return gliedT(absQ(it.c), v);
+    case 'z': return qt(absQ(it.c));
+    case 'kl': { const [o,c]=it.eck?['[',']']:['(',')'], f=absQ(it.f), inn=seiteT(it.inner, v);
+      return qg(f,[1,1]) ? `${o}${inn}${c}` : `${qt(f)} · ${o}${inn}${c}`; }
+    case 'br': { const e=it.inner, einfach = e.length===1 && e[0].k!=='kl' && sg(e[0])>0;
+      return einfach ? `${absT(e[0],v)}/${it.n}` : `(${seiteT(e,v)})/${it.n}`; }
+  }
+}
+const seiteT = (items, v) => items.map((it,i)=>{ const s=sg(it), a=absT(it,v); return i===0 ? (s<0?M+a:a) : (s<0?` ${M} ${a}`:` + ${a}`); }).join('');
+const gleichT = (e) => `${seiteT(e.L,e.v)} = ${seiteT(e.R,e.v)}`;
+const qT = s => s.replace(/\//g,' durch ');
+// Seite als a·v + b
+function linI(items){ let s=[[0,1],[0,1]]; for(const it of items){ const l=linIt(it); s=[qa(s[0],l[0]), qa(s[1],l[1])]; } return s; }
+function linIt(it){
+  switch(it.k){
+    case 'm': return [it.c,[0,1]];
+    case 'z': return [[0,1],it.c];
+    case 'kl': { const l=linI(it.inner); return [qm(l[0],it.f), qm(l[1],it.f)]; }
+    case 'br': { const l=linI(it.inner), k=[it.s,it.n]; return [qm(l[0],k), qm(l[1],k)]; }
+  }
+}
+/* Klammern auflösen, nicht zusammenfassen: Liste [{c, v}] in der Reihenfolge der Rechnung. fak: alles mal fak.
+   fehler (einmal, an der ersten passenden Klammer): 'vz' = Minus vor der Klammer ändert nur das erste Vorzeichen,
+   'mal' = die Zahl vor der Klammer multipliziert nur das erste Glied. Ergebnis {l, benutzt} */
+function flachI(items, fehler, fak=[1,1]){
+  const st={f:fehler||null};
+  const rec = (items, f) => items.flatMap(it=>{
+    if(it.k==='m') return [{c:qm(it.c,f), v:true}];
+    if(it.k==='z') return [{c:qm(it.c,f), v:false}];
+    if(it.k==='br') return rec(it.inner, qm(f,[it.s,it.n]));
+    const g=it.f;
+    if(st.f==='vz' && g[0]<0){ st.f='fertig'; const [h,...r]=it.inner; return [...rec([h], qm(f,g)), ...rec(r, qm(f,absQ(g)))]; }
+    if(st.f==='mal' && !qg(absQ(g),[1,1])){ st.f='fertig'; const [h,...r]=it.inner; return [...rec([h], qm(f,g)), ...rec(r, qm(f,[Math.sign(g[0]),1]))]; }
+    return rec(it.inner, qm(f,g));
+  });
+  const l=rec(items, fak).filter(g=>g.c[0]);
+  return {l, benutzt: st.f==='fertig'};
+}
+const linF = l => l.reduce((s,g)=>g.v?[qa(s[0],g.c),s[1]]:[s[0],qa(s[1],g.c)], [[0,1],[0,1]]);
+const flachT = (l, v) => Tm.summe(l.map(g=>gliedT(g.c, g.v?v:null))) || '0';
+// Lösung von S = [[a1,b1],[a2,b2]], null ohne eindeutige Lösung
+const loes = S => { const a=qs(S[0][0],S[1][0]); return a[0] ? qd(qs(S[1][1],S[0][1]), a) : null; };
+const gleichS = (A,B) => !!A && !!B && [0,1].every(i=>qg(A[i][0],B[i][0])&&qg(A[i][1],B[i][1]));
+const wertS = (s, x) => qa(qm(s[0],x), s[1]);
+const probe = (S, x, v) => `Probe mit ${esc(v)} = ${H(qt(x))}: linke Seite ${H(qt(wertS(S[0],x)))}, rechte Seite ${H(qt(wertS(S[1],x)))}, w. A.`;
+// Gleichung mit Zahlen nach der Stufe: 1 ganz, 2 mit 1 bis 2 Nachkommastellen
+const zahlS = (st, min, max) => st===1 ? [nz(min,max),1] : versuche(()=>{ const k=pick([1,1,2]), n=rnd(min*10**k, max*10**k); return n&&n%10 ? dez(n,k) : null; });
+
+const REIHENFOLGE = merk('So löst du: 1. Klammern auflösen, 2. jede Seite zusammenfassen, 3. alle Glieder mit der Variablen auf eine Seite, alle Zahlen auf die andere, 4. durch die Zahl vor der Variablen dividieren.');
+
+/* ---------- falsche Zwischenschritte (Einstieg: aus drei Zeilen wählen) ---------- */
+// S richtig zusammengefasst; Kandidaten mit Klammerfehlern zuerst, dann Vorzeichenfehler; alle mit anderer Lösung
+function falscheZus(e, S, extra=[]){
+  const x=loes(S), out=[], ok = T => { const y=T&&loes(T); return y && !qg(y,x) && !out.some(o=>qg(loes(o),y)); };
+  const kand=[...extra];
+  for(const f of ['vz','mal']) for(const i of [0,1]){
+    const s=flachI(i?e.R:e.L, f); if(!s.benutzt) continue;
+    const T=[linI(e.L), linI(e.R)].map(x=>x); T[i]=linF(s.l); kand.push(T);
+  }
+  for(const i of [0,1]) if(S[i][1][0]){ const T=S.map(x=>[...x]); T[i]=[S[i][0], [-S[i][1][0],S[i][1][1]]]; kand.push(T); }
+  for(const i of [0,1]) if(S[i][0][0]){ const T=S.map(x=>[...x]); T[i]=[[-S[i][0][0],S[i][0][1]], S[i][1]]; kand.push(T); }
+  for(const T of kand){ if(out.length===2) break; if(ok(T)) out.push(T); }
+  return out.length===2 ? out : null;
+}
+const wahlZeilen = (zeilen, label) => G.wahlFeld(label, mischen(zeilen.map((z,i)=>['o'+i, H(z)])), 'o0', 'zw', {klasse:'lang'});
+// Zwischenschritt-Feld: Einstieg Auswahl, sonst Gleichung in der Form art
+function zwFeld(e, art, richtig, falsche, leicht, label){
+  if(leicht) return wahlZeilen([richtig, ...falsche.map(T=>typeof T==='string'?T:glT(T,e.v))], label);
+  return G.gleichungFeld(label, {x:e.x, v:e.v, vars:[e.v], ans:richtig.replace(/−/g,'-'), art});
+}
+const kopf = e => `<div class="ex">${H(gleichT(e))}</div>`;
+const fertig = (t, extra) => { t.hinweisNach = G.hinweisAus(t, extra); return UR.dreiecke.aufg(t); };
+const ZW_LEICHT = 'Wähle den richtigen Zwischenschritt und schreibe die Lösungsmenge an! Ab der nächsten Aufgabe schreibst du ihn selbst.';
+
+/* ---------- Generatoren ---------- */
+// V2-A01: a·x ± b = c, x/n ± b = c, a·x/n ± b = c
+function zweiGl(st){
+  return versuche(()=>{
+    const v=pick(VARS), art=pick(['mal','mal','teil','bruch']), a=rnd(2,12), n=rnd(2,12);
+    if(art==='bruch' && ggT(a,n)>1) return null;
+    const term = art==='mal' ? mo(a) : art==='teil' ? br(mo(1),n) : br(mo(a),n);
+    const b=zahlS(st,1,99), c=zahlS(st,-99,99), vz=pick([1,-1]), bb=qm(b,[vz,1]);
+    const L=[term, zz(bb)], R=[zz(c)], S=[linI(L), linI(R)], x=loes(S), rest=qs(c,bb);
+    if(!x||!abbrechend(x,3)||Math.abs(qz(x))>5000||!rest[0]||qg(rest,c)) return null;
+    return {L, R, v, S, x, art, a, n, b, vz, c, rest, term};
+  });
+}
+// Seite aus Gliedern mit Variablen auf beiden Seiten (V2-A02, N02); st 3: Dezimalzahlen mit einer Nachkommastelle
+function gliederSeite(n, st, mitV=true){
+  const l=[]; let hatV=false;
+  for(let i=0;i<n;i++){ const v = mitV && (!hatV && i===n-1 || Math.random()<.5);
+    if(v){ hatV=true; l.push(mo(st===3&&Math.random()<.6 ? dez(nz(-99,99),1) : nz(-15,15))); }
+    else l.push(zz(st===3&&Math.random()<.6 ? dez(nz(-999,999),1) : nz(-100,100))); }
+  return mischen(l);
+}
+function beideGl(st, leicht){
+  return versuche(()=>{
+    const v=pick(VARS), nl=leicht?rnd(1,2):rnd(1,4), nr=leicht?rnd(1,2):rnd(1,4);
+    const L=gliederSeite(nl,st), R=gliederSeite(nr,st), S=[linI(L), linI(R)], a=qs(S[0][0],S[1][0]);
+    if(!a[0]||qg(absQ(a),[1,1])||!S[0][0][0]||!S[1][0][0]) return null;
+    const x=loes(S); if(!x||!abbrechend(x,2)||Math.abs(qz(x))>100) return null;
+    if(nl+nr<3) return null;
+    let A=a, B=qs(S[1][1],S[0][1]); if(A[0]<0){ A=[-A[0],A[1]]; B=[-B[0],B[1]]; }
+    if(!abbrechend(B,3)) return null;
+    return {L, R, v, S, x, A, B};
+  });
+}
+// Klammern (V2-A04): 1 bis 3 Klammern, Plus/Minus oder Zahl davor
+function klammerGl(o={}){
+  return versuche(()=>{
+    const v=pick(VARS), nKl=o.nKl||pick([1,1,2,2,3]);
+    const innen = () => { const a=mo(nz(-9,9)), b=zz(nz(-20,20)); return Math.random()<.6 ? [a,b] : [b,a]; };
+    const faktor = () => pick([[1,1],[-1,1],[-1,1],[nz(-9,9),1],[nz(-9,9),1]]);
+    const glied = () => Math.random()<.5 ? mo(nz(-15,15)) : zz(nz(-30,30));
+    const L=[], R=[];
+    for(let i=0;i<nKl;i++) (Math.random()<.5?L:R).push(kl(faktor(), innen()));
+    for(const s of [L,R]){ const extra=rnd(s.length?0:1, 2); for(let i=0;i<extra;i++) s.splice(rnd(0,s.length),0,glied()); }
+    for(const s of [L,R]) if(s[0].k==='kl'&&qg(s[0].f,[1,1])) s[0].f=[rnd(2,9),1];
+    const S=[linI(L), linI(R)], x=loes(S);
+    if(!x||!abbrechend(x,1)||Math.abs(qz(x))>50||G.isoliert(S)!==null) return null;
+    if(S.some(s=>Math.abs(qz(s[0]))>200||Math.abs(qz(s[1]))>300)) return null;
+    return {L, R, v, S, x};
+  });
+}
+// verschachtelte Klammern (V2-A05): 7a − [5 − (4 − 10a)] = 5
+function verschachteltGl(){
+  return versuche(()=>{
+    const v=pick(VARS), c = () => nz(-10,10);
+    const innen2 = () => { const a=mo(c()), b=zz(c()); return Math.random()<.5 ? [a,b] : [b,a]; };
+    const nest = () => kl(pick([[-1,1],[-1,1],[1,1],[rnd(2,3),1],[-rnd(2,3),1]]), [pick([zz(c()), mo(c())]), kl(pick([[-1,1],[-1,1],[1,1]]), innen2())], true);
+    const L=[mo(c()), nest()];
+    const R=pick([[zz(c())], [mo(c()), zz(c())], [zz(c()), nest()], [mo(c()), nest()]]);
+    if(Math.random()<.3) L.push(zz(c()));
+    const S=[linI(L), linI(R)], x=loes(S);
+    if(!x||x[1]!==1||Math.abs(x[0])>30||G.isoliert(S)!==null) return null;
+    return {L, R, v, S, x};
+  });
+}
+// Brüche (V2-A06)
+function bruchGl(){
+  return versuche(()=>{
+    const v=pick(VARS), n1=rnd(2,10), n2=rnd(2,10), k=rnd(1,9), a=nz(-9,9), b=nz(-30,30), c=nz(-60,60), d=nz(-20,20), p=nz(-9,9), r=nz(-9,9);
+    const T = pick([
+      () => [[br(mo(1),n1), zz(b)], [zz(c)]],
+      () => ggT(k,n1)>1||n1===n2||ggT(Math.abs(p),n2)>1||ggT(Math.abs(r),n2)>1 ? null : [[br(mo(k),n1), br(zz(Math.abs(p)),n2,Math.sign(p))], [br(zz(Math.abs(r)),n2,Math.sign(r))]],
+      () => [[br([mo(a),zz(b)],n1)], [zz(c)]],
+      () => [[mo(a), zz(b)], [br(mo(1),n1), Math.random()<.4 ? zz(dez(nz(-99,99),1)) : zz(c)]],
+      () => n1===n2 ? null : [[br(mo(1),n1), br(mo(1),n2)], [zz(c)]],
+      () => n1===n2 ? null : [[br([mo(1),zz(b)],n1), br([mo(1),zz(d)],n2,-1)], [zz(c)]]
+    ])();
+    if(!T) return null;
+    const [L,R]=T, nenner=[...L,...R].filter(x=>x.k==='br').map(x=>x.n), N=nenner.reduce(kgV,1);
+    if(N>40) return null;
+    const S=[linI(L), linI(R)], x=loes(S);
+    if(!x||!abbrechend(x,3)||Math.abs(qz(x))>300) return null;
+    const SN=S.map(s=>[qm(s[0],[N,1]), qm(s[1],[N,1])]);
+    if(SN.some(s=>s.some(q=>q[1]!==1))||G.isoliert(SN)!==null) return null;
+    return {L, R, v, S, x, N, SN};
+  });
+}
+// LZK-Niveau (V2-A07): 2 bis 3 Klammern mit Zahl oder Minus davor, darin Brüche oder Dezimalzahlen
+function lzkGl(){
+  return versuche(()=>{
+    const v=pick(VARS), art=pick(['bruch','dez']), n=rnd(2,9), nKl=pick([2,2,3]);
+    const koeff = () => art==='dez'&&Math.random()<.6 ? dez(nz(-99,99),1) : [nz(-9,9),1];
+    const konst = () => art==='bruch' ? Tm.Q(nz(-20,20), n) : dez(nz(-199,199),1);
+    const faktor = () => pick([[-1,1], [nz(-9,9),1], art==='dez' ? dez(nz(-99,99),1) : [nz(-9,9),1]]);
+    const innen = () => Math.random()<.6 ? [mo(koeff()), zz(konst())] : [zz(konst()), mo(koeff())];
+    const L=[], R=[];
+    for(let i=0;i<nKl;i++) (i===0?L:i===1?R:pick([L,R])).push(kl(faktor(), innen()));
+    for(const s of [L,R]) if(Math.random()<.5) s.splice(rnd(0,s.length),0, Math.random()<.5 ? mo(koeff()) : zz(konst()));
+    for(const s of [L,R]) if(s[0].k==='kl'&&qg(s[0].f,[1,1])) s[0].f=[rnd(2,9),1];
+    const S=[linI(L), linI(R)], x=loes(S); if(!x||!abbrechend(x,3)||Math.abs(qz(x))>100||G.isoliert(S)!==null) return null;
+    if(art==='bruch'&&![...L,...R].some(it=>it.k==='kl'&&it.inner.some(g=>g.k==='z'&&g.c[1]>1))) return null;
+    let A=qs(S[0][0],S[1][0]), B=qs(S[1][1],S[0][1]); if(A[0]<0){ A=[-A[0],A[1]]; B=[-B[0],B[1]]; }
+    if(!abbrechend(A,3)||!abbrechend(B,3)||qg(A,[1,1])||Math.abs(qz(B))>2000) return null;
+    return {L, R, v, S, x, A, B, art};
+  });
+}
+// Zeilen eines Rechenwegs: Angabe, ohne Klammern (wenn anders), zusammengefasst und Umformungen
+function zeilenKlammer(e){
+  const z=[{l:seiteT(e.L,e.v), r:seiteT(e.R,e.v)}];
+  const fl=[flachI(e.L).l, flachI(e.R).l], flT=fl.map(l=>flachT(l,e.v)), zusT=e.S.map(s=>linT(s,e.v));
+  if(flT[0]!==z[0].l||flT[1]!==z[0].r){ if(flT[0]!==zusT[0]||flT[1]!==zusT[1]) z.push({l:flT[0], r:flT[1]}); }
+  return [...z, ...weg(e.S, e.v)];
+}
+const KLAMMER_REGEL = 'Minus vor der Klammer: Alle Vorzeichen in der Klammer ändern sich. Zahl vor der Klammer: Jedes Glied in der Klammer wird mit ihr multipliziert.';
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // V2-A01 Zwei Umformungen
+  zwei(ctx){
+    const leicht=ctx&&ctx.leicht, e=zweiGl(leicht?1:pick([1,2,2])), {v}=e;
+    const tT=seiteT([e.term],v), zw=`${tT} = ${qt(e.rest)}`, f1=`${tT} = ${qt(qa(e.c,qm(e.b,[e.vz,1])))}`, f2=`${tT} = ${qt(e.c)}`;
+    const op1 = e.vz>0 ? M : '+';
+    const zeilen=[{l:seiteT(e.L,v), r:seiteT(e.R,v), u:umText(op1, e.b)}];
+    if(e.art==='mal') zeilen.push({l:tT, r:qt(e.rest), u:umText(':',[e.a,1])});
+    else if(e.art==='teil') zeilen.push({l:tT, r:qt(e.rest), u:umText('·',[e.n,1])});
+    else zeilen.push({l:tT, r:qt(e.rest), u:umText('·',[e.n,1])}, {l:gliedT([e.a,1],v), r:qt(qm(e.rest,[e.n,1])), u:umText(':',[e.a,1])});
+    zeilen.push({l:v, r:qt(e.x)});
+    const t = {kind:'zahlen', q:`Löse die Gleichung mit zwei Umformungsschritten und schreibe die Lösungsmenge an! Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
+      lead: leicht ? `${REIHENFOLGE}${ZW_LEICHT}` : `Löse die Gleichung mit zwei Umformungsschritten! Schreib den Zwischenschritt an (z. B. 5x = 510,3) und dann die Lösungsmenge.`,
+      pruef:'zwei', daten:e,
+      felder:[zwFeld(e, 'einSchritt', zw, [f1, f2], leicht, 'Zwischenschritt'), G.mengeFeld(e.x)],
+      why:`Zuerst ${op1} ${qt(e.b)} auf beiden Seiten: ${H(zw)}. Dann ${e.art==='mal'?`durch ${e.a} dividieren`:e.art==='teil'?`mal ${e.n}`:`mal ${e.n} und durch ${e.a} dividieren`}. ${probe(e.S, e.x, v)}`,
+      stepsh:rechnung(zeilen, {menge:qt(e.x)})};
+    return fertig(t);
+  },
+  // V2-A02 Variable auf beiden Seiten
+  beide(ctx){
+    const leicht=ctx&&ctx.leicht, e=beideGl(leicht?1:pick([1,1,2,3]), leicht), {v, S}=e;
+    const zw = `${gliedT(e.A,v)} = ${qt(e.B)}`;
+    let feld;
+    if(leicht){
+      const a1=S[0][0], a2=S[1][0], b1=S[0][1], b2=S[1][1];
+      const kand=[[qs(a1,a2), qa(b2,b1)], [qa(a1,a2), qs(b2,b1)], [qs(a1,a2), qs(b1,b2)]].filter(([a,b])=>a[0]&&!qg(qd(b,a),e.x));
+      const f=[]; for(const k of kand) if(f.length<2&&!f.some(y=>qg(qd(y[1],y[0]),qd(k[1],k[0])))) f.push(k);
+      if(f.length<2) return typen.beide(ctx);
+      feld=wahlZeilen([zw, ...f.map(([a,b])=>`${gliedT(a,v)} = ${qt(b)}`)], 'Zwischenschritt');
+    } else feld=G.axbFeld('Zwischenschritt: alle Glieder mit der Variablen links, alle Zahlen rechts', v, e.A, e.B);
+    const zeilen=[{l:seiteT(e.L,v), r:seiteT(e.R,v)}], zt=[linT(S[0],v), linT(S[1],v)];
+    if(zt[0]!==zeilen[0].l||zt[1]!==zeilen[0].r) zeilen.push(...weg(S,v)); else zeilen.splice(0,1,...weg(S,v));
+    const t = {kind:'zahlen', q:`Bringe alle Glieder mit der Variablen auf eine Seite und löse die Gleichung! Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
+      lead: leicht ? `${REIHENFOLGE}${ZW_LEICHT}` : 'Bringe alle Glieder mit der Variablen auf eine Seite und löse die Gleichung!',
+      pruef:'beide', daten:e, felder:[feld, G.mengeFeld(e.x)],
+      why:`Zuerst jede Seite zusammenfassen: ${H(glT(S,v))}. Dann alle Glieder mit ${esc(v)} auf eine Seite, alle Zahlen auf die andere: ${H(zw)}. ${probe(S, e.x, v)}`,
+      stepsh:rechnung(zeilen, {menge:qt(e.x)})};
+    return fertig(t, erg => !erg[0].zahlOk && t.felder[0].grund==='anders' ? 'Diese Zeile ist nicht gleichwertig zur Angabe. Tipp: Fasse zuerst jede Seite zusammen, dann bring alle Glieder mit der Variablen auf eine Seite.' : '');
+  },
+  // V2-A04 Klammern zuerst auflösen
+  klammern(ctx){
+    const leicht=ctx&&ctx.leicht;
+    return versuche(()=>{
+      const e=klammerGl(leicht?{nKl:pick([1,2])}:{}), {v,S}=e, zw=glT(S,v), f=falscheZus(e,S);
+      if(leicht&&!f) return null;
+      return fertig({kind:'zahlen', q:`Löse zuerst die Klammern auf und löse dann die Gleichung! Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
+        lead: leicht ? `${REIHENFOLGE}${ZW_LEICHT}` : 'Löse zuerst die Klammern auf und fasse jede Seite zusammen. Löse dann die Gleichung!',
+        pruef:'klammern', daten:e, felder:[zwFeld(e,'zusammen',zw,f,leicht,'Ohne Klammern, jede Seite zusammengefasst'), G.mengeFeld(e.x)],
+        why:`${KLAMMER_REGEL} Ohne Klammern und zusammengefasst: ${H(zw)}. ${probe(S, e.x, v)}`, stepsh:rechnung(zeilenKlammer(e), {menge:qt(e.x)})});
+    });
+  },
+  // V2-A06 Gleichungen mit Brüchen
+  brueche(ctx){
+    const leicht=ctx&&ctx.leicht;
+    return versuche(()=>{
+      const e=bruchGl(), {v,S,N,SN}=e, zw=glT(SN,v);
+      // falsch: nur die Brüche mal N, die übrigen Glieder nicht (Minus vor dem Bruch nur beim ersten Glied: falscheZus)
+      const T1=[0,1].map(i=>{ const items=i?e.R:e.L; return linI(items.map(it=>it.k==='br' ? kl([it.s*N/it.n,1], it.inner) : it)); });
+      const extra=[T1];
+      const f=falscheZus({L:e.L.map(it=>it.k==='br'?kl([it.s*N/it.n,1],it.inner):kl([N,1],[it])), R:e.R.map(it=>it.k==='br'?kl([it.s*N/it.n,1],it.inner):kl([N,1],[it]))}, SN, extra);
+      if(leicht&&!f) return null;
+      const zeilen=[{l:seiteT(e.L,v), r:seiteT(e.R,v), u:umText('·',[N,1])}];
+      const fl=[flachI(e.L,null,[N,1]).l, flachI(e.R,null,[N,1]).l].map(l=>flachT(l,v)), zt=SN.map(s=>linT(s,v));
+      if(fl[0]!==zt[0]||fl[1]!==zt[1]) zeilen.push({l:fl[0], r:fl[1]});
+      zeilen.push(...weg(SN,v));
+      return fertig({kind:'zahlen', q:`Löse die Gleichung! Beachte die Brüche. Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
+        lead: leicht ? `${merk(`Multipliziere alle Glieder auf beiden Seiten mit ${N}: Dann fallen die Brüche weg.`)}${ZW_LEICHT}` : 'Löse die Gleichung! Schreib zuerst die Gleichung ohne Bruch an.',
+        pruef:'brueche', daten:e, felder:[zwFeld(e,'ohneBruch',zw,f,leicht,'Gleichung ohne Bruch'), G.mengeFeld(e.x)],
+        why:`Alle Glieder auf beiden Seiten mal ${N}: Die Brüche fallen weg. ${H(zw)}. ${probe(S, e.x, v)}`, stepsh:rechnung(zeilen, {menge:qt(e.x)})});
+    });
+  },
+  // V2-A07 LZK-Niveau: Klammern, Brüche und Dezimalzahlen
+  lzk(ctx){
+    const leicht=ctx&&ctx.leicht;
+    return versuche(()=>{
+      const e=lzkGl(), {v,S}=e, zw=glT(S,v), f=falscheZus(e,S);
+      if(leicht&&!f) return null;
+      return fertig({kind:'zahlen', q:`Löse die Gleichung und schreibe die Lösungsmenge an! Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
+        lead: leicht ? `${REIHENFOLGE}${ZW_LEICHT}` : 'Löse die Gleichung in drei Schritten und schreibe die Lösungsmenge an! Den Taschenrechner darfst du verwenden.',
+        pruef:'lzk', daten:e,
+        felder:[zwFeld(e,'zusammen',zw,f,leicht,'Schritt 1: ohne Klammern, jede Seite zusammengefasst'),
+          G.axbFeld('Schritt 2: alle Glieder mit der Variablen links, alle Zahlen rechts', v, e.A, e.B), G.mengeFeld(e.x)],
+        why:`${KLAMMER_REGEL} ${H(zw)}, dann ${H(`${gliedT(e.A,v)} = ${qt(e.B)}`)}. ${probe(S, e.x, v)}`, stepsh:rechnung(zeilenKlammer(e), {menge:qt(e.x)})});
+    });
+  },
+  // V2-N03 Umformungsschritte erkennen
+  schritte(ctx){
+    const leicht=ctx&&ctx.leicht;
+    return versuche(()=>{
+      const v=pick(VARS), x=[nz(-20,20),1], drei=Math.random()<.6;
+      let S;
+      if(drei){ const a1=nz(-9,9), a2=nz(-9,9); if(a1===a2) return null; const b1=nz(-30,30), b2=(a1-a2)*x[0]+b1; if(!b2||Math.abs(b2)>50) return null; S=[[[a1,1],[b1,1]],[[a2,1],[b2,1]]]; }
+      else { const a=nz(-9,9); if(Math.abs(a)<2) return null; const b=nz(-40,40), c=a*x[0]+b; if(!c||Math.abs(c)>99) return null; S=Math.random()<.8?[[[a,1],[b,1]],[[0,1],[c,1]]]:[[[0,1],[c,1]],[[a,1],[b,1]]]; }
+      const zz2=[Math.random()<.5, Math.random()<.5];
+      const X = qz(S[0][0])-qz(S[1][0])>0 ? 0 : 1, O=1-X;
+      const ops=[];
+      if(S[X][1][0]){ const b=S[X][1]; ops.push({op:b[0]>0?M:'+', z:absQ(b)}); }
+      if(S[O][0][0]){ const a=S[O][0]; ops.push({op:a[0]>0?M:'+', term:gliedT(absQ(a),v)}); }
+      if(ops.length===2&&Math.random()<.5) ops.reverse();
+      const aEnd=qs(S[X][0],S[O][0]); if(!qg(aEnd,[1,1])) ops.push({op:':', z:aEnd});
+      if(ops.length<2) return null;
+      const Sl=[S]; for(const o of ops){ const n=G.schritt(Sl[Sl.length-1], o, v); if(!n) return null; Sl.push(n); }
+      if(G.isoliert(Sl[Sl.length-1])===null) return null;
+      const zt = s => `${linT(s[0],v,{zahlZuerst:zz2[0]})} = ${linT(s[1],v,{zahlZuerst:zz2[1]})}`;
+      const texte=Sl.map(zt);
+      if(new Set(texte).size!==texte.length) return null;
+      const felder=ops.map((o,k)=>G.umformFeld(`${k+1}. Umformung`, [o.term?{op:o.op, term:o.term}:o], {term:true, fest:leicht, vor:H(texte[k]),
+        pruefe:g=>gleichS(G.schritt(Sl[k], g, v), Sl[k+1])}));
+      const wort = o => o.op==='+' ? `${o.term||qt(o.z)} addiert` : o.op===M ? `${o.term||qt(o.z)} subtrahiert` : o.op==='·' ? `mit ${qt(o.z)} multipliziert` : `durch ${o.z[0]<0?`(${qt(o.z)})`:qt(o.z)} dividiert`;
+      return fertig({kind:'zahlen', q:`Gib für jeden Umformungsschritt die Rechenoperation an! ${texte.join(' → ')}`, qh:`Gib für jeden Umformungsschritt die Rechenoperation an!<div class="ex">${H(texte[0])}</div>`,
+        lead: leicht ? merk('Vergleiche zwei Zeilen: Was ist auf beiden Seiten dazugekommen oder weggefallen? Das Rechenzeichen ist schon da.') : 'Die Umformung kann auch ein Glied mit der Variablen sein, z. B. − 3x.',
+        pruef:'schritte', daten:{S, ops, texte}, felder, nachFeldern:`<div class="gl-um"><span class="gl-vor">${H(texte[texte.length-1])}</span></div>`,
+        why:ops.map((o,k)=>`Aus ${H(texte[k])} wurde ${H(texte[k+1])}: Es wurde auf beiden Seiten ${esc(wort(o))}.`).join('<br>'),
+        stepsh:rechnung(Sl.map((s,k)=>({l:linT(s[0],v,{zahlZuerst:zz2[0]}), r:linT(s[1],v,{zahlZuerst:zz2[1]}), u:ops[k]?umText(ops[k].op, ops[k].z, ops[k].term):''})))});
+    });
+  },
+  // V2-A05 Verschachtelte Klammern
+  verschachtelt(ctx){
+    const leicht=ctx&&ctx.leicht;
+    return versuche(()=>{
+      const e=verschachteltGl(), {v,S}=e, zw=glT(S,v), f=falscheZus(e,S);
+      if(leicht&&!f) return null;
+      return fertig({kind:'zahlen', q:`Löse die Gleichung! Löse die Klammern von innen nach außen auf. Gleichung: ${qT(gleichT(e))}`, qh:kopf(e),
+        lead: leicht ? `${merk('Zuerst die runde Klammer innen auflösen, dann die eckige Klammer außen.')}${ZW_LEICHT}` : 'Löse die Klammern von innen nach außen auf und fasse jede Seite zusammen. Löse dann die Gleichung!',
+        pruef:'verschachtelt', daten:e, felder:[zwFeld(e,'zusammen',zw,f,leicht,'Ohne Klammern, jede Seite zusammengefasst'), G.mengeFeld(e.x)],
+        why:`Innerste Klammer zuerst. ${KLAMMER_REGEL} ${H(zw)}. ${probe(S, e.x, v)}`, stepsh:rechnung(zeilenKlammer(e), {menge:qt(e.x)})});
+    });
+  },
+  // V2-A08 (Plus) Quadratische Glieder fallen weg
+  quadrat(ctx){
+    return versuche(()=>{
+      const v=pick(VARS), p=nz(-6,6), q=nz(-6,6), r=nz(-6,6), s=nz(-6,6), k=rnd(2,6), e=nz(-30,30);
+      const bin = c => `(${v} ${c<0?M:'+'} ${Math.abs(c)})`, zahl = c => `${c<0?M:'+'} ${Math.abs(c)}`;
+      const [l, rr] = pick([
+        () => [`${bin(p)} · ${bin(q)} ${M} ${bin(r)} · ${bin(s)}`, `${e}`.replace('-',M)],
+        () => [`${v} · ${bin(p)}`, `${v}² ${zahl(e)}`],
+        () => [`${k}${v} · ${bin(p)}`, `${k} · (${v}² ${zahl(e)})`],
+        () => [`${bin(p)} · ${bin(q)}`, `${v} · ${bin(r)} ${zahl(e)}`],
+        () => [`${bin(p)}²`, `${bin(q)} · ${bin(r)}`]
+      ])();
+      const PL=Tm.poly(l), PR=Tm.poly(rr), key=v+'2', sq=x=>x[key]||[0,1];
+      if(!PL||!PR||!qg(sq(PL),sq(PR))||!sq(PL)[0]) return null;
+      const lin = P => [P[v+'1']||[0,1], P['']||[0,1]], S=[lin(PL), lin(PR)], x=loes(S);
+      if(!x||x[1]>20||Math.abs(qz(x))>50||G.isoliert(S)!==null) return null;
+      const zw=glT(S,v), auf=[Tm.text(l.replace(/−/g,'-')), Tm.text(rr.replace(/−/g,'-'))];
+      const zeilen=[{l, r:rr}, {l:auf[0], r:auf[1], u:umText(M, null, `${Tm.text(`${sq(PL)[0]}/${sq(PL)[1]}*${v}^2`)}`)}, ...weg(S,v)];
+      const t={kind:'zahlen', q:`Löse die Gleichung! Achtung, die quadratischen Glieder fallen weg. Gleichung: ${l} = ${rr}`, qh:`<div class="ex">${H(`${l} = ${rr}`)}</div>`,
+        lead:'Multipliziere aus. Die quadratischen Glieder fallen weg. Ist die Lösung ein Bruch, schreib ihn gekürzt an.', pruef:'quadrat', daten:{l, r:rr, v, S, x},
+        felder:[G.gleichungFeld('Gleichung ohne Klammern und ohne Quadrat', {x, v, vars:[v], ans:zw.replace(/−/g,'-'), art:'zusammen'}), G.mengeBruchFeld(x)],
+        why:`Ausmultipliziert: ${H(`${auf[0]} = ${auf[1]}`)}. Auf beiden Seiten steht dasselbe quadratische Glied, es fällt weg: ${H(zw)}.`,
+        stepsh:rechnung(zeilen, {menge:qt(x)})};
+      return fertig(t);
+    });
+  },
+  // V2-N01 (Plus) Fehler im Rechenweg finden
+  fehler(ctx){
+    return versuche(()=>{
+      const mitKl=Math.random()<.5, e = mitKl ? klammerGl({nKl:1}) : beideGl(1, true), {v}=e;
+      const richtig = mitKl ? zeilenKlammer(e) : [{l:seiteT(e.L,v), r:seiteT(e.R,v)}, ...weg(e.S,v)];
+      const arten=[];
+      if(mitKl) for(const f of ['vz','mal']) for(const i of [0,1]){ const s=flachI(i?e.R:e.L, f); if(s.benutzt) arten.push({f, i, l:s.l}); }
+      arten.push({f:'um'}, {f:'div'});
+      const a=pick(arten);
+      let zeilen, falsch;
+      if(a.f==='vz'||a.f==='mal'){
+        const fl=[flachI(e.L).l, flachI(e.R).l]; fl[a.i]=a.l; const S2=fl.map(linF);
+        if(!loes(S2)||qg(loes(S2),e.x)) return null;
+        zeilen=[{l:seiteT(e.L,v), r:seiteT(e.R,v)}, {l:flachT(fl[0],v), r:flachT(fl[1],v)}, ...weg(S2,v)]; falsch=1;
+      } else if(a.f==='um'){
+        // ein Schritt im Weg: auf einer Seite das falsche Vorzeichen
+        const w=weg(e.S,v), k0=richtig.length-w.length, kands=w.slice(0,-1).map((z,k)=>k).filter(k=>/^[+−] /.test(w[k].u||''));
+        if(!kands.length) return null;
+        const k=pick(kands);
+        let Sk=e.S;   // Seiten bis zum Schritt k nachrechnen for(let j=0;j<k;j++){ const u=w[j].u.match(/^([+−·:]) (.+)$/); Sk=G.schritt(Sk, u[2].match(/[a-z]/)?{op:u[1], term:u[2].replace(M,'-')}:{op:u[1], z:G.zahlQ(u[2].replace(/[()]/g,''))}, v); }
+        const u=w[k].u.match(/^([+−]) (.+)$/), istT=/[a-z]/.test(u[2]), g=istT?{op:u[1], term:u[2]}:{op:u[1], z:G.zahlQ(u[2])};
+        const r1=G.schritt(Sk, g, v), r2=G.schritt(Sk, {...g, op:g.op==='+'?M:'+'}, v), seite=pick([0,1]), S2=[seite?r1[0]:r2[0], seite?r2[1]:r1[1]];
+        if(!loes(S2)||qg(loes(S2),e.x)) return null;
+        zeilen=[...richtig.slice(0,k0+k+1), ...weg(S2,v)]; falsch=k0+k+1;
+      } else {
+        const w=richtig, vor=w[w.length-2], u=(vor.u||'').match(/^: (.+)$/); if(!u) return null;
+        const d=G.zahlQ(u[1].replace(/[()]/g,'')), b=G.zahlQ(vor.l===gliedT(d,v)?vor.r:vor.l); if(!d||!b||!b[0]) return null;
+        const y=qd(d,b); if(qg(y,e.x)) return null;
+        zeilen=[...w.slice(0,-1), {l:v, r:qt(y)}]; falsch=w.length-1;
+      }
+      if(zeilen.length<3||zeilen.length>6) return null;
+      const txt = z => `${z.l} = ${z.r}${z.u?` | ${z.u}`:''}`;
+      const opt=zeilen.map((z,i)=>['z'+i, `Zeile ${i+1}: ${H(txt(z))}`]);
+      return fertig({kind:'zahlen', q:`In einer Zeile steckt ein Fehler: ${qT(zeilen.map(txt).join('; '))}. Tippe sie an und gib die richtige Lösung an!`,
+        qh:`In einer Zeile steckt ein Fehler. Tippe sie an und gib die richtige Lösung an!${rechnung(zeilen)}`, pruef:'fehler', daten:{e, zeilen, falsch},
+        felder:[G.wahlFeld('Die falsche Zeile', opt, 'z'+falsch, 'fz', {klasse:'lang'}), G.mengeFeld(e.x, {label:'Richtige Lösungsmenge'})],
+        why:`Zeile ${falsch+1} ist nicht gleichwertig zu Zeile ${falsch}: ${a.f==='vz'?'Minus vor der Klammer ändert alle Vorzeichen in der Klammer.':a.f==='mal'?'Die Zahl vor der Klammer multipliziert jedes Glied in der Klammer.':a.f==='um'?'Auf beiden Seiten muss dasselbe gerechnet werden.':'Dividiert wird die Zahl durch die Zahl vor der Variablen.'} Richtig gerechnet:`,
+        stepsh:rechnung(richtig, {menge:qt(e.x)})});
+    });
+  },
+  // V2-N02 (Plus) Keine Lösung oder jede Zahl
+  anzahl(ctx){
+    const fall=pick(['eine','keine','jede']);      // außerhalb der Schleife: jede Art etwa ein Drittel
+    return versuche(()=>{
+      const v=pick(VARS), dez1=Math.random()<.3;
+      const k = () => dez1 ? dez(nz(-50,50),1) : [nz(-9,9),1], z = () => dez1 ? dez(nz(-99,99),1) : [nz(-30,30),1];
+      const a=k(), b=z(), a2 = fall==='eine' ? k() : a, b2 = fall==='jede' ? b : z();
+      if(fall==='eine'&&qg(a,a2)) return null; if(fall==='keine'&&qg(b,b2)) return null;
+      // jede Seite in 2 bis 4 Glieder zerlegen
+      const zerlege = (A, B) => { const l=[]; const ta=rnd(1,2), tb=rnd(1,2); let ra=A, rb=B;
+        for(let i=1;i<ta;i++){ const t=k(); l.push(mo(t)); ra=qs(ra,t); } if(ra[0]) l.push(mo(ra));
+        for(let i=1;i<tb;i++){ const t=z(); l.push(zz(t)); rb=qs(rb,t); } if(rb[0]) l.push(zz(rb));
+        return mischen(l); };
+      const L=zerlege(a,b), R=zerlege(a2,b2); if(!L.length||!R.length||L.length+R.length<4) return null;
+      const S=[linI(L), linI(R)], x=loes(S);
+      if(fall==='eine'&&(!x||!abbrechend(x,2)||Math.abs(qz(x))>100)) return null;
+      const e={L, R, v};
+      const opt=[['eine','genau eine Lösung'],['keine','keine Lösung: 𝕃 = { }'],['jede','jede Zahl ist eine Lösung']];
+      const loesFeld = {label:'Die Lösung (nur bei genau einer Lösung, sonst leer lassen)', ans:1, ohneEinheit:true, eingabe:fall==='eine'?G.qein(x):'',
+        ansText:fall==='eine'?`${v} = ${qt(x)}`:'(leer)',
+        feldHTML:id=>`<span class="gl-menge">${esc(v)} =</span><button type="button" class="sign" data-vz="${id}" aria-label="${UR.TEXTE.minusSetzen}">${M}</button><input id="${id}" class="zahl" data-feld inputmode="decimal" placeholder="–">`,
+        lesen:roh=>{ const s=String(roh??'').trim(); if(fall!=='eine') return s?0:1; if(!s) return null; const y=G.zahlQ(s); return y ? (qg(y,x)?1:0) : NaN; }};
+      const ohne = fall==='eine' ? '' : `Zusammengefasst: ${H(glT(S,v))}. Auf beiden Seiten steht ${esc(gliedT(S[0][0],v))}. Fällt es auf beiden Seiten weg, bleibt ${qt(S[0][1])} = ${qt(S[1][1])}, ${fall==='jede'?'eine wahre Aussage: Jede Zahl ist eine Lösung.':'eine falsche Aussage: Es gibt keine Lösung, 𝕃 = { }.'}`;
+      return fertig({kind:'zahlen', q:`Löse die Gleichung! Wie viele Lösungen hat sie? Gleichung: ${qT(gleichT(e))}`, qh:kopf(e), pruef:'anzahl', daten:{e, fall, S, x},
+        lead:'Fasse zuerst jede Seite zusammen.', felder:[G.wahlFeld('Wie viele Lösungen?', opt, fall, 'anz', {klasse:'lang'}), loesFeld],
+        why: fall==='eine' ? `Zusammengefasst: ${H(glT(S,v))}. Die Glieder mit ${esc(v)} sind verschieden, also gibt es genau eine Lösung: ${esc(v)} = ${qt(x)}.` : ohne});
+    });
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Zwei Umformungen', hint:'5x/9 − 31,7 = 25 → x = 102,06', types:['schritte','zwei']},
+  {id:'S2', name:'Variable auf beiden Seiten', hint:'7a − 7 = 3a + 5 → 4a = 12', types:['beide']},
+  {id:'S3', name:'Klammern zuerst', hint:'6 − (x − 3) = x + (1 − 3x)', types:['klammern','verschachtelt']},
+  {id:'S4', name:'Brüche in der Gleichung', hint:'(3x − 5)/4 = 4 | · 4', types:['brueche']},
+  {id:'S5', name:'LZK-Niveau', hint:'−3 · (2x − 2/9) = 2,5x − (−1,5x + 10/3)', types:['lzk']}
+];
+const kern = ['zwei','beide','klammern','brueche','lzk','schritte','verschachtelt'];
+const leicht = ['zwei','beide','klammern','brueche','lzk','schritte','verschachtelt'];
+const plusTypen = ['quadrat','fehler','anzahl'];
+const plusHint = 'x² fällt weg · Fehler finden · keine oder jede Zahl';
+const lzk = {aufwand:{zwei:2, beide:2, klammern:3, brueche:3, lzk:3, schritte:2, verschachtelt:3}};
+
+/* ---------- Erklärung ---------- */
+const erklaerung = {
+  beispiele: () => ({k:klammerGl({nKl:1}), b:bruchGl()}),
+  neu(kind,E){ if(kind==='kl') E.k=klammerGl({nKl:1}); if(kind==='br') E.b=bruchGl(); },
+  html(E){
+    const k=E.k, b=E.b;
+    const bz=[{l:seiteT(b.L,b.v), r:seiteT(b.R,b.v), u:umText('·',[b.N,1])}, ...weg(b.SN,b.v)];
+    return `<section class="sheet"><h2>Lineare Gleichungen lösen</h2>
+    <div class="rule"><h3>Die Reihenfolge</h3><ol><li>Brüche weg: alle Glieder mal den (gemeinsamen) Nenner.</li><li>Klammern auflösen.</li>
+      <li>Jede Seite zusammenfassen.</li><li>Alle Glieder mit der Variablen auf eine Seite, alle Zahlen auf die andere.</li>
+      <li>Durch die Zahl vor der Variablen dividieren.</li><li>Lösungsmenge anschreiben und die Probe machen.</li></ol></div>
+    <div class="rule"><h3>Mit Klammern</h3><p>${KLAMMER_REGEL}</p>${rechnung(zeilenKlammer(k), {menge:qt(k.x)})}<p class="small">${probe(k.S,k.x,k.v)}</p>
+      <button class="newex" data-newex="kl">Neues Beispiel</button></div>
+    <div class="rule"><h3>Mit Brüchen</h3><p>Multipliziere jedes Glied auf beiden Seiten mit ${b.N}. Dann fallen die Brüche weg.</p>${rechnung(bz, {menge:qt(b.x)})}
+      <button class="newex" data-newex="br">Neues Beispiel</button></div>
+    <div class="rule"><h3>Wie im Mathe Know How</h3>${rechnung([{l:'5x/9 − 31,7', r:'25', u:'+ 31,7'}, {l:'5x/9', r:'56,7', u:'· 9'}, {l:'5x', r:'510,3', u:': 5'}, {l:'x', r:'102,06'}], {menge:'102,06'})}</div>
+    <p class="small muted">Als Zwischenschritt zählt jede gleichwertige Zeile in der verlangten Form, z. B. auch 14x = −28 statt −14x = 28.</p>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 3.1 Gleichungen.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`;
+  }
+};
+
+UR.kompetenzAnmelden({id:'M-Glei-V2', typen, stationen, kern, leicht, plus:plusTypen, plusHint, erklaerung, lzk});
+UR.glei.v2 = {mo, zz, kl, br, seiteT, gleichT, linI, flachI, linF, flachT, loes, gleichS, probe, zeilenKlammer, falscheZus, klammerGl, bruchGl, lzkGl, beideGl, zweiGl, qT};
 })(window.UR = window.UR || {});
 </script>
 <script>UR.start(document.getElementById('app'));</script>
