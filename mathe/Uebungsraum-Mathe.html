@@ -627,6 +627,39 @@ polygon.tipp.sel{fill:var(--v);fill-opacity:.45}
 .pfz.inlz{font-size:1.35rem;gap:3px}
 .answer.pfz input.pf.inl{flex:none;width:5.2ch;min-width:0;font-size:1.15rem;padding:6px 2px}
 .pfz.inlz .umbruch{flex-basis:100%;height:0}
+/* Gleichungen (Mathe/bausteine/gleichungen.js, 28.11.2026): Gleichung eintippen (Term links und rechts vom =, Taste Bruch),
+   Umformung „| + 5“ mit Rechenzeichen-Tasten, 𝕃 = { … }, Rechnung wie im MKH, Streckenbild, Waage */
+.gl-merk{display:block;margin-bottom:6px}
+.gl-feld{display:flex;flex-direction:column;gap:8px;width:100%}
+.gl-zeile{display:flex;align-items:center;gap:6px;width:100%}
+.gl-seite{display:flex;align-items:center;gap:4px;flex:1 1 0;min-width:0}
+.answer .gl-seite input.term{flex:1 1 3ch;min-width:2.5ch;width:auto;font-size:1.25rem;padding:8px 4px}
+.gl-zeile{flex-wrap:wrap;justify-content:center} .gl-seite.mitBruch{flex-basis:100%}
+.gl-br:not([hidden]){display:flex;align-items:center;flex:none}
+.gl-br .bfeld{flex:none;width:6.5ch} .answer .gl-br .bfeld input.term{width:100%;flex:none;min-width:0;font-size:1.1rem;padding:4px 2px}
+.gl-gl{font-size:1.5rem;font-weight:800;white-space:nowrap}
+.gl-tasten .gl-bruchtaste{font-size:1rem} .gl-tasten .taste.sel{border-color:var(--ink);background:var(--paper)}
+.gl-um{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 6px;width:100%}
+.gl-vor{font-size:1.35rem;font-weight:700;white-space:nowrap}
+.gl-strich{font-size:1.6rem;font-weight:800;color:var(--cop)}
+.gl-ops{display:flex;gap:4px} .gl-ops .taste.sel{border-color:var(--cop);background:var(--cop-soft);color:var(--cop)}
+.gl-opfest{font-size:1.5rem;font-weight:800;color:var(--cop);min-width:1.2em;text-align:center}
+.gl-zahl{display:flex;gap:4px;align-items:stretch} .answer .gl-zahl input.zahl{width:6.5ch}
+.gl-menge{font-size:1.5rem;font-weight:800;align-self:center;white-space:nowrap}
+.gl-rech{display:grid;grid-template-columns:auto auto auto auto;gap:2px 6px;justify-content:center;align-items:center;font-weight:700;font-size:1.15rem;margin:8px 0}
+.gl-rech .gl-l{text-align:right} .gl-rech .gl-r{text-align:left} .gl-rech .gl-u{color:var(--cop);padding-left:4px;white-space:nowrap}
+.gl-rech-m{text-align:center;font-weight:800;font-size:1.15rem}
+.task .gl-rech{font-size:1.25rem}
+.gl-tab{border-collapse:collapse;width:100%;font-size:.95rem;margin:6px 0} .gl-tab td{border-bottom:1px solid var(--line);padding:4px 6px} .gl-tab td:last-child{white-space:nowrap;font-weight:700}
+svg.gl-strecke,svg.gl-waage,svg.gl-figur{width:100%;max-width:340px;height:auto;display:block;margin:0 auto}
+svg.gl-figur{max-width:220px}
+.gl-strecke rect{stroke:var(--text);stroke-width:1.2} .gl-strecke .gl-so{fill:var(--paper)} .gl-strecke .gl-sn{fill:var(--ink-soft)}
+.gl-s0{fill:var(--x-soft)} .gl-s1{fill:var(--ink-soft)} .gl-s2{fill:var(--g-soft)} .gl-s3{fill:var(--v-soft)}
+.gl-strecke rect.gl-mark{stroke:var(--cop);stroke-width:3}
+.gl-st{fill:var(--text);font-size:15px;font-weight:700}
+.gl-fig{fill:var(--ink-soft);stroke:var(--text);stroke-width:1.5}
+.gl-balken,.gl-faden,.gl-schale{stroke:var(--text);stroke-width:2.5} .gl-faden{stroke-width:1.2} .gl-staender{fill:var(--line)}
+.gl-dose{fill:var(--v-soft);stroke:var(--v);stroke-width:1.5} .gl-kugel{fill:var(--ink-soft);stroke:var(--ink);stroke-width:1.5}
 </style>
 </head>
 <body>
@@ -1182,7 +1215,8 @@ UR.zahlFeldHTML = (f,i,platz) => `<label class="lbl" for="z${i}">${f.label}</lab
 // (fehltEinheit → Hinweis). Steht die Einheit fest daneben, genügt die Zahl;
 // eine andere Einheit zählt nur richtig umgerechnet (Umrechnung liefert das Fach: UR.umrechner).
 UR.zahlFelderBewerten = (felder,l,t) => felder.map(f=>{
-  const roh0=l.shift(), wahl=f.einheiten?(l.shift()||''):null, {rest:roh, e:getippt}=UR.einheitAbtrennen(roh0);
+  // f.ohneEinheit: Eingabe ist keine Zahl mit Einheit (z. B. eine Gleichung „51 = 4x“), nichts abtrennen
+  const roh0=l.shift(), wahl=f.einheiten?(l.shift()||''):null, {rest:roh, e:getippt}=f.ohneEinheit?{rest:zahlText(roh0), e:''}:UR.einheitAbtrennen(roh0);
   const soll=f.einheiten?f.einheitAns:f.einheit, e=f.einheiten?(wahl||getippt):getippt;
   const v=f.lesen?f.lesen(roh):UR.leseZahl(roh);
   const passt=(w,um)=>f.lesen ? w!==null&&w!==undefined&&!Number.isNaN(w)&&[f.ans,...(f.auch||[])].some(a=>Math.abs(w-a)<=(f.tol||0)+1e-12*Math.max(1,Math.abs(a)))
@@ -1970,7 +2004,7 @@ UR.fachAnmelden({
 /* Mathe/version.js */
 /* Fassung dieser Datei. Schreibt „node Uebungsraeume/bauen.js“ von selbst, sobald sich der Inhalt ändert;
    nicht von Hand ändern. nummer = Datum.laufende Nummer, pruefsumme = über die Datei ohne diese Zeilen. */
-UR.version = {"nummer":"2026-11-27.24","datum":"27.11.2026","pruefsumme":"bbfdf23d2c969f6a"};
+UR.version = {"nummer":"2026-11-28.15","datum":"28.11.2026","pruefsumme":"f1d642c94478c288"};
 </script>
 <script>
 /* Mathe/bausteine/zahlen.js */
@@ -2773,6 +2807,9 @@ const einsetzen = (term,x,w) => term.replace(new RegExp(`([0-9]?)${x}`,'g'), (m,
 
 UR.terme = {bruchAnzeige, bruchZusammen, einsetzen, einsetzenWert, lies, gleichwertig, text, polyText, rfText, flachListe, flachText, glied, summe, fak, bruch, bruchHTML,
   ggtGlieder, glieder, bewerte, zwischenschritt, aufg, optionen, mischen, versuche, buchst, hoch, qText, Q, umdrehen, zwischenAufgabe,
+  // Polynom eines Terms (für Gleichungen, Mathe/bausteine/gleichungen.js): {Schlüssel: [Zähler, Nenner]}, Schlüssel 'x1', 'x2.y1', '' (Zahl);
+  // null, wenn nicht lesbar oder eine Variable im Nenner steht
+  poly: s => { const f=lies(s); return f ? alsPoly(f) : null; },
   wertVon: s => { const f=lies(s), p=f&&alsPoly(f), k=p&&P.konst(p); if(!k) throw new Error(`keine Zahl: ${s}`); return k; },
   HINWEIS};
 })(window.UR = window.UR || {});
@@ -5184,6 +5221,385 @@ const folgeHTML = l => `<ol class="py-folge">${l.map(x=>`<li>${x.bild?`<div clas
 function beweisSeiten(){ for(;;){ const a=UR.rnd(2,9), b=UR.rnd(2,9); if(a!==b && Math.max(a,b)<=3*Math.min(a,b)) return [a,b]; } }
 
 Object.assign(Py, {svgAus, nebenText, hoehenTeile, hoehenBild, hoehenLage, quadratUeber, quadrateBild, ergaenzungTeile, ergaenzungBild, umlegeBild, kathetensatzBild, zerlegungBild, bildfolge, folgeHTML, beweisSeiten});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/bausteine/gleichungen.js */
+/* Mathe-Baustein: Gleichungen (Thema 3.1, Steckbriefe Mathe/3.1 Gleichungen/, Themenregeln in AUSWAHL.md, seit 28.11.2026).
+   - Exakte Bruchzahlen [Zähler, Nenner] (aus UR.terme), Terme als Baum (Variable, Zahl, + − · /, Gegenzahl), Text und Wert,
+     lineare Gleichungen lösen.
+   - Felder für die Form 'zahlen' (wie M-Pyth-V1 wahlFeld: eigenes feldHTML, lesen, eingabe, rohHTML; ohneEinheit):
+     gleichungFeld (Term links und rechts vom =, Prüfung „gleiche Lösung, noch nicht gelöst“), formelFeld (x = …, jeder
+     gleichwertige Term), umformFeld („| + 5“ mit Rechenzeichen-Tasten), mengeFeld („𝕃 = { … }“), probeFelder (w. A. / f. A.),
+     wahlFeld (Auswahl als Feld). Brüche beim Eintippen: Taste „Bruch“ (Zähler über Nenner, davor und danach Text).
+   - Bilder: streckenBild (ganze Strecke oben, Teile darunter in Farben). Rechnung wie im MKH: rechnung (Zeilen mit „| + 5“).
+   - Satzbausteine Text ↔ Gleichung (das Doppelte, die Hälfte, vermehrt um, Summe, Differenz …) mit Übersetzung Stück für Stück. */
+(function(UR){
+const M = UR.M, esc = UR.esc, Tm = UR.terme, {Q, qText} = Tm;
+const H = s => Tm.bruchAnzeige(String(s));            // Text mit „/“ → HTML mit waagrechten Brüchen
+
+/* ---------- Bruchzahlen ---------- */
+const qa = (a,b) => Q(a[0]*b[1]+b[0]*a[1], a[1]*b[1]);
+const qs = (a,b) => qa(a, [-b[0], b[1]]);
+const qm = (a,b) => Q(a[0]*b[0], a[1]*b[1]);
+const qd = (a,b) => { if(!b[0]) throw new Error('durch 0'); return Q(a[0]*b[1], a[1]*b[0]); };
+const qg = (a,b) => a[0]*b[1]===b[0]*a[1];
+const qz = a => a[0]/a[1];
+const qneg = a => [-a[0], a[1]];
+const dez = (n,k=0) => Q(n, 10**k);                  // dez(237,1) = 23,7
+const qt = q => qText(Q(q[0],q[1]));                  // „−104,1“ (Brüche, die nicht abbrechen: „1/3“)
+const qein = q => qt(q).replace(M,'-');               // so tippt man die Zahl
+// Nachkommastellen eines Bruchs, null, wenn er nicht abbricht
+function stellen(q){ const d=Q(q[0],q[1])[1]; for(let k=0;k<=12;k++) if((10**k)%d===0) return k; return null; }
+const abbrechend = (q, max=3) => { const s=stellen(q); return s!==null&&s<=max; };
+// Text → Bruchzahl („23,7“, „-5“, „(−1)“), null, wenn es keine Zahl ist
+function zahlQ(s){
+  s=String(s??'').trim().replace(/[−–]/g,'-').replace(/\s+/g,'').replace(/^\((.*)\)$/,'$1').replace(/^\+/,'');
+  const m=s.match(/^(-?)(\d+)(?:[.,](\d+))?$/); if(!m) return null;
+  const k=(m[3]||'').length; return Q((m[1]?-1:1)*Number(m[2]+(m[3]||'')), 10**k);
+}
+
+/* ---------- Terme als Baum ---------- */
+const X = v => ({a:'v', v});
+const Z = q => ({a:'z', q: Array.isArray(q) ? Q(q[0],q[1]) : Q(q)});
+const knoten = x => typeof x==='number'||Array.isArray(x) ? Z(x) : x;
+const OP = a => (l,r) => ({a, l:knoten(l), r:knoten(r)});
+const plus = OP('+'), minus = OP('−'), mal = OP('·'), teil = OP('/');
+const neg = t => ({a:'neg', t:knoten(t)});
+function wert(t, env){
+  switch(t.a){
+    case 'v': if(!(t.v in env)) throw new Error('Variable '+t.v); return env[t.v];
+    case 'z': return t.q;
+    case 'neg': return qneg(wert(t.t, env));
+    case '+': return qa(wert(t.l,env), wert(t.r,env));
+    case '−': return qs(wert(t.l,env), wert(t.r,env));
+    case '·': return qm(wert(t.l,env), wert(t.r,env));
+    case '/': return qd(wert(t.l,env), wert(t.r,env));
+  }
+}
+const variablen = t => t.a==='v' ? [t.v] : t.a==='z' ? [] : t.a==='neg' ? variablen(t.t) : [...new Set([...variablen(t.l), ...variablen(t.r)])];
+const istSumme = t => t.a==='+'||t.a==='−';
+const negZahl = t => t.a==='z'&&t.q[0]<0;
+const ganzPos = t => t.a==='z'&&t.q[1]===1&&t.q[0]!==0&&Math.abs(t.q[0])!==1;   // 4x, −7x
+/* Text des Terms: Brüche mit „/“ (die Anzeige stellt sie waagrecht dar, terme.js), ·, echtes Minus.
+   o.q: für t.q (reiner Text) „x durch 7“ statt „x/7“; o.ein {v: Zahl}: Zahl statt Variable (Probe), negative Zahlen in Klammern. */
+function txt(t, o={}){
+  const ein = t.a==='v' && o.ein && t.v in o.ein;
+  const einW = q => q[0]<0 ? `(${qt(q)})` : qt(q);
+  const kl = s => `(${s})`;
+  switch(t.a){
+    case 'v': return ein ? einW(o.ein[t.v]) : t.v;
+    case 'z': return qt(t.q);
+    case 'neg': { const s=txt(t.t,o); return t.t.a==='v'&&!ein ? M+s : `${M}${kl(s)}`; }
+    case '+': return `${txt(t.l,o)} + ${istSumme(t.r)||negZahl(t.r)||t.r.a==='neg' ? kl(txt(t.r,o)) : txt(t.r,o)}`;
+    case '−': return `${txt(t.l,o)} ${M} ${istSumme(t.r)||negZahl(t.r)||t.r.a==='neg' ? kl(txt(t.r,o)) : txt(t.r,o)}`;
+    case '·': {
+      if(!t.punkt && ganzPos(t.l) && t.r.a==='v' && !(o.ein&&t.r.v in o.ein)) return `${qt(t.l.q)}${t.r.v}`;
+      const f = x => istSumme(x)||negZahl(x)||x.a==='neg' ? kl(txt(x,o)) : txt(x,o);
+      return `${f(t.l)} · ${f(t.r)}`;
+    }
+    case '/': {
+      if(o.q){ const f = x => x.a==='v'||x.a==='z' ? txt(x,o) : kl(txt(x,o)); return `${f(t.l)} durch ${f(t.r)}`; }
+      const f = x => x.a==='v'||(x.a==='z'&&x.q[0]>=0) ? txt(x,o) : kl(txt(x,o));
+      return `${f(t.l)}/${f(t.r)}`;
+    }
+  }
+}
+const gl = (l, r, o) => `${txt(l,o)} = ${txt(r,o)}`;
+// lineare Gleichung l = r lösen: {v, x} oder null (keine oder jede Zahl, mehrere Variablen)
+function loesen(l, r){
+  const vs=[...new Set([...variablen(l), ...variablen(r)])]; if(vs.length!==1) return null;
+  const v=vs[0], f = x => qs(wert(l,{[v]:x}), wert(r,{[v]:x}));
+  const b=f([0,1]), a=qs(f([1,1]), b), c=qs(f([2,1]), b);
+  if(!a[0] || !qg(c, qm(a,[2,1]))) return null;      // nicht linear oder ohne eindeutige Lösung
+  return {v, x:qneg(qd(b,a))};
+}
+
+/* ---------- Eingetippte Gleichungen prüfen ---------- */
+const norm = s => String(s??'').replace(/[−–]/g,'-').replace(/\s+/g,'');
+// Gleichung „L = R“: ok, wenn sie linear in einer Variablen ist, dieselbe Lösung hat und noch nicht gelöst ist.
+// o = {x: Lösung, v: Variable (nur diese zählt; ohne v jeder Buchstabe)}. Ergebnis {ok, grund}.
+function pruefeGleichung(roh, o){
+  const s=String(roh??'').trim(); if(!s) return {ok:false, grund:'leer'};
+  const seiten=s.split('=');
+  if(seiten.length!==2||!seiten[0].trim()||!seiten[1].trim()) return {ok:false, grund:'form'};
+  const p=Tm.poly(`(${seiten[0]})-(${seiten[1]})`);
+  if(!p) return {ok:false, grund:'lesen'};
+  const k=Object.keys(p).filter(x=>p[x][0]), mitV=k.filter(x=>x);
+  if(!mitV.length) return {ok:false, grund:'ohneVar'};
+  if(mitV.length>1||!/^[A-Za-z]1$/.test(mitV[0])) return {ok:false, grund:'andere'};
+  const v=mitV[0][0];
+  if(o.v && v!==o.v) return {ok:false, grund:'variable'};
+  const x=qneg(qd(p['']||[0,1], p[mitV[0]]));
+  if(!qg(x, o.x)) return {ok:false, grund:'loesung'};
+  const a=norm(seiten[0]), b=norm(seiten[1]), zahl=/^[-+]?\d+(?:[.,]\d+)?$/, nurV=/^\+?[A-Za-z]$/;
+  if((nurV.test(a)&&zahl.test(b))||(nurV.test(b)&&zahl.test(a))) return {ok:false, grund:'geloest'};
+  return {ok:true};
+}
+const GRUND = {
+  form: 'Schreib links und rechts vom = je einen Term.',
+  lesen: 'Diese Gleichung kann ich nicht lesen. Schau dir die Klammern und Rechenzeichen an.',
+  ohneVar: 'In der Gleichung muss die Variable vorkommen.',
+  andere: 'Die Gleichung passt nicht zum Text.',
+  variable: v => `Nimm die Variable ${v} wie in der Angabe.`,
+  loesung: 'Diese Gleichung passt nicht zum Text: Sie hat eine andere Lösung.',
+  geloest: 'Du hast die Gleichung schon gelöst. Gefragt ist die Gleichung, die zum Text passt.',
+  gleich: 'Schreib nur, was rechts vom = steht.',
+  zeichen: 'Wähle ein Rechenzeichen und schreib die Zahl dazu.'
+};
+// Eingabe zum Anzeigen: Bruchteile „((z)/(n))“ aus der Bruch-Taste wieder als „z/n“ (die Anzeige stellt sie waagrecht dar)
+const einfach = s => /^[A-Za-z0-9,.]+$/.test(s.trim()) ? s.trim() : `(${s.trim()})`;
+const anzeige = roh => String(roh??'').replace(/\(\(([^()]*)\)\/\(([^()]*)\)\)/g, (m,z,n)=>`${einfach(z)}/${einfach(n)}`)
+  .replace(/\(\(([^()]*)\)\)/g,'($1)').replace(/-/g,M).replace(/\*/g,'·').replace(/\s*([=+−·:])\s*/g,' $1 ').replace(/^ (−) /,'$1').replace(/\s+/g,' ').trim();
+
+/* ---------- Felder für die Form 'zahlen' ---------- */
+// Eine Seite: Term-Feld; mit der Taste „Bruch“ kommt ein Bruch (Zähler über Nenner) und danach noch ein Term-Feld dazu.
+const seiteHTML = (id, s, ph) => `<span class="gl-seite" data-glseite="${id}_${s}">
+  <input class="term gl-t" data-glteil="a" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${ph||'?'}" aria-label="${s==='L'?'linke Seite':'rechte Seite'}">
+  <span class="gl-br" hidden><span class="bfeld"><input class="term" data-glteil="z" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Zähler" aria-label="Zähler"><span class="bstrich" aria-hidden="true"></span><input class="term" data-glteil="n" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Nenner" aria-label="Nenner"></span></span>
+  <input class="term gl-t" data-glteil="b" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" hidden placeholder="…" aria-label="nach dem Bruch"></span>`;
+const tastenHTML = (id, vars) => `<div class="tasten gl-tasten" role="group" aria-label="Zeichen einfügen">${[...vars, '·', ':', '(', ')'].map(x=>`<button type="button" class="taste" data-tk="${esc(x)}">${esc(x)}</button>`).join('')}<button type="button" class="taste gl-bruchtaste" data-glbruch="${id}">Bruch</button></div>`;
+// Gleichung eintippen. o = {x: Lösung, v: Variable (Pflicht) | vars: Tasten, ans: Musterlösung (Text), ansText}
+function gleichungFeld(label, o){
+  const vars=o.vars||[o.v||'x'];
+  const f={label, ans:1, v:o.v, ohneEinheit:true, eingabe:o.ans, ansText:anzeige(o.ans), ansHTML:H(anzeige(o.ans)),
+    feldHTML: id => `<div class="gl-feld" data-glfeld="${id}"><div class="gl-zeile">${seiteHTML(id,'L')}<span class="gl-gl">=</span>${seiteHTML(id,'R')}</div>${tastenHTML(id,vars)}<input type="hidden" id="${id}" data-feld value=""></div>`,
+    lesen: roh => { const s=String(roh??'').trim(); if(!s){ f.grund=''; return null; } const e=pruefeGleichung(s,o); f.grund=e.grund||''; return e.ok?1:0; },
+    rohHTML: roh => H(anzeige(roh))};
+  return f;
+}
+// Formel bzw. Term rechts: „links = …“; jeder gleichwertige Term zählt (Variablen wie in soll). o.vars: Tasten,
+// o.ohneTasten: keine eigene Tastenreihe (mehrere Felder: eine gemeinsame Reihe tastenHTML('', vars) in t.nachFeldern)
+function formelFeld(label, links, soll, o={}){
+  const vars=o.vars||[...new Set((soll.match(/[A-Za-z]/g)||[]))];
+  const f={label, ans:1, ohneEinheit:true, eingabe:soll, ansText:`${links} = ${anzeige(soll)}`, ansHTML:H(`${links} = ${anzeige(soll)}`),
+    feldHTML: id => `<div class="gl-feld" data-glfeld="${id}"><div class="gl-zeile"><span class="gl-gl">${esc(links)}&nbsp;=</span>${seiteHTML(id,'R')}</div>${o.ohneTasten?'':tastenHTML(id,vars)}<input type="hidden" id="${id}" data-feld value=""></div>`,
+    lesen: roh => { const s=String(roh??'').trim(); if(!s){ f.grund=''; return null; }
+      if(s.includes('=')){ f.grund='gleich'; return 0; }
+      if(!Tm.lies(s)){ f.grund='lesen'; return NaN; }
+      f.grund=''; return Tm.gleichwertig(s, soll) ? 1 : 0; },
+    rohHTML: roh => H(`${links} = ${anzeige(roh)}`)};
+  return f;
+}
+// Umformung „| + 5“: Rechenzeichen-Tasten und Zahl. richtig = [{op:'+'|'−'|'·'|':', z:Bruchzahl}] (jede davon zählt).
+// o.fest: das Zeichen ist schon gewählt (Einstieg), o.vor: HTML vor dem Strich (die Gleichung)
+const OPS = ['+', M, '·', ':'];
+const opNorm = c => ({'-':M, '–':M, '*':'·', '×':'·', '/':':'}[c]||c);
+const umText = (op, z, term) => term ? `${op} ${anzeige(term)}` : `${op} ${z[0]<0?`(${qt(z)})`:qt(z)}`;
+// + (−5) ist dasselbe wie − 5
+const umNorm = (op, z) => (op==='+'||op===M) && z[0]<0 ? {op: op==='+'?M:'+', z:qneg(z)} : {op, z};
+function umformLesen(roh){
+  const s=String(roh??'').trim(); if(!s) return {leer:true};
+  const m=s.match(/^([+\-−–·*×:/]?)\s*(.*)$/), op=opNorm(m[1]), z=zahlQ(m[2]);
+  const term = !z && /[A-Za-z]/.test(m[2]) && Tm.lies(m[2]) ? m[2].trim() : null;   // Term wie „x“ oder „3x“ (G2-A03, ab V2)
+  return {op, z, term, roh:m[2]};
+}
+// passt die gelesene Umformung e zu r = {op, z} bzw. {op, term}? (+ (−5) ist dasselbe wie − 5)
+function umPasst(e, r){
+  if(!e||!e.op) return false;
+  if(r.term) return !!e.term && e.op===r.op && Tm.gleichwertig(e.term, r.term);
+  if(!e.z) return false;
+  const a=umNorm(e.op,e.z), b=umNorm(r.op,r.z); return a.op===b.op&&qg(a.z,b.z);
+}
+function umformFeld(label, richtig, o={}){
+  const r0=richtig[0];
+  if(o.fest) richtig=richtig.filter(r=>r.op===r0.op);
+  const f={label, ans:1, ohneEinheit:true, eingabe:r0.term?`${r0.op}${r0.term}`:`${r0.op}${qein(r0.z)}`, ansText:`| ${umText(r0.op,r0.z,r0.term)}`, ansHTML:H(`| ${umText(r0.op,r0.z,r0.term)}`),
+    feldHTML: id => `<div class="gl-um" data-glum="${id}"${o.fest?` data-op="${esc(r0.op)}"`:''}>${o.vor?`<span class="gl-vor">${o.vor}</span>`:''}<span class="gl-strich">|</span>${
+      o.fest ? `<span class="gl-opfest">${esc(r0.op)}</span>` : `<span class="gl-ops" role="group" aria-label="Rechenzeichen">${OPS.map(x=>`<button type="button" class="taste gl-op" data-glop="${esc(x)}">${esc(x)}</button>`).join('')}</span>`}<span class="gl-zahl"><button type="button" class="sign" data-vz="${id}_z" aria-label="${UR.TEXTE.minusSetzen}">${M}</button><input id="${id}_z" class="zahl${o.term?' term':''}" inputmode="${o.term?'text':'decimal'}" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="?" aria-label="Zahl der Umformung"></span><input type="hidden" id="${id}" data-feld value=""></div>`,
+    // o.pruefe(e): eigene Prüfung (jede Umformung, die zum Ziel führt), sonst eine aus der Liste richtig
+    lesen: roh => { f.gelesen=null; f.passt=false; const e=umformLesen(roh); if(e.leer){ f.grund=''; return null; }
+      if(!e.op){ f.grund='zeichen'; return e.roh?NaN:null; }
+      if(!e.z&&!e.term){ f.grund=''; return NaN; }
+      f.grund=''; f.gelesen=e;
+      f.passt = o.pruefe ? !!o.pruefe(e) : richtig.some(r=>umPasst(e,r));
+      return f.passt ? 1 : 0; },
+    rohHTML: roh => { const e=umformLesen(roh); return H(e.op&&(e.z||e.term) ? `| ${umText(e.op,e.z,e.term)}` : `| ${String(roh??'').trim()}`); }};
+  return f;
+}
+/* Umformungen nachrechnen: jede Seite als a·x + b (lineare Seiten), ein Schritt wirkt auf beide Seiten.
+   So zählt jede Umformung, die zum Ziel führt (Themenregel: jede gleichwertige Zeile zählt). */
+const lin = (t, v) => { const b=wert(t,{[v]:[0,1]}); return [qs(wert(t,{[v]:[1,1]}),b), b]; };
+const seitenVon = (l, r, v) => [lin(l,v), lin(r,v)];
+// ein Schritt e = {op, z} oder {op, term} auf beide Seiten; null, wenn er nicht geht (durch 0, mal Variable, andere Variable)
+function schritt(S, e, v){
+  if(!S||!e||!e.op) return null;
+  let w;
+  if(e.term){ if(e.op==='·'||e.op===':') return null;
+    const p=Tm.poly(e.term); if(!p) return null;
+    const k=Object.keys(p).filter(x=>p[x][0]); if(k.some(x=>x&&x!==v+'1')) return null;
+    w=[p[v+'1']||[0,1], p['']||[0,1]]; }
+  else { if(!e.z) return null; w=[[0,1], e.z]; }
+  const f = x => e.op==='+' ? [qa(x[0],w[0]), qa(x[1],w[1])] : e.op===M ? [qs(x[0],w[0]), qs(x[1],w[1])]
+    : e.op==='·' ? [qm(x[0],w[1]), qm(x[1],w[1])] : w[1][0] ? [qd(x[0],w[1]), qd(x[1],w[1])] : null;
+  if((e.op==='·'||e.op===':')&&!w[1][0]) return null;
+  return [f(S[0]), f(S[1])];
+}
+const istX = x => qg(x[0],[1,1])&&qg(x[1],[0,1]), konst = x => !x[0][0];
+// Variable allein auf einer Seite, auf der anderen eine Zahl: die Zahl, sonst null
+const isoliert = S => !S ? null : istX(S[0])&&konst(S[1]) ? S[1][1] : istX(S[1])&&konst(S[0]) ? S[0][1] : null;
+// noch genau ein Schritt bis zum Ziel (aber noch nicht dort): eine Seite Zahl, die andere x + b oder a·x
+// (andere Seite 0 und −x + b: mit „+ x“ steht x rechts allein)
+const vorZiel = S => !!S && isoliert(S)===null && [[0,1],[1,0]].some(([i,j])=>konst(S[j]) && S[i][0][0] && (qg(S[i][0],[1,1]) || !S[i][1][0] || (qg(S[i][0],[-1,1]) && !S[j][1][0])));
+
+// Lösungsmenge „𝕃 = { … }“: nur die Zahl, exakt (reine Rechnung)
+const mengeFeld = (x, o={}) => ({label:o.label||'Lösungsmenge', ans:qz(x), exakt:true, eingabe:qein(x), ansText:`𝕃 = {${qt(x)}}`,
+  feldHTML: id => `<span class="gl-menge">𝕃 = {</span><button type="button" class="sign" data-vz="${id}" aria-label="${UR.TEXTE.minusSetzen}">${M}</button><input id="${id}" class="zahl" data-feld inputmode="decimal" placeholder="?"><span class="gl-menge">}</span>`});
+// Auswahl als Feld (wie M-Pyth-V1): ans = Nummer der richtigen Wahl
+function wahlFeld(label, optionen, richtig, schluessel, o={}){
+  const nr={}; optionen.forEach(([v],i)=>nr[v]=i+1);
+  const text = v => { const x=optionen.find(y=>y[0]===v); return x ? x[1] : v; };
+  return {label, ans:nr[richtig], ohneEinheit:true, eingabe:richtig, ansText:text(richtig).replace(/<[^>]+>/g,''), ansHTML:text(richtig),
+    feldHTML:()=>`${UR.wahlFeld(schluessel)}${UR.wahlGruppe(schluessel, optionen, {klasse:o.klasse||''})}`,
+    lesen:roh=>{ const s=String(roh??'').trim(); return s==='' ? null : (nr[s]||NaN); }, rohHTML:roh=>text(roh)};
+}
+// Probe: linke Seite, rechte Seite (exakt), dann w. A. / f. A.
+const WA = [['w','w. A. (wahre Aussage)'],['f','f. A. (falsche Aussage)']];
+const probeFelder = (o) => [
+  {label:o.linksLabel||'Linke Seite', ans:qz(o.links), exakt:true, ansText:qt(o.links), feldHTML:id=>`<button type="button" class="sign" data-vz="${id}" aria-label="${UR.TEXTE.minusSetzen}">${M}</button><input id="${id}" class="zahl" data-feld inputmode="decimal" placeholder="?">`},
+  {label:o.rechtsLabel||'Rechte Seite', ans:qz(o.rechts), exakt:true, ansText:qt(o.rechts), feldHTML:id=>`<button type="button" class="sign" data-vz="${id}" aria-label="${UR.TEXTE.minusSetzen}">${M}</button><input id="${id}" class="zahl" data-feld inputmode="decimal" placeholder="?">`},
+  wahlFeld(o.wahlLabel||'Beide Seiten gleich?', WA, qg(o.links,o.rechts)?'w':'f', o.schluessel||'probe', {klasse:'lang'})];
+// Hinweis aus den Feldern (grund) für t.hinweisNach
+const hinweisAus = (t, extra) => erg => {
+  if(extra){ const h=extra(erg); if(h) return h; }
+  for(let i=0;i<t.felder.length;i++){ const f=t.felder[i], g=f.grund; if(!erg[i].zahlOk && g){ const h=GRUND[g]; return typeof h==='function' ? h(f.v||'x') : h; } }
+  return '';
+};
+
+/* ---------- Eingaben zusammensetzen (Browser) ---------- */
+UR.bindungen.push(app=>{
+  if(!app.querySelectorAll) return;   // Testumgebung ohne DOM
+  // Die Taste „Bruch“ wirkt auf die Seite, in der zuletzt getippt wurde (auch über mehrere Felder, gemeinsame Tasten)
+  const alleSeiten=[...app.querySelectorAll('[data-glseite]')];
+  let zuletzt=alleSeiten[0];
+  const zeigen = () => app.querySelectorAll('[data-glbruch]').forEach(k=>k.classList.toggle('sel', !!zuletzt && !zuletzt.querySelector('.gl-br').hidden));
+  app.querySelectorAll('[data-glfeld]').forEach(box=>{
+    const h=box.querySelector('input[type=hidden][data-feld]'), seiten=[...box.querySelectorAll('[data-glseite]')];
+    const wertVon = s => {
+      const g = k => { const e=s.querySelector(`[data-glteil="${k}"]`); return e ? e.value.trim() : ''; };
+      let w=g('a'); const br=s.querySelector('.gl-br');
+      if(br && !br.hidden){ const z=g('z'), n=g('n'); if(z||n) w+=(w?' ':'')+(n?`((${z})/(${n}))`:`(${z})`); const b=g('b'); if(b) w+=' '+b; }
+      return w.trim();
+    };
+    const sync = () => { const w=seiten.map(wertVon); h.value = w.length===2 ? (w[0]||w[1] ? `${w[0]} = ${w[1]}` : '') : w[0]; };
+    box.glSync = sync;
+    box.querySelectorAll('input.term').forEach(i=>{ i.addEventListener('input',sync); i.addEventListener('focus',()=>{ zuletzt=i.closest('[data-glseite]'); zeigen(); }); });
+    if(h.form) h.form.addEventListener('submit',sync,true);
+  });
+  // Tasten fügen ohne input-Ereignis ein: danach alle Felder übernehmen
+  app.querySelectorAll('[data-tk]').forEach(b=>b.addEventListener('click',()=>setTimeout(()=>app.querySelectorAll('[data-glfeld]').forEach(x=>x.glSync&&x.glSync()),0)));
+  app.querySelectorAll('[data-glbruch]').forEach(knopf=>{
+    knopf.addEventListener('pointerdown',e=>e.preventDefault());
+    knopf.addEventListener('click',()=>{
+      if(!zuletzt) return;
+      const br=zuletzt.querySelector('.gl-br'), nach=zuletzt.querySelector('[data-glteil="b"]'), an=br.hidden;
+      br.hidden=!an; nach.hidden=!an; zuletzt.classList.toggle('mitBruch', an);
+      if(an) zuletzt.querySelector('[data-glteil="z"]').focus();
+      else { zuletzt.querySelectorAll('.gl-br input, [data-glteil="b"]').forEach(x=>{ x.value=''; }); zuletzt.querySelector('[data-glteil="a"]').focus(); }
+      zeigen(); const box=zuletzt.closest('[data-glfeld]'); if(box&&box.glSync) box.glSync();
+    });
+  });
+  app.querySelectorAll('[data-glum]').forEach(box=>{
+    const h=box.querySelector('input[type=hidden][data-feld]'), z=box.querySelector('input.zahl');
+    let op=box.dataset.op||'';
+    const sync = () => { const s=z.value.trim(); h.value = op||s ? `${op}${s}` : ''; };
+    box.querySelectorAll('[data-glop]').forEach(b=>b.addEventListener('click',()=>{
+      op=b.dataset.glop; box.querySelectorAll('[data-glop]').forEach(x=>x.classList.toggle('sel',x===b)); sync(); z.focus(); }));
+    z.addEventListener('input',sync);
+    box.querySelectorAll('[data-vz]').forEach(b=>b.addEventListener('click',()=>setTimeout(sync,0)));
+    if(h.form) h.form.addEventListener('submit',sync,true);
+  });
+});
+
+/* ---------- Streckenbild ---------- */
+// oben: Beschriftung der ganzen Strecke; teile [{t: Beschriftung, w: Länge fürs Bild, f: Farbe 0–3 (sonst der Reihe nach)}]
+// o.farbe: Teile farbig (sonst grau), o.mark: Nummer des Teils (oder 'oben'), das hervorgehoben wird
+function streckenBild(oben, teile, o={}){
+  const B=300, sum=teile.reduce((s,x)=>s+x.w,0), min=26;
+  let ws=teile.map(x=>Math.max(min, x.w/sum*B)); const k=B/ws.reduce((s,x)=>s+x,0); ws=ws.map(x=>x*k);
+  const rect = (x,y,w,cls,t) => { const fs=Math.min(15, Math.max(10, (w-4)/(String(t).length*0.62)));
+    return `<rect class="${cls}" x="${x.toFixed(1)}" y="${y}" width="${w.toFixed(1)}" height="28" rx="3"/><text class="gl-st" x="${(x+w/2).toFixed(1)}" y="${y+19}" style="font-size:${fs.toFixed(1)}px" text-anchor="middle">${esc(t)}</text>`; };
+  let x=2, teil='';
+  teile.forEach((s,i)=>{ const c = o.farbe ? `gl-s${s.f??i%4}` : 'gl-sn'; teil+=rect(x,44,ws[i],`${c}${o.mark===i?' gl-mark':''}`,s.t); x+=ws[i]; });
+  return `<svg class="gl-strecke" viewBox="0 0 304 76" role="img" aria-label="Streckenbild: ${esc(oben)} oben, darunter ${esc(teile.map(s=>s.t).join(', '))}">${rect(2,6,B,`gl-so${o.mark==='oben'?' gl-mark':''}`,oben)}${teil}</svg>`;
+}
+
+/* ---------- Rechnung wie im MKH ---------- */
+// zeilen [{l, r, u}] (Texte): „x − 5 = 12 | + 5“, darunter „x = 17“; optional am Schluss 𝕃
+const rechnung = (zeilen, o={}) => `<div class="gl-rech">${zeilen.map(z=>`<span class="gl-l">${H(z.l)}</span><span class="gl-g">=</span><span class="gl-r">${H(z.r)}</span><span class="gl-u">${z.u?`| ${H(z.u)}`:''}</span>`).join('')}</div>${o.menge?`<div class="gl-rech-m">𝕃 = {${H(o.menge)}}</div>`:''}`;
+const merk = s => `<span class="merk gl-merk">${s}</span>`;
+// Mathe farbig: Variablen blau, Rechenzeichen orange, Zahlen grün (Brüche bleiben ein Stück, damit sie waagrecht erscheinen)
+const farbig = s => String(s).includes('/') ? `<span class="c1">${H(s)}</span>` : String(s).replace(/([A-Za-z]+)|(\d+(?:,\d+)?)|([+−·:=])/g, (m,v,z,o)=>
+  v ? `<span class="c1">${v}</span>` : z ? `<span class="c2">${z}</span>` : `<span class="cop">${o}</span>`);
+const uebersetzung = stuecke => stuecke.map(([de,ma])=>`${esc(de)} → ${farbig(ma)}`).join('<br>');
+const zurueck = stuecke => stuecke.map(([de,ma])=>`${farbig(ma)} → ${esc(de)}`).join('<br>');
+
+/* ---------- Satzbausteine Text ↔ Gleichung ---------- */
+const VIEL = {2:'Doppelte', 3:'Dreifache', 4:'Vierfache', 5:'Fünffache', 6:'Sechsfache', 10:'Zehnfache'};
+const TEL = {3:'Drittel', 4:'Viertel', 5:'Fünftel', 6:'Sechstel', 7:'Siebtel', 8:'Achtel', 9:'Neuntel', 10:'Zehntel'};
+const viel = k => VIEL[k] || `${k}-fache`;
+const gross = s => s[0].toUpperCase()+s.slice(1);
+const zahlWort = t => t.a==='z' ? qt(t.q) : null;
+// Nominalgruppe eines Terms im Fall (nom, akk, gen, dat). o.zahl: „eine Zahl“ | „eine unbekannte Zahl“ | „eine Zahl x“
+function nomen(t, fall, o={}){
+  const nd = fall==='nom'||fall==='akk';
+  switch(t.a){
+    case 'v': { const z=o.zahl||'eine Zahl'; return nd ? z : z.replace(/^eine (\S+ )?Zahl/, (m,a)=>`einer ${a?a.replace(/e $/,'en '):''}Zahl`); }
+    case '·': { const k=qz(t.l.q), w=viel(k)+(nd?'':'n'); return `${nd?'das':fall==='gen'?'des':'dem'} ${w} ${nomen(t.r,'gen',o)}`; }
+    case '/': { const k=qz(t.r.q);
+      const kopf = k===2 ? (nd?'die Hälfte':'der Hälfte') : nd ? `ein ${TEL[k]}` : fall==='gen' ? `eines ${TEL[k]}s` : `dem ${TEL[k]}`;
+      return `${kopf} ${nomen(t.l,'gen',o)}`; }
+    case '+': return `${nd?'die':'der'} Summe aus ${nomen(t.l,'dat',o)} und ${zahlWort(t.r)??nomen(t.r,'dat',o)}`;
+    case '−': return `${nd?'die':'der'} Differenz aus ${zahlWort(t.l)??nomen(t.l,'dat',o)} und ${zahlWort(t.r)??nomen(t.r,'dat',o)}`;
+    case 'z': return qt(t.q);
+  }
+  throw new Error('kein Satzbaustein für '+t.a);
+}
+const einfachV = t => t.a==='v';
+const ersteOp = t => t.a==='·'&&t.l.a==='z'&&einfachV(t.r) ? 'mal' : t.a==='/'&&t.r.a==='z'&&einfachV(t.l) ? 'teil' : '';
+/* Satz zu „l = c“ (c Zahl). Gibt {text, stuecke: [[Textstück, Mathe]], klammer: Hinweis}.
+   o.zahl wie bei nomen, o.art: eine bestimmte Satzart (sonst zufällig), o.v: Variable */
+function satz(l, c, o={}){
+  const C=qt(c), T=txt(l), arten=[];
+  const gen = () => { const verb=UR.pick(['ist','ergibt','beträgt']); const n=nomen(l,'nom',o);
+    return {text:`${gross(n)} ${verb} ${C}.`, stuecke:[[n,T],[verb,'='],[C,C]]}; };
+  arten.push(['gen', gen]);
+  if((l.a==='+'||l.a==='−') && l.r.a==='z'){
+    const A=l.l, b=qt(l.r.q), At=txt(A), p=l.a==='+', zz=p?`+ ${b}`:`${M} ${b}`;
+    arten.push(['man', () => ({text:`${p?'Vermehrt':'Vermindert'} man ${nomen(A,'akk',o)} um ${b}, so erhält man ${C}.`,
+      stuecke:[[nomen(A,'akk',o),At],[`${p?'vermehrt':'vermindert'} um ${b}`,zz],['so erhält man','='],[C,C]]})]);
+    arten.push(['zu', () => ({text: p ? `Addiert man zu ${nomen(A,'dat',o)} ${b}, so erhält man ${C}.` : `Subtrahiert man von ${nomen(A,'dat',o)} ${b}, so erhält man ${C}.`,
+      stuecke:[[nomen(A,'dat',o),At],[p?`addiert ${b}`:`subtrahiert ${b}`,zz],['so erhält man','='],[C,C]]})]);
+    arten.push(['du', () => ({text: p ? `Vergrößere ${nomen(A,'akk',o)} um ${b} und du erhältst ${C}.` : `Subtrahierst du von ${nomen(A,'dat',o)} ${b}, so erhältst du ${C}.`,
+      stuecke:[[nomen(A,'akk',o),At],[p?`vergrößert um ${b}`:`subtrahiert ${b}`,zz],['du erhältst','='],[C,C]]})]);
+    const e=ersteOp(A);
+    if(e) arten.push(['kette', () => { const k=qt(e==='mal'?A.l.q:A.r.q), v=e==='mal'?A.r.v:A.l.v, z=o.zahl&&/ [a-z]$/.test(o.zahl)?`eine Zahl ${v}`:'eine Zahl';
+      return {text:`${e==='mal'?`Multipliziere ${z} mit ${k}`:`Dividiere ${z} durch ${k}`}, ${p?`addiere ${b}`:`subtrahiere ${b}`}. Du erhältst ${C}.`,
+        stuecke:[[e==='mal'?`mit ${k} multipliziert`:`durch ${k} dividiert`, At],[p?`addiere ${b}`:`subtrahiere ${b}`,zz],['du erhältst','='],[C,C]]}; }]);
+  }
+  if(l.a==='−' && l.l.a==='z' && einfachV(l.r)) arten.push(['von', () => ({text:`Subtrahiert man ${nomen(l.r,'akk',o)} von ${qt(l.l.q)}, so erhält man ${C}.`,
+    stuecke:[[`${qt(l.l.q)} minus ${nomen(l.r,'akk',o)}`,T],['so erhält man','='],[C,C]]})]);
+  const e=ersteOp(l);
+  if(e==='mal') arten.push(['op', () => ({text:`Multipliziert man ${nomen(l.r,'akk',o)} mit ${qt(l.l.q)}, so erhält man ${C}.`, stuecke:[[`mit ${qt(l.l.q)} multipliziert`,T],['so erhält man','='],[C,C]]})]);
+  if(e==='teil') arten.push(['op', () => ({text:`Dividiert man ${nomen(l.l,'akk',o)} durch ${qt(l.r.q)}, so erhält man ${C}.`, stuecke:[[`durch ${qt(l.r.q)} dividiert`,T],['so erhält man','='],[C,C]]})]);
+  const wahl = o.art ? arten.find(a=>a[0]===o.art)||arten[0] : UR.pick(arten);
+  const r=wahl[1]();
+  r.text=r.text.replace(/von dem /g,'vom ').replace(/zu dem /g,'zum ').replace(/zu der /g,'zur ');
+  const innen = l.a==='·'&&istSumme(l.r) ? l.r : l.a==='/'&&istSumme(l.l) ? l.l : null;
+  r.klammer = innen ? `Die ${innen.a==='+'?'Summe':'Differenz'} wird zuerst gebildet, deshalb steht sie in Klammern.` : '';
+  r.art = wahl[0];
+  return r;
+}
+// „Eine Zahl ist um k größer als c“ → x = c + k (gross) bzw. x = c − k
+function vergleichSatz(v, c, k, gr, o={}){
+  const z = o.zahl||UR.pick(['eine Zahl','die gesuchte Zahl']);
+  return {text:`${gross(z)} ist um ${qt(k)} ${gr?'größer':'kleiner'} als ${qt(c)}.`, l:X(v), r:gr?plus(Z(c),Z(k)):minus(Z(c),Z(k)),
+    stuecke:[[z,v],['ist','='],[`um ${qt(k)} ${gr?'größer':'kleiner'} als ${qt(c)}`,`${qt(c)} ${gr?'+':M} ${qt(k)}`]], klammer:''};
+}
+
+UR.glei = {qa, qs, qm, qd, qg, qz, qneg, dez, qt, qein, zahlQ, stellen, abbrechend, X, Z, plus, minus, mal, teil, neg, wert, variablen, txt, gl, loesen,
+  pruefeGleichung, GRUND, anzeige, tastenHTML, gleichungFeld, formelFeld, umformFeld, umformLesen, umPasst, umNorm, umText, mengeFeld, wahlFeld, probeFelder, WA, hinweisAus,
+  lin, seitenVon, schritt, isoliert, vorZiel, H, streckenBild, rechnung, merk, farbig, uebersetzung, zurueck, nomen, satz, vergleichSatz, viel, VIEL, TEL, OPS};
 })(window.UR = window.UR || {});
 </script>
 <script>
@@ -14906,6 +15322,644 @@ const E_ = E;
 
 const lzk = {merkmal:{begriffe:'begriffe_zins', jahreszinsen:'jahreszinsen', monate:'zinsen_teil', tage:'zinsen_teil', zinseszins:'zinseszins'}};
 UR.kompetenzAnmelden({id:'M-Proz-X2', typen, stationen, kern, plus, plusHint, erklaerung, lzk, festeAuswahl:['begriffe']});
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/3.1 Gleichungen/M-Glei-G1.js */
+/* Baustein M-Glei-G1: „Ich kann einfache Gleichungen und Formeln aufstellen.“
+   Steckbrief: M-Glei-G1.md, Auswahl und Themenregeln: AUSWAHL.md (27.11.2026). Aufgestellt, nicht gelöst: Richtig ist jede
+   Gleichung mit derselben Lösung, die noch nicht gelöst ist (UR.glei.gleichungFeld). G1-A06 ist weggelassen. */
+(function(UR){
+const {rnd, pick} = UR;
+const M = UR.M, esc = UR.esc;
+const G = UR.glei, {mischen, versuche} = UR.terme;
+const {H, zurueck, X, Z, plus, minus, mal, teil, txt, gl, loesen, qt, qg, qz, dez, wert, satz, vergleichSatz, uebersetzung, farbig, merk, streckenBild} = G;
+
+/* ---------- Gleichungen aus Satzbausteinen ---------- */
+const zahlG = (a, b, pDez=0) => Math.random()<pDez ? versuche(()=>{ const n=rnd(a*10,b*10); return n%10 ? dez(n,1) : null; }) : [rnd(a,b),1];
+const gleich = (a,b) => a.l && JSON.stringify([a.l,a.r])===JSON.stringify([b.l,b.r]);
+const istSumme = t => t.a==='+'||t.a==='−';
+// Gleichung l = r mit Text. stufe 1: ein Rechenschritt, 2: zwei, 3: mit Klammer. o.ohneVgl: ohne „um … größer als“
+function gleichung(stufe, o={}){
+  return versuche(()=>{
+    const v = Math.random()<.7 ? 'x' : pick(['y','a','n']), named = v!=='x' || Math.random()<.25;
+    const zahl = named ? `eine Zahl ${v}` : pick(['eine Zahl','eine Zahl','eine unbekannte Zahl']);
+    const x=X(v), k=rnd(2,10), b=rnd(2,99), c=zahlG(2,200,.2);
+    if(qg(c,[b,1])||qg(c,[k,1])) return null;
+    let l;
+    if(stufe===1){
+      const f=pick(o.ohneVgl?['mal','teil','plus','minus','von']:['mal','teil','plus','minus','von','vgl']);
+      if(f==='vgl'){ const gr=Math.random()<.5; if(!gr&&b>=qz(c)) return null;
+        const s=vergleichSatz(v, c, [b,1], gr, {zahl: named ? `die Zahl ${v}` : pick(['eine Zahl','die gesuchte Zahl'])});
+        return {l:s.l, r:s.r, v, named, zahl, s, stufe, vgl:true, sw:Math.random()<.5}; }
+      l = f==='mal' ? mal(k,x) : f==='teil' ? teil(x,k) : f==='plus' ? plus(x,b) : f==='minus' ? minus(x,b) : minus(b,x);
+    } else if(stufe===2){
+      const A = Math.random()<.6 ? mal(k,x) : teil(x,Math.min(k,8));
+      l = Math.random()<.5 ? plus(A,b) : minus(A,b);
+    } else {
+      const S = pick([plus(x,b), minus(x,b), minus(b,x)]);
+      l = Math.random()<.7 ? mal(k,S) : teil(S.a==='−'&&S.l.a==='z'?minus(x,b):S, Math.min(k,5));
+    }
+    return {l, r:Z(c), v, named, zahl, s:satz(l, c, {zahl, art:o.art}), stufe};
+  });
+}
+const stufeZufall = ctx => ctx&&ctx.leicht ? 1 : pick([1,1,2,2,2,3]);
+const glText = e => e.sw ? gl(e.r, e.l) : gl(e.l, e.r);
+const glQ = e => e.sw ? gl(e.r, e.l, {q:true}) : gl(e.l, e.r, {q:true});
+const eingabe = e => `${txt(e.l)} = ${txt(e.r)}`;
+const loesung = e => loesen(e.l, e.r);
+// typische Fehler: andere linke Seiten (falsche Rechenart, Klammer vergessen oder zu viel, Reihenfolge der Differenz)
+function fehlerSeiten(l){
+  const out=[], A=l.l, B=l.r;
+  switch(l.a){
+    case '·': if(A.a==='z'){ out.push(plus(B,A), teil(B,A)); if(istSumme(B)) out.push({a:B.a, l:mal(A,B.l), r:B.r}); fehlerSeiten(B).forEach(f=>out.push(mal(A,f))); } break;
+    case '/': out.push(mal(B,A), minus(A,B)); if(istSumme(A)) out.push({a:A.a, l:teil(A.l,B), r:A.r}); fehlerSeiten(A).forEach(f=>out.push(teil(f,B))); break;
+    case '+': out.push(minus(A,B));
+      if(A.a==='v') out.push(mal(B,A), minus(B,A));
+      if(A.a==='·'&&A.l.a==='z') out.push(mal(A.l, plus(A.r,B)));
+      if(A.a==='/'&&A.r.a==='z') out.push(teil(plus(A.l,B), A.r));
+      fehlerSeiten(A).filter(f=>!istSumme(f)).forEach(f=>out.push(plus(f,B))); break;
+    case '−':
+      if(A.a==='z'){ out.push(minus(B,A), plus(B,A)); break; }
+      out.push(plus(A,B), minus(B,A));
+      if(A.a==='·'&&A.l.a==='z') out.push(mal(A.l, minus(A.r,B)));
+      if(A.a==='/'&&A.r.a==='z') out.push(teil(minus(A.l,B), A.r));
+      fehlerSeiten(A).filter(f=>!istSumme(f)).forEach(f=>out.push(minus(f,B))); break;
+  }
+  return out;
+}
+function fehlerGleichungen(e){
+  if(e.vgl){ const [c,k]=[e.r.l, e.r.r], gr=e.r.a==='+';
+    return [{l:gr?plus(e.l,k):minus(e.l,k), r:c}, {l:e.l, r:minus(k,c)}, {l:e.l, r:gr?minus(c,k):plus(c,k)}, {l:gr?minus(e.l,k):plus(e.l,k), r:c}].map(f=>Object.assign(f,{sw:e.sw})); }
+  const out=fehlerSeiten(e.l).map(l=>({l, r:e.r}));
+  if((e.l.a==='+'||e.l.a==='−') && e.l.r.a==='z') out.push({l:{a:e.l.a, l:e.l.l, r:e.r}, r:e.l.r});   // Zahlen vertauscht
+  return out;
+}
+// n verschiedene Gleichungen: die richtige und n−1 Fehler, alle mit verschiedener Lösung (nie zwei gleichwertige)
+function auswahl(e, n){
+  const l=[e], x=[loesung(e)]; if(!x[0]) return null;
+  for(const f of mischen(fehlerGleichungen(e))){
+    const y=loesung(f); if(!y||x.some(z=>qg(z.x,y.x))||l.some(g=>glText(g)===glText(f))) continue;
+    l.push(f); x.push(y); if(l.length===n) return l;
+  }
+  return null;
+}
+const TABELLE = `das Doppelte → 2x · die Hälfte → ${UR.terme.bruchAnzeige('x/2')} · vermehrt um 5 → + 5 · vermindert um 5 → − 5 · ist, ergibt → =`;
+const merkTabelle = () => merk(`Übersetze Stück für Stück: ${TABELLE}`);
+
+/* ---------- Bilder ---------- */
+// einfache Figuren mit beschrifteten Seiten (G1-N02)
+function figurSVG(art, n){
+  const T = (x,y,s) => `<text class="gl-st" x="${x}" y="${y}" text-anchor="middle">${esc(s)}</text>`;
+  let k='';
+  if(art==='quadrat') k=`<rect class="gl-fig" x="60" y="10" width="80" height="80"/>${T(100,8,n[0])}${T(100,106,n[0])}${T(50,55,n[0])}${T(150,55,n[0])}`;
+  else if(art==='rechteck') k=`<rect class="gl-fig" x="30" y="20" width="140" height="70"/>${T(100,16,n[0])}${T(100,106,n[0])}${T(20,60,n[1])}${T(180,60,n[1])}`;
+  else if(art==='gleichseitig') k=`<polygon class="gl-fig" points="50,95 150,95 100,8"/>${T(100,112,n[0])}${T(65,50,n[0])}${T(135,50,n[0])}`;
+  else k=`<polygon class="gl-fig" points="45,95 155,95 100,10"/>${T(100,112,n[1])}${T(62,50,n[0])}${T(138,50,n[0])}`;
+  return `<svg class="gl-figur" viewBox="0 -6 200 124" role="img" aria-label="Figur">${k}</svg>`;
+}
+const geld = q => { const s=qt(q); return s.includes(',') ? (s.split(',')[1].length===1 ? s+'0' : s) : s; };
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // G1-A01 Text → Gleichung aufstellen
+  aufstellen(ctx){
+    const leicht=ctx&&ctx.leicht, e=gleichung(stufeZufall(ctx));
+    const t = {kind:'zahlen', q:e.s.text, text:true, lead:leicht?merk(`Schon übersetzt:<br>${uebersetzung(e.s.stuecke)}`):'Stelle die Gleichung auf!',
+      pruef:'aufstellen', daten:e,
+      felder:[G.gleichungFeld('Gleichung', {x:loesung(e).x, v:e.named?e.v:undefined, vars:[e.v], ans:eingabe(e)})],
+      why:`Stück für Stück übersetzt:<br>${uebersetzung(e.s.stuecke)}${e.s.klammer?`<br>${e.s.klammer}`:''}<br>Die Gleichung: ${H(glText(e))}. Auch jede umgestellte Gleichung mit derselben Lösung ist richtig.`};
+    t.hinweisNach = G.hinweisAus(t);
+    return UR.dreiecke.aufg(t);
+  },
+  // G1-A02 Text und Gleichung zuordnen
+  zuordnen(ctx){
+    const leicht=ctx&&ctx.leicht;
+    return versuche(()=>{
+      const k=rnd(2,5), b=rnd(1,30), c=rnd(b+2,50), x=X('x');
+      const formen=[[mal(k,x),c],[teil(x,k),c],[plus(mal(k,x),b),c],[minus(mal(k,x),b),c],[plus(teil(x,k),b),c],[minus(teil(x,k),b),c],[plus(x,b),c],[minus(x,b),c],[mal(k,plus(x,b)),c]];
+      const paare = mischen(formen).slice(0,4).map(([l,cc])=>{ const s=satz(l,[cc,1]); return {text:s.text, g:gl(l,Z(cc)), kurz:gl(l,Z(cc),{q:true}), s}; });
+      if(Math.random()<.15){ const n=rnd(5,13); paare[3]={text:`Das Quadrat einer Zahl ergibt ${n*n}.`, g:`x² = ${n*n}`, kurz:`x² = ${n*n}`, s:{stuecke:[['das Quadrat einer Zahl','x²'],['ergibt','='],[String(n*n),String(n*n)]]}}; }
+      if(new Set(paare.map(p=>p.g)).size<4||new Set(paare.map(p=>p.text)).size<4) return null;
+      const dinge=mischen(paare.map((p,i)=>({id:'g'+i, html:H(p.g), kurz:p.kurz}))), ziele=paare.map((p,i)=>({id:'t'+i, text:esc(p.text)})), ans={};
+      paare.forEach((p,i)=>ans['g'+i]='t'+i);
+      return UR.dreiecke.aufg({kind:'zuordnen', q:`Ordne jedem Text die passende Gleichung zu! ${paare.map(p=>p.text).join(' ')}`, qh:'Ordne jedem Text die passende Gleichung zu!',
+        lead:leicht?merkTabelle():'', pruef:'zuordnen', daten:{paare}, dinge, ziele, ans,
+        why:paare.map(p=>`${esc(p.text)} → ${H(p.g)}`).join('<br>')});
+    });
+  },
+  // G1-A04 Streckenbild → Gleichung
+  strecke(ctx){
+    const leicht=ctx&&ctx.leicht, art=pick(['zahlen','zahlen','gleich','var','oben']);
+    let cm=Math.random()<.4;
+    let oben='x', teile, soll, warum;
+    if(art==='zahlen'){ const n=pick([2,2,3]), z=Array.from({length:n},()=>rnd(2,99));
+      teile=z.map(w=>({t:cm?`${w} cm`:String(w), w})); soll=z.join(' + '); warum='Die ganze Strecke ist die Summe ihrer Teile.'; }
+    else if(art==='gleich'){ const n=rnd(2,8), d=rnd(2,20);
+      teile=Array.from({length:n},()=>({t:cm?`${d} cm`:String(d), w:d, f:0})); soll=`${n} · ${d}`; warum=`${n} gleich lange Teile zu je ${d}: ${n}-mal ${d}.`; }
+    else { const u=art==='oben'?'x':pick(['a','b','y']), m=rnd(2,4), d=rnd(2,30), w=rnd(8,20);
+      oben = art==='oben' ? pick(['a','b','y']) : 'x';
+      teile=[...Array.from({length:m},()=>({t:u, w, f:0})), {t:cm?`${d} cm`:String(d), w:d, f:1}]; if(Math.random()<.3) teile.reverse();
+      soll=`${m}${u} + ${d}`; warum=`${m}-mal ${u} und dazu ${d}: ${m}${u} + ${d} (auch ${Array(m).fill(u).join(' + ')} + ${d}).`; cm=false; }
+    const t = {kind:'zahlen', q:`Gib zur Zeichnung die passende Gleichung an! Oben die ganze Strecke ${oben}, darunter ${teile.map(s=>s.t).join(', ')}.`,
+      qh:'Gib zur Zeichnung die passende Gleichung an!', lead:leicht?merk(`Die ganze Strecke oben ist die Summe der Teile darunter.${art==='gleich'?' Gleiche Teile kannst du mit · zusammenfassen.':''}`):cm?'Schreib die Gleichung ohne Einheit.':'',
+      pruef:'strecke', daten:{oben, teile, soll}, bild:streckenBild(oben, teile, {farbe:leicht}),
+      felder:[G.formelFeld('Gleichung', oben, soll.replace(/ /g,''), {vars:[...new Set(teile.map(s=>s.t).filter(s=>/^[a-z]$/.test(s)))]})],
+      why:`${warum} ${esc(oben)} = ${esc(soll)}. Jeder gleichwertige Term zählt, auch ausgerechnet.`, loesungBild:streckenBild(oben, teile, {farbe:true})};
+    t.hinweisNach = G.hinweisAus(t);
+    return UR.dreiecke.aufg(t);
+  },
+  // G1-N01 Welche Gleichung passt zum Text?
+  passt(ctx){
+    const leicht=ctx&&ctx.leicht;
+    return versuche(()=>{
+      const e=gleichung(stufeZufall(ctx)), l=auswahl(e,3); if(!l) return null;
+      const opt=mischen(l.map((g,i)=>['o'+i, H(glText(g))]));
+      return UR.dreiecke.aufg({kind:'fragen', q:e.s.text, text:true, lead:leicht?merk(`Schon übersetzt:<br>${uebersetzung(e.s.stuecke)}`):'Welche Gleichung passt zum Text?',
+        pruef:'passt', daten:{e, l}, gruppen:[{optionen:opt, ans:'o0', klasse:'lang'}],
+        why:`Stück für Stück übersetzt:<br>${uebersetzung(e.s.stuecke)}${e.s.klammer?`<br>${e.s.klammer}`:''}`});
+    });
+  },
+  // G1-N02 Formel aufstellen (Alltag und Figuren)
+  formel(ctx){
+    const leicht=ctx&&ctx.leicht, art=pick(['preis','preis','gebuehr','gebuehr','figur','figur']);
+    let q, gr, soll, why, bild='', vars, hilfe;
+    if(art==='preis'){
+      const [ding, mehr, n] = pick([['Eine Kinokarte','Karten','n'],['Ein Heft','Hefte','n'],['Eine Kugel Eis','Kugeln','k'],['Eine Busfahrkarte','Fahrkarten','n'],
+        ['Ein Eintritt ins Hallenbad','Eintritte','n'],['Ein Stück Kuchen','Stücke','s'],['Ein Liter Benzin','Liter','x'],['Eine Packung Saft','Packungen','p'],['Ein Kilogramm Äpfel','Kilogramm','m']]);
+      const p = Math.random()<.5 ? [rnd(1,15),1] : versuche(()=>{ const c=rnd(10,150); return c%10 ? dez(c,1) : null; });
+      gr=pick(['P','K']); soll=`${qt(p)}·${n}`;
+      q=`${ding} kostet ${geld(p)} €. Stelle eine Formel für ${gr==='P'?'den Preis':'die Kosten'} ${gr} von ${n} ${mehr} auf!`;
+      why=`Für ${n} ${mehr} zahlt man ${n}-mal ${geld(p)} €: ${gr} = ${qt(p)} · ${n}.`; vars=[n]; hilfe=`Preis für ${n} Stück = Preis für 1 Stück · ${n}`;
+    } else if(art==='gebuehr'){
+      const [wer, grund, je, was, g, n, mehr] = pick([['Ein Taxi verlangt','Grundgebühr','je Kilometer','Fahrpreis','K','s','Kilometern'],
+        ['Ein Fahrradverleih verlangt','Grundgebühr','je Stunde','Leihpreis','P','t','Stunden'],['Ein Handytarif kostet','Grundgebühr im Monat','je Gigabyte','Monatsbetrag','K','n','Gigabyte'],
+        ['Ein Kletterpark verlangt','Eintritt','je Stunde','Preis','P','t','Stunden'],['Ein Lieferdienst verlangt','Grundgebühr','je Kilometer','Lieferpreis','K','x','Kilometern']]);
+      const f=rnd(2,10), p=versuche(()=>{ const c=rnd(5,60); return c%10 ? dez(c,1) : null; });
+      gr=g; soll=`${qt(p)}·${n}+${f}`;
+      q=`${wer} ${f} € ${grund} und ${geld(p)} € ${je}. Stelle eine Formel für den ${was} ${g} bei ${n} ${mehr} auf!`;
+      why=`Die ${grund.split(' ')[0]} zahlt man einmal, dazu ${n}-mal ${geld(p)} €: ${g} = ${qt(p)} · ${n} + ${f}.`; vars=[n]; hilfe=`${g} = Betrag je Einheit · ${n} + einmaliger Betrag`;
+    } else {
+      const fig=pick(['quadrat','rechteck','rechteckA','gleichseitig','gleichschenkelig']);
+      if(fig==='quadrat'){ const a=pick(['a','s','x']); gr='u'; soll=`4·${a}`; q=`Ein Quadrat hat die Seitenlänge ${a}. Stelle eine Formel für den Umfang u auf!`;
+        why=`Der Umfang ist die Summe aller Seiten: u = ${a} + ${a} + ${a} + ${a} = 4 · ${a}.`; bild=figurSVG('quadrat',[a]); vars=[a]; }
+      else if(fig==='rechteck'||fig==='rechteckA'){ const [a,b]=pick([['a','b'],['l','b'],['x','y']]);
+        bild=figurSVG('rechteck',[a,b]); vars=[a,b];
+        if(fig==='rechteck'){ gr='u'; soll=`2·${a}+2·${b}`; q=`Ein Rechteck hat die Seitenlängen ${a} und ${b}. Stelle eine Formel für den Umfang u auf!`;
+          why=`Der Umfang ist die Summe aller Seiten: u = ${a} + ${b} + ${a} + ${b} = 2 · ${a} + 2 · ${b} (auch 2 · (${a} + ${b})).`; }
+        else { gr='A'; soll=`${a}·${b}`; q=`Ein Rechteck hat die Seitenlängen ${a} und ${b}. Stelle eine Formel für den Flächeninhalt A auf!`;
+          why=`Flächeninhalt des Rechtecks: Länge mal Breite, A = ${a} · ${b}.`; } }
+      else if(fig==='gleichseitig'){ const a=pick(['a','s']); gr='u'; soll=`3·${a}`; q=`Ein gleichseitiges Dreieck hat die Seitenlänge ${a}. Stelle eine Formel für den Umfang u auf!`;
+        why=`Alle drei Seiten sind gleich lang: u = ${a} + ${a} + ${a} = 3 · ${a}.`; bild=figurSVG('gleichseitig',[a]); vars=[a]; }
+      else { const [a,c]=pick([['a','c'],['b','c'],['s','g']]); gr='u'; soll=`2·${a}+${c}`;
+        q=`Ein gleichschenkeliges Dreieck hat die Schenkel ${a} und die Basis ${c}. Stelle eine Formel für den Umfang u auf!`;
+        why=`Zwei Schenkel und die Basis: u = ${a} + ${a} + ${c} = 2 · ${a} + ${c}.`; bild=figurSVG('gleichschenkelig',[a,c]); vars=[a,c]; }
+      hilfe='Der Umfang ist die Summe aller Seiten.';
+    }
+    const t = {kind:'zahlen', q, text:true, lead:leicht?merk(hilfe):'Stelle eine Formel auf!', pruef:'formel', daten:{art, gr, soll}, bild,
+      felder:[G.formelFeld('Formel', gr, soll, {vars})], why:`${esc(why)} Jede gleichwertige Formel zählt.`};
+    t.hinweisNach = G.hinweisAus(t);
+    return UR.dreiecke.aufg(t);
+  },
+  // G1-A05 Streckenbild: nach jeder Größe auflösen
+  streckeAlle(ctx){
+    const leicht=ctx&&ctx.leicht;
+    const [vo, p, r] = mischen(['x','a','b','y','z','s']).slice(0,3);
+    const art=pick(['einfach','doppelt','doppelt','oben2']);
+    const ct = art==='oben2' ? 2 : 1, cp = art==='doppelt' ? 2 : 1;
+    const wp=rnd(3,8), wr=rnd(3,8);
+    let teile=[...Array.from({length:cp},()=>({t:p, w:wp, f:0})), {t:r, w:wr, f:1}]; if(Math.random()<.4) teile=[teile[teile.length-1], ...teile.slice(0,-1)];
+    const oben = ct>1 ? `${ct}${vo}` : vo;
+    const glied = (c,v) => c>1 ? `${c}${v}` : v;
+    const durch = (s,c) => c>1 ? `(${s})/${c}` : s;
+    const s = {
+      [vo]: durch(`${glied(cp,p)} + ${r}`, ct),
+      [p]: durch(`${glied(ct,vo)} − ${r}`, cp),
+      [r]: `${glied(ct,vo)} − ${glied(cp,p)}`};
+    const reihe=[vo, p, r];
+    const t = {kind:'zahlen', q:`Gib zur Zeichnung die Gleichungen an! Oben die ganze Strecke ${oben}, darunter ${teile.map(x=>x.t).join(', ')}.`,
+      qh:'Gib zur Zeichnung die Gleichungen an!', text:true,
+      lead:leicht?merk('Die ganze Strecke ist die Summe der Teile. Ein Teil ist die ganze Strecke ohne die anderen Teile.'):'',
+      pruef:'streckeAlle', daten:{oben, ct, vo, cp, p, r, teile, s}, bild:streckenBild(oben, teile, {farbe:leicht}),
+      felder:reihe.map(v=>G.formelFeld(`Nach ${v} aufgelöst`, v, s[v].replace(/−/g,'-').replace(/ /g,''), {vars:reihe, ohneTasten:true})),
+      nachFeldern:G.tastenHTML('', reihe),
+      why:`${esc(oben)} ist die Summe der Teile: ${esc(oben)} = ${esc(glied(cp,p))} + ${r}.<br>${reihe.map(v=>`${v} = ${H(s[v])}`).join('<br>')}<br>Statt durch ${ct>1?ct:cp} geteilt (Bruchstrich) darfst du auch „: ${ct>1?ct:cp}“ schreiben.`.replace(/Statt durch 1 .*$/,''),
+      loesungBild:streckenBild(oben, teile, {farbe:true})};
+    t.hinweisNach = G.hinweisAus(t);
+    return UR.dreiecke.aufg(t);
+  },
+  // G1-N03 (Plus) Gleichung → Text
+  text(ctx){
+    return versuche(()=>{
+      const e=gleichung(pick([1,2,2]), {ohneVgl:true}), l=auswahl(e,3); if(!l) return null;
+      const saetze=l.map((g,i)=>i===0?e.s.text:satz(g.l, g.r.q, {zahl:e.zahl, art:e.s.art}).text);
+      if(new Set(saetze).size<3) return null;
+      const opt=mischen(saetze.map((s,i)=>['o'+i, esc(s)]));
+      return UR.dreiecke.aufg({kind:'fragen', q:`Welcher Satz passt zur Gleichung ${glQ(e)}?`, qh:`Welcher Satz passt zur Gleichung?<div class="ex">${H(glText(e))}</div>`,
+        pruef:'text', daten:{e, l, saetze}, gruppen:[{optionen:opt, ans:'o0', klasse:'lang'}],
+        why:`Die Gleichung Stück für Stück zurückübersetzt:<br>${zurueck(e.s.stuecke)}`});
+    });
+  },
+  // G1-N04 (Plus) Welche Zahl passt? (Einsetzen)
+  einsetzen(ctx){
+    return versuche(()=>{
+      const e=gleichung(pick([1,2]), {ohneVgl:true}), x=[rnd(1,100),1];
+      const c=wert(e.l,{[e.v]:x}); if(!G.abbrechend(c,2)||qz(c)<=0) return null;
+      const f={l:e.l, r:Z(c), v:e.v};
+      const kand=fehlerGleichungen(f).map(loesung).filter(Boolean).map(y=>y.x).concat([[x[0]+1,1],[x[0]-1,1],[x[0]+2,1]]);
+      const zahlen=[x];
+      for(const y of mischen(kand)){ if(zahlen.length===4) break; if(G.abbrechend(y,2)&&!zahlen.some(z=>qg(z,y))) zahlen.push(y); }
+      if(zahlen.length<4) return null;
+      const opt=mischen(zahlen.map((z,i)=>['o'+i, qt(z)]));
+      const zeile = z => { const w=wert(e.l,{[e.v]:z}); return `${H(txt(e.l,{ein:{[e.v]:z}}))} = ${H(qt(w))} ${qg(w,c)?`= ${qt(c)} ✓ (w. A.)`:`≠ ${qt(c)}`}`; };
+      return UR.dreiecke.aufg({kind:'fragen', q:`Welche Zahl ist die Lösung der Gleichung ${gl(e.l,Z(c),{q:true})}?`, qh:`Welche Zahl ist die Lösung der Gleichung?<div class="ex">${H(gl(e.l,Z(c)))}</div>`,
+        lead:'Setze die Zahlen ein!', pruef:'einsetzen', daten:{l:e.l, c, v:e.v, zahlen},
+        gruppen:[{optionen:opt, ans:'o0'}],
+        why:`Eingesetzt für ${e.v}:<br>${zahlen.map(zeile).join('<br>')}<br>Nur ${qt(x)} ergibt eine wahre Aussage.`});
+    });
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Welche Gleichung passt?', hint:'Das Vierfache einer Zahl ist 51 → 4x = 51', types:['passt','zuordnen']},
+  {id:'S2', name:'Gleichungen aufstellen', hint:'Die Summe aus dem Viertel einer Zahl und 19 ergibt 82', types:['aufstellen']},
+  {id:'S3', name:'Streckenbild', hint:'x = 65 + 32', types:['strecke']},
+  {id:'S4', name:'Ein Bild, drei Gleichungen', hint:'x = a + b, a = x − b, b = x − a', types:['streckeAlle']},
+  {id:'S5', name:'Formeln aufstellen', hint:'P = 9 · n', types:['formel']}
+];
+const kern = ['aufstellen','zuordnen','strecke','passt','formel','streckeAlle'];
+const leicht = ['aufstellen','zuordnen','strecke','passt','formel','streckeAlle'];
+const plusTypen = ['text','einsetzen'];
+const plusHint = 'Gleichung → Text · Welche Zahl passt?';
+const lzk = {aufwand:{aufstellen:2, streckeAlle:3, zuordnen:3}};
+
+/* ---------- Erklärung ---------- */
+const beispiel = () => gleichung(pick([1,2,3]), {ohneVgl:true});
+const erklaerung = {
+  beispiele: () => ({e:beispiel(), z:[rnd(10,90), rnd(10,90)], p:rnd(3,15)}),
+  neu(kind,E){ if(kind==='satz') E.e=beispiel(); if(kind==='strecke') E.z=[rnd(10,90), rnd(10,90)]; if(kind==='formel') E.p=rnd(3,15); },
+  html(E){
+    const {e, z, p} = E;
+    return `<section class="sheet"><h2>Gleichungen und Formeln aufstellen</h2>
+    <div class="rule"><h3>So stellst du eine Gleichung auf</h3><ol><li>Bestimme, wofür die Variable steht (meist x für die gesuchte Zahl).</li>
+      <li>Übersetze den Text Stück für Stück in die mathematische Sprache.</li><li>Stelle die Gleichung auf.</li></ol>
+      <table class="gl-tab"><tr><td>das Doppelte, Dreifache, n-fache einer Zahl</td><td>${farbig('2x, 3x, n · x')}</td></tr><tr><td>die Hälfte, ein Drittel einer Zahl</td><td>${farbig('x/2')}, ${farbig('x/3')}</td></tr>
+      <tr><td>vermehrt um, addiert, Summe</td><td>${farbig('+')}</td></tr><tr><td>vermindert um, subtrahiert, Differenz</td><td>${farbig('−')}</td></tr>
+      <tr><td>multipliziert, Produkt</td><td>${farbig('·')}</td></tr><tr><td>dividiert, Quotient</td><td>${farbig(':')} oder Bruchstrich</td></tr><tr><td>ist, ergibt, erhält man</td><td>${farbig('=')}</td></tr></table>
+      <p class="ex">${esc(e.s.text)}</p><p>${uebersetzung(e.s.stuecke)}</p>${e.s.klammer?`<p>${e.s.klammer}</p>`:''}<p class="ex">${H(glText(e))}</p>
+      <button class="newex" data-newex="satz">Neues Beispiel</button></div>
+    <div class="rule"><h3>Streckenbild</h3><p>Die ganze Strecke oben ist die Summe ihrer Teile darunter.</p>
+      ${streckenBild('x', [{t:String(z[0]), w:z[0]}, {t:String(z[1]), w:z[1]}], {farbe:true})}
+      <p class="ex">x = ${z[0]} + ${z[1]}<br>${z[0]} = x − ${z[1]}<br>${z[1]} = x − ${z[0]}</p>
+      <button class="newex" data-newex="strecke">Neues Beispiel</button></div>
+    <div class="rule"><h3>Formeln aus dem Alltag</h3><p>Eine Kinokarte kostet ${p} €. Für n Karten zahlt man n-mal ${p} €:</p><p class="ex">P = ${p} · n</p>
+      <p>Setzt du für n eine Zahl ein, erhältst du den Preis: für 3 Karten P = ${p} · 3 = ${3*p} €.</p>
+      <button class="newex" data-newex="formel">Neues Beispiel</button></div>
+    <p class="small muted">Eine Gleichung ist richtig aufgestellt, wenn sie zum Text passt. Du musst sie hier noch nicht lösen. Umgestellt ist sie auch richtig: 51 = 4x oder x · 4 = 51.</p>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 3.1 Gleichungen.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`;
+  }
+};
+
+UR.kompetenzAnmelden({id:'M-Glei-G1', typen, stationen, kern, leicht, plus:plusTypen, plusHint, erklaerung, lzk});
+UR.glei.g1 = {gleichung, fehlerGleichungen, auswahl, glText, eingabe};
+})(window.UR = window.UR || {});
+</script>
+<script>
+/* Mathe/3.1 Gleichungen/M-Glei-G2.js */
+/* Baustein M-Glei-G2: „Ich kenne das Prinzip der Äquivalenzumformungen, kann sie durch Rechenregeln begründen und anwenden.“
+   Steckbrief: M-Glei-G2.md, Auswahl und Themenregeln: AUSWAHL.md (27.11.2026). Schreibweise wie im MKH: Umformung rechts nach
+   dem Strich („| + 5“), am Ende 𝕃 = {17}. Lösungen exakt, höchstens 3 Nachkommastellen. Felder: UR.glei (gleichungen.js). */
+(function(UR){
+const {rnd, pick} = UR;
+const M = UR.M, esc = UR.esc;
+const G = UR.glei, {mischen, versuche} = UR.terme;
+const {H, X, Z, plus, minus, mal, teil, neg, txt, gl, loesen, qt, qg, qz, qm, qd, qa, qs, qneg, dez, wert, abbrechend, merk, rechnung, umText, umPasst} = G;
+
+const VARS = ['x','x','x','a','b','y','z','k','n','s'];
+const nz = (a,b) => { let n=0; while(!n) n=rnd(a,b); return n; };
+// Zahl für die Stufe: 1 ganz, 2 mit 1 bis 2 Nachkommastellen (wie LZK)
+function zahl(stufe, min, max){
+  if(stufe===1) return [nz(min,max),1];
+  return versuche(()=>{ const k=pick([1,1,2]), n=rnd(min*10**k, max*10**k); return n&&n%10 ? dez(n,k) : null; });
+}
+const pos = (stufe, max=99) => zahl(stufe, 2, max);
+const GEGEN = {'+':M, [M]:'+', '·':':', ':':'·'};
+const MERK_GEGEN = merk('Gegenoperationen: + ↔ − und · ↔ :. Rechne auf beiden Seiten dasselbe.');
+// jede Umformung, nach der die Variable allein steht
+const zumZiel = e => { const S=G.seitenVon(e.l, e.r, e.v); return g => G.isoliert(G.schritt(S, g, e.v))!==null; };
+const stufe = ctx => ctx&&ctx.leicht ? 1 : pick([1,2,2]);
+const zeile = (l, r, u) => ({l:txt(l), r:txt(r), u});
+const glH = (l, r) => H(gl(l, r));
+
+/* ---------- Gleichungen mit einer Umformung ---------- */
+// + und −: x − a = b, x + a = b, a + x = b (auch Seiten vertauscht). Ergebnis {l, r, v, u: Umformung, x: Lösung}
+function plusMinus(s){
+  return versuche(()=>{
+    const v=pick(VARS), x=X(v), a=pos(s), b=zahl(s,-99,99), art=pick(['minus','plus','plusVorn']);
+    if(qg(a,b)||qg(a,qneg(b))) return null;
+    const term = art==='minus' ? minus(x,a) : art==='plus' ? plus(x,a) : plus(a,x);
+    const sw=Math.random()<.25, l=sw?Z(b):term, r=sw?term:Z(b);
+    const u={op: art==='minus' ? '+' : M, z:a}, L=loesen(l,r);
+    if(!abbrechend(L.x,3)) return null;
+    return {l, r, v, u, x:L.x, art, sw, a, b};
+  });
+}
+// · und :: kx = b, x/k = b (auch Seiten vertauscht, auch „k · a“)
+function malDurch(s){
+  return versuche(()=>{
+    const v=pick(VARS), x=X(v), k=[rnd(2,15)*(s>1&&Math.random()<.3?-1:1),1], art=pick(['mal','mal','durch']);
+    let b, term;
+    if(art==='mal'){ b = s===1 ? qm(k,[nz(-60,60),1]) : zahl(2,-1000,1000); term=Object.assign(mal(k,x), {punkt:Math.random()<.25}); }
+    else { b = zahl(s,-99,99); term=teil(x,k); }
+    if(Math.abs(qz(b))>1000) return null;
+    const sw=Math.random()<.2, l=sw?Z(b):term, r=sw?term:Z(b);
+    const u={op: art==='mal' ? ':' : '·', z:k}, L=loesen(l,r);
+    if(!abbrechend(L.x,3)||Math.abs(qz(L.x))>10000) return null;
+    return {l, r, v, u, x:L.x, art, sw, k, b};
+  });
+}
+// Minus vor der Variablen: a − x = b, −x + a = b, (−x)/n = b. Zwei Wege (zuerst − a oder zuerst + x); paare = [[Umformung 1, Umformung 2]]
+function minusX(s){
+  return versuche(()=>{
+    const v=pick(VARS), x=X(v), art=pick(['amx','amx','mxa','bruch']);
+    const a=pos(s), b=art==='bruch'?zahl(s,-99,99):pos(s);
+    if(qg(a,b)) return null;
+    let l, mitte, paare;
+    const m1=[{op:'·', z:[-1,1]}, {op:':', z:[-1,1]}];
+    if(art==='bruch'){ const n=[rnd(2,9),1]; l=teil(neg(x),n);
+      mitte={l:neg(x), r:Z(qm(n,b))};
+      paare=[[[{op:'·', z:n}], m1], [m1, [{op:'·', z:n}]]]; }
+    else { l = art==='amx' ? minus(a,x) : plus(neg(x),a);
+      mitte={l:neg(x), r:Z(qs(b,a))};
+      paare=[[[{op:M, z:a}], m1], [[{op:'+', term:v}], [{op:M, z:b}]]]; }
+    const L=loesen(l,Z(b)); if(!abbrechend(L.x,3)||!L.x[0]) return null;
+    return {l, r:Z(b), v, x:L.x, art, mitte, paare, a, b};
+  });
+}
+// richtige Rechnung als Zeilen
+const rechnung1 = e => rechnung([zeile(e.l, e.r, umText(e.u.op, e.u.z)), {l:e.v, r:qt(e.x)}], {menge:qt(e.x)});
+const rechnung2 = e => rechnung([zeile(e.l, e.r, umText(e.paare[0][0][0].op, e.paare[0][0][0].z)), zeile(e.mitte.l, e.mitte.r, umText('·',[-1,1])), {l:e.v, r:qt(e.x)}], {menge:qt(e.x)});
+const opWort = {'+':'+', [M]:M, '·':'·', ':':':'};
+// Hinweis, wenn dieselbe Rechenart statt der Gegenoperation gewählt wurde
+const gegenHinweis = (f, u) => { const g=f.gelesen; return g&&g.op&&g.op===GEGEN[u.op] ? `Das ist dieselbe Rechenart wie in der Gleichung. Nimm die Gegenoperation: ${umText(u.op,u.z)}.` : ''; };
+function warum1(e){
+  const {op,z}=e.u, zt=qt(z);
+  if(op==='+'||op===M) return `Um ${GEGEN[op]} ${zt} wegzubekommen, rechnest du auf beiden Seiten ${op} ${zt} (Gegenoperation).`;
+  return op===':' ? `${e.v} wird mit ${z[0]<0?`(${zt})`:zt} multipliziert. Die Gegenoperation ist : ${z[0]<0?`(${zt})`:zt}, auf beiden Seiten.`
+    : `${e.v} wird durch ${z[0]<0?`(${zt})`:zt} geteilt. Die Gegenoperation ist · ${z[0]<0?`(${zt})`:zt}, auf beiden Seiten.`;
+}
+function einUmformung(e, ctx){
+  const leicht=ctx&&ctx.leicht;
+  const t = {kind:'zahlen', q:`Löse die Gleichung ${gl(e.l,e.r,{q:true})} durch eine Äquivalenzumformung und schreibe die Lösungsmenge an!`,
+    qh:glH(e.l,e.r), lead:`${leicht?MERK_GEGEN:''}Löse die Gleichung durch eine Äquivalenzumformung und schreibe die Lösungsmenge an!`,
+    pruef:'eins', daten:e,
+    felder:[G.umformFeld('Umformung', [e.u], {fest:leicht, pruefe:zumZiel(e)}), G.mengeFeld(e.x)],
+    why:warum1(e), stepsh:rechnung1(e)};
+  t.hinweisNach = G.hinweisAus(t, erg => !erg[0].zahlOk ? gegenHinweis(t.felder[0], e.u) : '');
+  return UR.dreiecke.aufg(t);
+}
+// typische falsche Lösungen (Probe, Fehler finden)
+function falscheLoesungen(e){
+  const l=[];
+  if(e.u){ const {op,z}=e.u, b=e.b;
+    if(op==='+'||op===M) l.push(op==='+' ? qs(b,z) : qa(b,z), qneg(e.x));
+    else { l.push(op===':' ? qm(b,z) : qd(b,z), qneg(e.x)); } }
+  else l.push(qneg(e.x), e.mitte.r.q);
+  return l.filter(y=>abbrechend(y,3)&&!qg(y,e.x));
+}
+
+/* ---------- Waage (G2-N02) ---------- */
+function waageSVG(L, R, o={}){
+  // L, R = {d: Dosen, k: Kugeln}
+  const schale = (cx, s) => {
+    let h=''; const dw=22, dh=26, kr=7;
+    for(let i=0;i<s.d;i++){ const x=cx-(s.d*(dw+4))/2+i*(dw+4)+2; h+=`<rect class="gl-dose" x="${x}" y="${78-dh-(s.k>6?2*16:s.k?16:0)}" width="${dw}" height="${dh}" rx="4"/><text class="gl-st" x="${x+dw/2}" y="${78-dh/2+5-(s.k>6?2*16:s.k?16:0)}" text-anchor="middle">x</text>`; }
+    for(let i=0;i<s.k;i++){ const reihe=Math.floor(i/6), inR=Math.min(6, s.k-reihe*6), j=i%6; h+=`<circle class="gl-kugel" cx="${cx-(inR*16)/2+j*16+8}" cy="${78-kr-reihe*16}" r="${kr}"/>`; }
+    return `<line class="gl-schale" x1="${cx-60}" y1="80" x2="${cx+60}" y2="80"/>${h}`;
+  };
+  return `<svg class="gl-waage" viewBox="0 0 300 120" role="img" aria-label="Waage: links ${L.d} Dosen und ${L.k} Kugeln, rechts ${R.d} Dosen und ${R.k} Kugeln">
+    <polygon class="gl-staender" points="150,22 138,112 162,112"/><line class="gl-balken" x1="70" y1="22" x2="230" y2="22"/>
+    <line class="gl-faden" x1="75" y1="22" x2="75" y2="80"/><line class="gl-faden" x1="225" y1="22" x2="225" y2="80"/>${schale(75,L)}${schale(225,R)}</svg>`;
+}
+const dt = n => n===1 ? X('x') : mal(n,X('x'));
+const dosen = n => n===1 ? '1 Dose' : `${n} Dosen`, kugeln = n => n===1 ? '1 Kugel' : `${n} Kugeln`;
+
+/* ---------- Formeln umformen (G2-A06) ---------- */
+// [Formel links, rechts, {gesucht: [Lösung, Ablenker, Ablenker]}], Brüche mit „/“ (Anzeige waagrecht), ρ nur zur Auswahl
+const FORMELN = [
+  ['s','v · t',{t:['s/v','s · v','v/s'], v:['s/t','s · t','t/s']}],
+  ['W','F · s',{F:['W/s','W · s','s/W'], s:['W/F','W · F','F/W']}],
+  ['ρ','m/V',{m:['ρ · V','ρ/V','V/ρ'], V:['m/ρ','m · ρ','ρ/m']}],
+  ['A','a · b',{a:['A/b','A · b','b/A'], b:['A/a','A · a','a/A']}],
+  ['u','4a',{a:['u/4','4u','u − 4']}],
+  ['u','a + b + c',{a:['u − b − c','u + b + c','b + c − u'], c:['u − a − b','u + a + b','a + b − u']}],
+  ['u','2 · (a + b)',{a:['u/2 − b','u − 2b','(u − b)/2'], b:['u/2 − a','u − 2a','(u − a)/2']}],
+  ['A','(a · h)/2',{h:['(2A)/a','A/(2a)','2A · a'], a:['(2A)/h','A/(2h)','2A · h']}],
+  ['V','a · b · c',{c:['V/(a · b)','V · a · b','(a · b)/V']}],
+  ['P','U · I',{U:['P/I','P · I','I/P'], I:['P/U','P · U','U/P']}],
+  ['U','R · I',{R:['U/I','U · I','I/U'], I:['U/R','U · R','R/U']}],
+  ['v','s/t',{s:['v · t','v/t','t/v'], t:['s/v','s · v','v/s']}],
+  ['p','F/A',{F:['p · A','p/A','A/p'], A:['F/p','F · p','p/F']}],
+  ['d','2r',{r:['d/2','2d','d − 2']}],
+  ['K','2,5 · n + 4',{n:['(K − 4)/2,5','K/2,5 − 4','(K + 4)/2,5']}]
+];
+
+// ρ steht neben dem Bruchstrich in Klammern, damit die Anzeige den Bruch waagrecht setzt (sie kennt nur lateinische Buchstaben)
+const fH = s => H(String(s).replace(/ρ\//g,'(ρ)/').replace(/\/ρ/g,'/(ρ)'));
+
+/* ---------- Aufgabentypen ---------- */
+const typen = {
+  // G2-A01 Gleichungen mit + und − (eine Umformung)
+  pm(ctx){ return einUmformung(plusMinus(stufe(ctx)), ctx); },
+  // G2-A02 Gleichungen mit · und : (eine Umformung)
+  md(ctx){ return einUmformung(malDurch(stufe(ctx)), ctx); },
+  // G2-A03 Minus vor der Variablen
+  minusx(ctx){
+    const leicht=ctx&&ctx.leicht, e=minusX(stufe(ctx));
+    const [p1, p2] = e.paare, v1=[...p1[0], ...p2[0]], v2=[...p1[1], ...p2[1]];
+    const start=G.seitenVon(e.l, e.r, e.v);
+    const f1=G.umformFeld('1. Umformung', leicht?p1[0]:v1, {fest:leicht, term:!leicht, pruefe:g=>G.vorZiel(G.schritt(start,g,e.v))});
+    // die 2. Umformung passt zur 1. (bei falscher 1. Umformung: zum üblichen ersten Schritt)
+    const f2=G.umformFeld('2. Umformung', leicht?p1[1]:v2, {vor:leicht?glH(e.mitte.l,e.mitte.r):'…', fest:leicht,
+      pruefe:g=>G.isoliert(G.schritt(G.schritt(start, f1.passt?f1.gelesen:p1[0][0], e.v), g, e.v))!==null});
+    const t = {kind:'zahlen', q:`Löse die Gleichung ${gl(e.l,e.r,{q:true})} und schreibe die Lösungsmenge an!`, qh:glH(e.l,e.r),
+      lead:`${leicht?merk(`Zuerst kommt ${esc(e.v)} mit Minus allein auf eine Seite: ${H(gl(e.mitte.l,e.mitte.r))}. Dann mal (−1) auf beiden Seiten.`):''}Löse die Gleichung mit zwei Umformungen und schreibe die Lösungsmenge an! Am Schluss soll ${esc(e.v)} ohne Minus allein stehen.`,
+      pruef:'minusx', daten:e, felder:[f1, f2, G.mengeFeld(e.x)],
+      why:`${M}${esc(e.v)} = ${qt(e.mitte.r.q)} heißt: Die Gegenzahl von ${esc(e.v)} ist ${qt(e.mitte.r.q)}. Mal (${M}1) auf beiden Seiten: ${esc(e.v)} = ${qt(e.x)}.${e.art!=='bruch'?` Du kannst auch zuerst + ${esc(e.v)} rechnen.`:''}`,
+      stepsh:rechnung2(e)};
+    t.hinweisNach = G.hinweisAus(t);
+    return UR.dreiecke.aufg(t);
+  },
+  // G2-A04 Umformungsschritte eintragen
+  schritt(ctx){
+    const leicht=ctx&&ctx.leicht, e=Math.random()<.5 ? plusMinus(1) : malDurch(1);
+    const t = {kind:'zahlen', q:`Die Gleichung ${gl(e.l,e.r,{q:true})} wurde zu ${e.v} = ${qt(e.x)} umgeformt. Schreibe den Umformungsschritt in den Platzhalter!`,
+      qh:`Die Gleichung wurde umgeformt. Schreibe den Umformungsschritt in den Platzhalter!${rechnung([zeile(e.l,e.r,'?'), {l:e.v, r:qt(e.x)}])}`,
+      lead:leicht?MERK_GEGEN:'', pruef:'schritt', daten:e,
+      felder:[G.umformFeld('Umformungsschritt (auf beiden Seiten)', [e.u], {pruefe:zumZiel(e)})],
+      why:`Aus ${H(txt(e.sw?e.r:e.l))} wurde ${esc(e.v)}: ${e.u.op==='+'?`Es wurde ${qt(e.u.z)} addiert`:e.u.op===M?`Es wurde ${qt(e.u.z)} subtrahiert`:e.u.op==='·'?`Es wurde mit ${qt(e.u.z)} multipliziert`:`Es wurde durch ${qt(e.u.z)} dividiert`}, auf beiden Seiten.`,
+      stepsh:rechnung1(e)};
+    t.hinweisNach = G.hinweisAus(t, erg => !erg[0].zahlOk ? gegenHinweis(t.felder[0], e.u) : '');
+    return UR.dreiecke.aufg(t);
+  },
+  // G2-A05 Probe machen
+  probe(ctx){
+    const leicht=ctx&&ctx.leicht;
+    return versuche(()=>{
+      const s=stufe(ctx), art=pick(s>1?['pm','md','mx','zwei']:['pm','md','mx']);
+      let e;
+      if(art==='zwei'){ const v=pick(VARS), k=[rnd(2,9),1], a=pos(1,40), x=[nz(-20,20),1], p=Math.random()<.5;
+        const l=p?plus(mal(k,X(v)),a):minus(mal(k,X(v)),a); e={l, r:Z(wert(l,{[v]:x})), v, x}; }
+      else e = art==='pm' ? plusMinus(s) : art==='md' ? malDurch(s) : minusX(s);
+      const falsch = art==='zwei' ? [qneg(e.x), qa(e.x,[1,1])] : falscheLoesungen(e);
+      const z = Math.random()<.5 || !falsch.length ? e.x : pick(falsch);
+      const L=wert(e.l,{[e.v]:z}), R=wert(e.r,{[e.v]:z});
+      if(!abbrechend(L,3)||!abbrechend(R,3)) return null;
+      const ein={[e.v]:z}, lt=txt(e.l,{ein}), rt=txt(e.r,{ein}), ok=qg(L,R);
+      const felder=G.probeFelder({links:L, rechts:R, linksLabel:leicht?`Linke Seite: ${H(lt)} =`:`Linke Seite (${esc(e.v)} = ${qt(z)} eingesetzt)`,
+        rechtsLabel:e.r.a==='z'?'Rechte Seite':leicht?`Rechte Seite: ${H(rt)} =`:`Rechte Seite (${esc(e.v)} = ${qt(z)} eingesetzt)`, wahlLabel:`Ist ${esc(e.v)} = ${qt(z)} die Lösung?`, schluessel:'probe'});
+      return UR.dreiecke.aufg({kind:'zahlen', q:`Mache die Probe! ${gl(e.l,e.r,{q:true})}; ist ${e.v} = ${qt(z)} die Lösung?`,
+        qh:`Mache die Probe! Setze die Zahl ein und rechne beide Seiten aus.<div class="ex">${glH(e.l,e.r)}</div>Ist ${esc(e.v)} = ${qt(z)} die Lösung?`,
+        lead:leicht?merk('Setze die Zahl für die Variable ein und rechne links und rechts aus. Gleich: w. A. (wahre Aussage), die Zahl ist die Lösung.'):'Den Taschenrechner darfst du verwenden.',
+        pruef:'probe', daten:{e, z, L, R}, felder,
+        why:`Eingesetzt: ${H(lt)} = ${qt(L)}${e.r.a==='z'?` und rechts steht ${qt(R)}`:`, rechts ${H(rt)} = ${qt(R)}`}. ${ok?`Beide Seiten gleich: w. A., ${qt(z)} ist die Lösung.`:`${qt(L)} ≠ ${qt(R)}: f. A., ${qt(z)} ist nicht die Lösung (richtig wäre ${qt(e.x)}).`}`});
+    });
+  },
+  // G2-N01 Richtig umgeformt? (begründen)
+  begruenden(ctx){
+    const leicht=ctx&&ctx.leicht;
+    return versuche(()=>{
+      const e=Math.random()<.5 ? plusMinus(pick([1,1,2])) : malDurch(pick([1,1,2]));
+      const fall=pick(['ok','ok','ok','gegen','seite','rechnen']), u=e.u;
+      let zeigU=u, erg=e.x;
+      if(fall==='gegen'){ zeigU={op:GEGEN[u.op], z:u.z}; const b=e.b; erg = zeigU.op==='+'?qa(b,u.z):zeigU.op===M?qs(b,u.z):zeigU.op==='·'?qm(b,u.z):qd(b,u.z); }
+      if(fall==='seite') erg=e.b;
+      if(fall==='rechnen') erg=qneg(e.x);
+      if(fall!=='ok'&&qg(erg,e.x)) return null;
+      if(!abbrechend(erg,3)) return null;
+      const GR = {ok:'Auf beiden Seiten wurde die Gegenoperation gerechnet, und es ist richtig gerechnet.', gegen:'Das ist nicht die Gegenoperation.',
+        seite:'Es wurde nur auf einer Seite gerechnet.', rechnen:'Die Umformung passt, aber es wurde falsch gerechnet.'};
+      const andere=mischen(Object.keys(GR).filter(k=>k!==fall)).slice(0,2);
+      return UR.dreiecke.aufg({kind:'fragen', q:`Stimmt die Umformung? ${gl(e.l,e.r,{q:true})} | ${umText(zeigU.op,zeigU.z)} ergibt ${e.v} = ${qt(erg)}. Begründe!`,
+        qh:`Stimmt die Umformung? Begründe!${rechnung([zeile(e.l,e.r,umText(zeigU.op,zeigU.z)), {l:e.v, r:qt(erg)}])}`,
+        lead:leicht?merk('Was du links rechnest, rechnest du auch rechts. Die Gegenoperation macht die Variable allein.'):'',
+        pruef:'begruenden', daten:{e, fall, zeigU, erg},
+        gruppen:[{frage:'Stimmt die Umformung?', optionen:[['ja','stimmt'],['nein','stimmt nicht']], ans:fall==='ok'?'ja':'nein'},
+          {frage:'Warum?', optionen:mischen([fall,...andere].map(k=>[k,GR[k]])), ans:fall, klasse:'lang'}],
+        why:`${fall==='ok'?'Die Umformung stimmt.':'Die Umformung stimmt nicht.'} ${warum1(e)} Was du links rechnest, rechnest du auch rechts.`, stepsh:rechnung1(e)});
+    });
+  },
+  // G2-A06 (Plus) Formeln umformen
+  formeln(ctx){
+    const [li, re, ziele] = pick(FORMELN), ges=pick(Object.keys(ziele)), [sol, ...ab] = ziele[ges];
+    const tippen = Math.random()<.35 && !/ρ/.test(li+re+sol);
+    const zahlen = !tippen && re==='a · b' && Math.random()<.5;
+    const why = `Gesucht ${ges}: Forme so um, dass ${ges} allein steht. Was du auf einer Seite rechnest, rechnest du auch auf der anderen. ${ges} = ${fH(sol)}`;
+    const qh = `Forme die Formel so um, dass du ${esc(ges)} berechnen kannst!<div class="ex">${fH(`${li} = ${re}`)}</div>`;
+    const qtext = `Forme die Formel ${li} = ${re.replace(/\//g,' durch ')} nach ${ges} um!`;
+    if(tippen){
+      const t = {kind:'zahlen', q:qtext, qh, pruef:'formeln', daten:{li, re, ges, sol, tippen}, felder:[G.formelFeld(`${ges} =`, ges, sol.replace(/ /g,'').replace(/−/g,'-'))], why};
+      t.hinweisNach = G.hinweisAus(t);
+      return UR.dreiecke.aufg(t);
+    }
+    const opt=mischen([sol,...ab].map((x,i)=>['o'+i, fH(`${ges} = ${x}`)]));
+    if(zahlen){
+      const b=[rnd(2,15),1], a=[rnd(2,25),1], A=qm(a,b), andere = ges==='a' ? 'b' : 'a', wa = ges==='a' ? b : a, erg = ges==='a' ? a : b;
+      return UR.dreiecke.aufg({kind:'zahlen', q:`Rechteck: A = a · b, A = ${qt(A)} m², ${andere} = ${qt(wa)} m. Forme um und berechne ${ges}!`,
+        qh:`Rechteck: A = a · b mit A = ${qt(A)} m² und ${andere} = ${qt(wa)} m. Forme um und berechne ${ges}!`, text:true, pruef:'formeln', daten:{li, re, ges, sol, A, wa, erg},
+        felder:[G.wahlFeld('Formel', opt, 'o0', 'fu'), {label:`${ges} =`, ans:qz(erg), exakt:true, einheit:'m', ansText:`${qt(erg)} m`}],
+        why:`${ges} = ${fH(sol)} = ${qt(A)} : ${qt(wa)} = ${qt(erg)} m.`});
+    }
+    return UR.dreiecke.aufg({kind:'fragen', q:qtext, qh, pruef:'formeln', daten:{li, re, ges, sol},
+      gruppen:[{optionen:opt, ans:'o0', klasse:'lang'}], why});
+  },
+  // G2-N02 (Plus) Waage im Gleichgewicht
+  waage(ctx){
+    return versuche(()=>{
+      const n=rnd(1,4), p=Math.random()<.4&&n>1 ? rnd(1,n-1) : 0, x=rnd(1,6), m=p ? rnd(0,6) : rnd(1,8), r=(n-p)*x+m;
+      if(r>12||(n-p===1&&p===0&&m===0)) return null;
+      const weg = p ? (m ? `${dosen(p)} und ${kugeln(m)}` : dosen(p)) : kugeln(m);
+      const kand = [weg, kugeln(r), p ? kugeln(m||1) : kugeln(m+1), p ? dosen(p+1>n?1:p+1) : dosen(1)].filter((s,i,l)=>l.indexOf(s)===i);
+      if(kand.length<3) return null;
+      const opt=mischen(kand.slice(0,3).map((s,i)=>['o'+i,s]));
+      const L={d:n,k:m}, R={d:p,k:r}, rest=r-m, dn=n-p;
+      return UR.dreiecke.aufg({kind:'zahlen', q:`Die Waage ist im Gleichgewicht: links ${dosen(n)}${m?` und ${kugeln(m)}`:''}, rechts ${p?`${dosen(p)} und `:''}${kugeln(r)}. Was nimmst du auf beiden Seiten weg? Wie viele Kugeln wiegt eine Dose?`,
+        qh:'Die Waage ist im Gleichgewicht. Was nimmst du auf beiden Seiten weg? Wie viele Kugeln wiegt eine Dose?', text:true,
+        lead:'Alle Dosen sind gleich schwer, alle Kugeln auch.', pruef:'waage', daten:{n, p, m, r, x, weg},
+        bild:waageSVG(L,R), felder:[G.wahlFeld('Auf beiden Seiten wegnehmen', opt, 'o0', 'wg', {klasse:'lang'}), {label:'Eine Dose wiegt so viel wie … Kugeln', ans:x, exakt:true, ansText:String(x)}],
+        why:`Gleichung: ${gl(m?plus(dt(n),m):dt(n), p?plus(dt(p),r):Z(r))}. Nimm auf beiden Seiten ${weg} weg: Die Waage bleibt im Gleichgewicht. ${dosen(dn)} ${dn===1?'wiegt':'wiegen'} ${kugeln(rest)}${dn>1?`, eine Dose also ${rest} : ${dn} = ${x} Kugeln`:''}. x = ${x}.`,
+        loesungBild:waageSVG({d:dn,k:0},{d:0,k:rest})});
+    });
+  },
+  // G2-N03 (Plus) Fehler finden
+  fehler(ctx){
+    return versuche(()=>{
+      const zwei=Math.random()<.35, e=zwei ? minusX(pick([1,2])) : Math.random()<.5 ? plusMinus(pick([1,2])) : malDurch(pick([1,2]));
+      let zeilen, falsch, art;
+      if(!zwei){
+        art=pick(['op','rechnen']);
+        if(art==='op'){ const u={op:GEGEN[e.u.op], z:e.u.z}, b=e.b, erg=u.op==='+'?qa(b,u.z):u.op===M?qs(b,u.z):u.op==='·'?qm(b,u.z):qd(b,u.z);
+          if(!abbrechend(erg,3)||qg(erg,e.x)) return null;
+          zeilen=[zeile(e.l,e.r,umText(u.op,u.z)), {l:e.v, r:qt(erg)}]; falsch=0; }
+        else { if(!e.x[0]) return null; zeilen=[zeile(e.l,e.r,umText(e.u.op,e.u.z)), {l:e.v, r:qt(qneg(e.x))}]; falsch=1; }
+      } else {
+        if(e.art==='bruch') return null;
+        art=pick(['mitte','schluss']);
+        const u1=e.paare[0][0][0], mi=e.mitte.r.q;
+        if(art==='mitte'){ const w=qneg(mi); if(qg(w,mi)) return null;
+          zeilen=[zeile(e.l,e.r,umText(u1.op,u1.z)), zeile(e.mitte.l,Z(w),umText('·',[-1,1])), {l:e.v, r:qt(qneg(w))}]; falsch=1; }
+        else { zeilen=[zeile(e.l,e.r,umText(u1.op,u1.z)), zeile(e.mitte.l,e.mitte.r,umText('·',[-1,1])), {l:e.v, r:qt(mi)}]; falsch=2; }
+      }
+      const nr = i => `Zeile ${i+1}: ${H(`${zeilen[i].l} = ${zeilen[i].r}`)}${zeilen[i].u?` | ${H(zeilen[i].u)}`:''}`;
+      const opt=zeilen.map((z,i)=>['z'+i, nr(i)]);
+      return UR.dreiecke.aufg({kind:'zahlen', q:`In der Rechnung steckt ein Fehler: ${zeilen.map(z=>`${z.l} = ${z.r}${z.u?` | ${z.u}`:''}`.replace(/\//g,' durch ')).join('; ')}. Tippe die falsche Zeile an und gib die richtige Lösung an!`,
+        qh:`In der Rechnung steckt ein Fehler. Tippe die falsche Zeile an und gib die richtige Lösung an!${rechnung(zeilen)}`,
+        pruef:'fehler', daten:{e, zeilen, falsch, art, zwei},
+        felder:[G.wahlFeld('Die falsche Zeile', opt, 'z'+falsch, 'fz', {klasse:'lang'}), G.mengeFeld(e.x, {label:'Richtige Lösungsmenge'})],
+        why:`${art==='op'?`Zeile 1: Die Gegenoperation ist ${umText(e.u.op,e.u.z)}.`:art==='rechnen'?'Zeile 2: Das Vorzeichen stimmt nicht.':art==='mitte'?'Zeile 2: Nach der ersten Umformung ist falsch gerechnet.':'Zeile 3: Mal (−1) ändert das Vorzeichen.'} Richtig gerechnet:`,
+        stepsh:zwei?rechnung2(e):rechnung1(e)});
+    });
+  }
+};
+
+/* ---------- Stationen des Lernwegs (nur Kern-Typen) ---------- */
+const stationen = [
+  {id:'S1', name:'Plus und Minus', hint:'x − 5 = 12 | + 5 → x = 17', types:['pm']},
+  {id:'S2', name:'Mal und geteilt', hint:'7x = 63 | : 7 → x = 9', types:['md']},
+  {id:'S3', name:'Minus vor der Variablen', hint:'25 − y = 4 → −y = −21 | · (−1)', types:['minusx']},
+  {id:'S4', name:'Umformungen erkennen und begründen', hint:'Auf beiden Seiten dasselbe', types:['schritt','begruenden']},
+  {id:'S5', name:'Probe', hint:'17 − 5 = 12, w. A.', types:['probe']}
+];
+const kern = ['pm','md','minusx','schritt','probe','begruenden'];
+const leicht = ['pm','md','minusx','schritt','probe','begruenden'];
+const plusTypen = ['formeln','waage','fehler'];
+const plusHint = 'Formeln umformen · Waage · Fehler finden';
+const lzk = {aufwand:{minusx:3, probe:2, begruenden:2}};
+
+/* ---------- Erklärung ---------- */
+const erklaerung = {
+  beispiele: () => ({a:plusMinus(1), b:malDurch(1)}),
+  neu(kind,E){ if(kind==='pm') E.a=plusMinus(1); if(kind==='md') E.b=malDurch(1); },
+  html(E){
+    const p=E.a, zeilenProbe = e => { const ein={[e.v]:e.x}; return `${H(txt(e.l,{ein}))} = ${H(txt(e.r,{ein}))} → ${qt(wert(e.l,ein))} = ${qt(wert(e.r,ein))} w. A.`; };
+    return `<section class="sheet"><h2>Äquivalenzumformungen</h2>
+    <div class="rule"><h3>Eine Gleichung ist wie eine Waage</h3><p>Links und rechts vom = ist gleich viel. Was du auf einer Seite rechnest, rechnest du auch auf der anderen. Dann bleibt die Waage im Gleichgewicht (Äquivalenzumformung).</p>
+      ${waageSVG({d:1,k:5},{d:0,k:12})}<p class="ex">x + 5 = 12 | ${M} 5<br>x = 7</p></div>
+    <div class="rule"><h3>Mit der Gegenoperation wird die Variable allein</h3><p>Gegenoperationen: + und ${M}, · und :. Die Umformung steht rechts nach dem Strich.</p>
+      ${rechnung1(p)}<p>${warum1(p)}</p><p class="small">Probe: ${zeilenProbe(p)}</p><button class="newex" data-newex="pm">Neues Beispiel</button>
+      ${rechnung1(E.b)}<p>${warum1(E.b)}</p><p class="small">Probe: ${zeilenProbe(E.b)}</p><button class="newex" data-newex="md">Neues Beispiel</button></div>
+    <div class="rule"><h3>Minus vor der Variablen</h3>${rechnung([{l:'25 − y', r:'4', u:'− 25'}, {l:'−y', r:'−21', u:'· (−1)'}, {l:'y', r:'21'}], {menge:'21'})}
+      <p>${M}y = ${M}21 heißt: Die Gegenzahl von y ist ${M}21. Mal (${M}1) auf beiden Seiten macht daraus y = 21.</p></div>
+    <div class="rule"><h3>Die Probe</h3><p>Setze die Lösung ein und rechne beide Seiten aus. Sind sie gleich, ist es eine wahre Aussage (w. A.), sonst eine falsche Aussage (f. A.).</p></div>
+    <p class="small muted">Das steht auch in deinem Mathe Know How und im Lernpaket 3.1 Gleichungen.</p>
+    <div class="row"><button class="big" data-go="comp">Weiter</button></div></section>`;
+  }
+};
+
+UR.kompetenzAnmelden({id:'M-Glei-G2', typen, stationen, kern, leicht, plus:plusTypen, plusHint, erklaerung, lzk});
+UR.glei.g2 = {plusMinus, malDurch, minusX, FORMELN, GEGEN};
 })(window.UR = window.UR || {});
 </script>
 <script>UR.start(document.getElementById('app'));</script>
